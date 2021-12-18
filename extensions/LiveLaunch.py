@@ -1,0 +1,525 @@
+import aiohttp
+from datetime import datetime, timedelta, timezone
+import discord
+from discord.ext import commands, tasks
+import logging
+
+from bin import (
+    get,
+    LaunchLibrary2,
+    NASATV,
+    YouTubeAPI,
+    YouTubeRSS,
+    YouTubeStripVideoID
+)
+
+class LiveLaunch(commands.Cog):
+    """
+    Discord.py cog for reporting live launches on YouTube.
+    """
+    def __init__(self, bot):
+        self.bot = bot
+        #### Settings ####
+        # Launch Library 2
+        self.ll2 = LaunchLibrary2()
+        # NASA
+        self.nasa_id = 'UCLA_DiR1FfKNvjuUpBHmylQ'
+        self.nasa_name = 'NASA'
+        self.nasatv = NASATV()
+        # YouTube API
+        self.ytapi = YouTubeAPI()
+        # YouTube RSS
+        self.ytrss = YouTubeRSS()
+        # YouTube regex for stripping IDs from URLs
+        self.ytid_re = YouTubeStripVideoID()
+        # YouTube base url for videos
+        self.yt_base_url = 'https://www.youtube.com/watch?v='
+        #### Start service ####
+        # Start loops
+        self.update_variables.start()
+        self.check_ll2.start()
+        self.check_rss.start()
+
+    async def send_webhook_message(self, sending: list[dict[str, str]]) -> None:
+        """
+        Sends all streams within the sending list.
+
+        Parameters
+        ----------
+        sending : list[dict[str, str]]
+            List containing dictionaries of the
+            streams that need to be sent.
+            - Mandatory keys:
+                - ` avatar ` : str
+                    Avatar URL.
+                - ` channel ` : str
+                    Channel name.
+                - ` yt_vid_id ` : str
+                    YouTube video ID.
+            - Optional key:
+                - ` embed ` : discord.Embed
+                    Embed to send for
+                    NASA TV streams.
+        """
+        async for guild_id, webhook_url in self.bot.lldb.enabled_guilds_webhook_iter():
+            try:
+                # Creating session
+                async with aiohttp.ClientSession() as session:
+                    # Creating webhook
+                    webhook = discord.Webhook.from_url(
+                        webhook_url,
+                        session=session
+                    )
+
+                    # Sending streams
+                    for send in sending:
+                        await webhook.send(
+                            self.yt_base_url + send['yt_vid_id'], 
+                            username=send['channel'],
+                            avatar_url=send['avatar']
+                        )
+
+            # Remove channel and url from the db when either is removed or deleted
+            except discord.errors.NotFound:
+                print(f'discord.errors.NotFound for webhook_url: {webhook_url}\tguild_id: {guild_id}')
+                """self.bot.lldb.enabled_guilds_edit(
+                    guild_id,
+                    channel_id=None,
+                    webhook_url=None
+                )"""
+            # When the bot fails (edge case)
+            except Exception as e:
+                logging.warning(f'Error during webhook sending: {e}, {type(e)}')
+                print(f'Error during webhook sending: {e}, {type(e)}')
+
+        # Sending complete, add streams to the database to prevent sending it again
+        for send in sending:
+            await self.bot.lldb.sent_streams_add(send['yt_vid_id'])
+
+    def create_scheduled_event(
+        self,
+        guild_id: int,
+        name: str,
+        description: str,
+        url: str,
+        start: datetime,
+        end: datetime,
+        **kwargs
+    ) -> dict[str, int and str]:
+        """
+        Create a Discord scheduled event
+        at an external location.
+
+        Parameters
+        ----------
+        guild_id : int
+            Discord guild ID.
+        name : str, default: None
+            Name of the event.
+        description : str, default: None
+            Description of the event.
+        url : str, default: None
+            External location of the event.
+        start : datetime, default: None
+            Start datetime of the event, if
+            given, end must also be given.
+        end : datetime, default: None
+            End datetime of the event, if
+            given, start must also be given.
+        **kwargs
+            Catch all for unwanted parameters.
+
+        Returns
+        -------
+        dict[str, int and str]
+            Created Discord scheduled
+            event data object.
+
+        Notes
+        -----
+        The following parameters are locked:
+        privacy_level : int, default: 2
+            Privacy of the scheduled event:
+                ` 1 `: PUBLIC (unkown, guess)
+                ` 2 `: GUILD_ONLY
+        entity_type : int, default: 3
+            Type of location, only external
+            is currently supported:
+                ` 1 `: STAGE_INSTANCE
+                ` 2 `: VOICE
+                ` 3 `: EXTERNAL
+        """
+        return self.bot.http.create_scheduled_events(
+            guild_id,
+            {
+                'name': name, 'privacy_level': 2,
+                'scheduled_start_time': start.isoformat(),
+                'scheduled_end_time': end.isoformat(),
+                'description': description, 'entity_type': 3,
+                'entity_metadata': {'location': url}
+            }
+        )
+
+    def modify_scheduled_event(
+        self,
+        guild_id: int,
+        scheduled_event_id: str = None,
+        name: str = None,
+        description: str = None,
+        url: str = None,
+        start: datetime = None,
+        end: datetime = None,
+        webcast_live: bool = False
+    ) -> dict[str, int and str]:
+        """
+        Update a Discord scheduled event
+        at an external location.
+
+        Parameters
+        ----------
+        guild_id : int
+            Discord guild ID.
+        scheduled_event_id : int
+            Discord scheduled event ID.
+        name : str, default: None
+            Name of the event.
+        description : str, default: None
+            Description of the event.
+        url : str, default: None
+            External location of the event.
+        start : datetime, default: None
+            Start datetime of the event, if
+            given, end must also be given.
+        end : datetime, default: None
+            End datetime of the event, if
+            given, start must also be given.
+        webcast_live : bool, default: False
+            Start the Discord event.
+
+        Returns
+        -------
+        dict[str, int and str]
+            Modified Discord scheduled
+            event data object.
+        """
+        # Empty payload
+        payload = {}
+        # Add given variables to the payload
+        if not name is None:
+            payload['name'] = name
+        if not description is None:
+            payload['description'] = description
+        if not url is None:
+            payload['entity_metadata'] = {'location': url}
+        if not (start and end) is None:
+            payload['scheduled_start_time'] = start.isoformat()
+            payload['scheduled_end_time'] = end.isoformat()
+        if webcast_live:
+            payload['status'] = 2
+        # Modify
+        return self.bot.http.modify_scheduled_event(
+            guild_id,
+            scheduled_event_id,
+            payload
+        )
+
+    @tasks.loop(hours=1)
+    async def update_variables(self):
+        """
+        Discord task for getting new NASA TV streams.
+        """
+        self.nasatv.update()
+
+    @tasks.loop(minutes=3)
+    async def check_ll2(self):
+        """
+        Discord task for checking the Launch Library 2 API.
+
+        Notes
+        -----
+        Makes or updates Discord scheduled events and
+        sends webhook messages of the livestream URL.
+        """
+        # Get upcoming launches and events from the LL2 API
+        upcoming = await self.ll2.upcoming()
+
+        # No data, return
+        if not upcoming:
+            print('No LL2 Data')
+            return
+
+        #### Discord scheduled events ####
+        # Iterate over the cached LL2 events
+        cached_ll2_events = []
+        async for cached in self.bot.lldb.ll2_events_iter():
+            ll2_id = cached['ll2_id']
+            cached_ll2_events.append(ll2_id)
+
+            ## Update existing scheduled events ##
+
+            # Check if the event still exists
+            if data := upcoming.get(ll2_id):
+
+                # Check for updates to the event
+                check = {key: data[key] for key in self.ll2.data_keys if data[key] != cached[key]}
+
+                # If there are any updates
+                if check:
+                    
+                    # Iterate over scheduled events corresponding to the ll2_id
+                    failed = False
+                    async for scheduled_event_id, guild_id in self.bot.lldb.scheduled_events_ll2_id_iter(ll2_id):
+
+                        # webcast_live went from True to False, remove event
+                        if check.get('webcast_live') is False:
+                            try:
+                                # Remove the scheduled event from Discord
+                                await self.bot.http.delete_scheduled_event(
+                                    guild_id,
+                                    scheduled_event_id
+                                )
+                            except:
+                                pass
+                            # Remove scheduled event from the database
+                            await self.bot.lldb.scheduled_events_remove(
+                                scheduled_event_id
+                            )
+
+                        # Updating
+                        else:
+                            remove_event = False
+                            try:
+                                await self.modify_scheduled_event(
+                                    guild_id,
+                                    scheduled_event_id,
+                                    **check
+                                )
+                            except (discord.errors.Forbidden, discord.errors.NotFound):
+                                # When missing access or already removed event
+                                remove_event = True
+                            except Exception as e:
+                                str_e = str(e)
+                                # Wrong permissions
+                                if '50013' in str_e:
+                                    remove_event = True
+                                else:
+                                    failed = True
+                                    logging.warning(f'Modify failure: {e} {type(e)}')
+                                    print('Modify failure:', e, type(e))
+                            if remove_event:
+                                # Remove scheduled event from the database
+                                await self.bot.lldb.scheduled_events_remove(
+                                    scheduled_event_id
+                                )
+                                # Set amount of events to 0
+                                await self.bot.lldb.enabled_guilds_edit(
+                                    guild_id,
+                                    scheduled_events=0
+                                )
+
+                    # Update cache
+                    if not failed:
+                        await self.bot.lldb.ll2_events_edit(
+                            ll2_id,
+                            **check
+                        )
+
+            ## Removal of existing scheduled events ##
+
+            # Cached event no longer exists
+            else:
+
+                # Iterate over scheduled events corresponding to the ll2_id
+                failed = False
+                async for scheduled_event_id, guild_id in self.bot.lldb.scheduled_events_ll2_id_iter(ll2_id):
+                    success = True
+                    try:
+                        # Remove the scheduled event from Discord
+                        await self.bot.http.delete_scheduled_event(
+                            guild_id,
+                            scheduled_event_id
+                        )
+                    except (discord.errors.Forbidden, discord.errors.NotFound):
+                        # When missing access or already removed event
+                        pass
+                    except Exception as e:
+                        # Wrong permissions
+                        if not '50013' in str(e):
+                            failed = True
+                            success = False
+                            logging.warning(f'Removal failure: {e} {type(e)}')
+                            print('Removal failure:', e, type(e))
+                    if success:
+                        # Remove scheduled event from the database
+                        await self.bot.lldb.scheduled_events_remove(
+                            scheduled_event_id
+                        )
+
+                # Remove event from the cache
+                if not failed:
+                    await self.bot.lldb.ll2_events_remove(
+                        ll2_id
+                    )
+
+        ## Creation of new scheduled events ##
+
+        # New events, not cached yet
+        new_ll2_events = upcoming.keys() - cached_ll2_events
+
+        # Add new events to the database
+        for ll2_id in new_ll2_events:
+            await self.bot.lldb.ll2_events_add(
+                ll2_id,
+                **upcoming[ll2_id]
+            )
+
+        # Asking the database for Guilds that need new events
+        async for row in self.bot.lldb.scheduled_events_remove_create_iter():
+
+            # Remove unwanted Discord scheduled events
+            if not row['create_remove']:
+                remove_event = True
+                try:
+                    # Remove the scheduled event from Discord
+                    await self.bot.http.delete_scheduled_event(
+                        row['guild_id'],
+                        row['scheduled_event_id']
+                    )
+                except (discord.errors.Forbidden, discord.errors.NotFound):
+                    # When missing access or already removed event
+                    pass
+                except Exception as e:
+                    # Wrong permissions
+                    if not '50013' in str(e):
+                        remove_event = False
+                        logging.warning(f'Removal failure in iter: {e} {type(e)}')
+                        print('Removal failure in iter:', e, type(e))
+                if remove_event:
+                    # Remove scheduled event from the database
+                    await self.bot.lldb.scheduled_events_remove(
+                        row['scheduled_event_id']
+                    )
+                    # Set amount of events to 0
+                    await self.bot.lldb.enabled_guilds_edit(
+                        row['guild_id'],
+                        scheduled_events=0
+                    )
+
+            # Create wanted Launch Library 2 as Discord scheduled events
+            else:
+                reset_settings = False
+                try:
+                    # Remove unwanted item
+                    new_event_data = upcoming[row['ll2_id']]
+                    # Create Discord scheduled event
+                    new_event = await self.create_scheduled_event(
+                        row['guild_id'],
+                        **new_event_data
+                    )
+                except (discord.errors.Forbidden, discord.errors.NotFound):
+                    # When missing access or already removed event
+                    reset_settings = True
+                except Exception as e:
+                    # Wrong permissions
+                    if '50013' in str(e):
+                        reset_settings = True
+                    else:
+                        logging.warning(f'Creation failure in iter: {e} {type(e)}')
+                        print('Creation failure in iter:', e, type(e))
+                else:
+                    # Add scheduled event to the database
+                    await self.bot.lldb.scheduled_events_add(
+                        new_event['id'],
+                        row['guild_id'],
+                        row['ll2_id']
+                    )
+                if reset_settings:
+                    # Set amount of events to 0
+                    await self.bot.lldb.enabled_guilds_edit(
+                        row['guild_id'],
+                        scheduled_events=0
+                    )
+
+        #### Sending streams using webhooks ####
+
+        # Go through upcoming streams for webhook sending
+        sending = []
+        for ll2_id, data in upcoming.items():
+            # Add stream if it is within 1 hour to the sending list
+            now = datetime.now(timezone.utc).replace(tzinfo=None)
+            if data['start'] - now < timedelta(hours=1):
+                # Check if the stream is on YouTube and not a NASA TV stream
+                yt_vid_id = self.ytid_re(data['url'])
+                if yt_vid_id and self.yt_base_url + (yt_vid_id := yt_vid_id[0]) not in self.nasatv:
+                    # Only send streams that aren't sent already
+                    if not await self.bot.lldb.sent_streams_exists(yt_vid_id):
+
+                        # Get YouTube channel
+                        channel = self.ytapi.get_channel_from_video(yt_vid_id)
+                        # Get YouTube channel name and avatar
+                        thumb, title = self.ytapi.get_channel_thumbtitle(channel)
+
+                        # Adding to the sending list
+                        sending.append(
+                            {
+                                'avatar': thumb,
+                                'channel': title,
+                                'yt_vid_id': yt_vid_id
+                            }
+                        )
+
+        if sending:
+            # Send streams
+            await self.send_webhook_message(sending)
+
+        #### Cleaning up database ####
+        # Remove all disabled Guilds from the database
+        await self.bot.lldb.enabled_guilds_clean()
+
+    @tasks.loop(minutes=1)
+    async def check_rss(self):
+        """
+        Discord task for checking the YouTube RSS feed.
+        """
+        # Storage list of streams to send
+        sending = []
+
+        # Check if there are any streams
+        streams = await self.ytrss.request()
+
+        # Iterate over dictionary to see which streams needs to be sent
+        for channel in streams:
+            # Check if the channel has any streams
+            if streams[channel]:
+                # Iterate through the streams of a channel
+                for yt_vid_id in streams[channel]:
+                    # Only send streams that aren't sent already
+                    if not await self.bot.lldb.sent_streams_exists(yt_vid_id):
+
+                        # Get YouTube channel name and avatar
+                        thumb, title = self.ytapi.get_channel_thumbtitle(channel)
+
+                        # Adding to the sending list
+                        sending.append(
+                            {
+                                'avatar': thumb,
+                                'channel': title,
+                                'yt_vid_id': yt_vid_id
+                            }
+                        )
+
+        if sending:
+            # Send streams
+            await self.send_webhook_message(sending)
+
+    @check_ll2.before_loop
+    @check_rss.before_loop
+    async def before_loop(self):
+        """
+        Wait untill the database is loaded.
+        """
+        await self.bot.wait_until_ready()
+
+
+def setup(client):
+    client.add_cog(LiveLaunch(client))

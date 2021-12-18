@@ -1,0 +1,29 @@
+{
+    "channels": [
+        "UCSUu1lih2RifWkKtDOJdsBA",
+        "UCtI0Hodo5o5dUb67FeUjDeA",
+        "UCsWq7LZaizhIi-c-Yo_bcpw",
+        "UCnrGPRKAg1PgvuSHrRIl3jg"
+    ],
+    "keywords": {
+        "UCSUu1lih2RifWkKtDOJdsBA": [
+        "live"
+        ],
+        "UCtI0Hodo5o5dUb67FeUjDeA": [
+        ""
+        ],
+        "UCsWq7LZaizhIi-c-Yo_bcpw": [
+        "launch"
+        ],
+        "UCnrGPRKAg1PgvuSHrRIl3jg": [
+        "live",
+        "broadcast"
+        ]
+    },
+    "ignore": {
+        "UCSUu1lih2RifWkKtDOJdsBA": [
+        "nsf live",
+        "nasaspaceflight live"
+        ]
+    }
+}

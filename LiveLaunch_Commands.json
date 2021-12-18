@@ -1,0 +1,59 @@
+{
+    "commands":[
+        {
+            "name":"enable",
+            "description":"Enable LiveLaunch features, only for administrators.",
+            "type":1,
+            "options":[
+                {
+                    "name":"messages",
+                    "type":7,
+                    "description":"Channel to send streams to",
+                    "channel_types":[
+                        0,
+                        5
+                    ]
+                },
+                {
+                    "name":"events",
+                    "type":4,
+                    "description":"Maximum amount of events to create [1-50]",
+                    "min_value":1,
+                    "max_value":50
+                }
+            ]
+        },
+        {
+            "name":"disable",
+            "description":"Disable LiveLaunch features, only for administrators.",
+            "type":1,
+            "options":[
+                {
+                        "name":"features",
+                        "type":3,
+                        "description":"Features to disable",
+                        "required":true,
+                        "choices":[
+                            {
+                                "name":"messages",
+                                "value":"messages"
+                            },
+                            {
+                                "name":"events",
+                                "value":"events"
+                            },
+                            {
+                                "name":"all",
+                                "value":"all"
+                            }
+                        ]
+                }
+            ]
+        },
+        {
+            "name":"help",
+            "description":"Explanation of LiveLaunch",
+            "type":1
+        }
+    ]
+}

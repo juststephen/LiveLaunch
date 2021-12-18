@@ -30,9 +30,6 @@ if not TOKEN:
 
 @client.event # On startup
 async def on_ready():
-    #print(await client.http.get_guild_commands(client.application_id, 758990853087297546))
-    #await client.http.delete_guild_command(client.application_id, 758990853087297546, ID)
-    #print(await client.http.get_global_commands(client.application_id))
     # Create application commands if needed
     if False:
         with open('LiveLaunch_Commands.json', 'r', encoding='utf-8') as f:

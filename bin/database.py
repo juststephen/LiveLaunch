@@ -742,6 +742,8 @@ class Database:
                                 ) row_nr
                             FROM
                                 ll2_events AS le
+                            WHERE
+                                le.`start` > DATE_ADD(NOW(), INTERVAL 2 MINUTE)
                         ) AS le
                     GROUP BY
                         eg.guild_id,

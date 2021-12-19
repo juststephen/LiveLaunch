@@ -169,7 +169,7 @@ class LiveLaunchCommand(commands.Cog):
 
                 new_settings['channel_id'] = None
                 new_settings['webhook_url'] = None
-            
+
             # Remove the events feature if needed
             if features in ('events', 'all') and settings['scheduled_events']:
                 new_settings['scheduled_events'] = 0

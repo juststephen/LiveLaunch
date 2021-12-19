@@ -693,7 +693,6 @@ class Database:
                                 ) row_nr
                             FROM
                                 ll2_events AS le
-
                         ) AS le
                         ON
                         (
@@ -743,7 +742,6 @@ class Database:
                                 ) row_nr
                             FROM
                                 ll2_events AS le
-
                         ) AS le
                     GROUP BY
                         eg.guild_id,

@@ -28,7 +28,7 @@ class LiveLaunchHelp(commands.Cog):
         # Enable
         embed.add_field(
             name='enable',
-            value='Use `/enable` to enable `messages` and / or `events`'
+            value='Use `/enable` to enable `messages` and/or `events`'
         )
         # Disable
         embed.add_field(

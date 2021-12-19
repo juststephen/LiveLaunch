@@ -5,7 +5,6 @@ from discord.ext import commands, tasks
 import logging
 
 from bin import (
-    get,
     LaunchLibrary2,
     NASATV,
     YouTubeAPI,
@@ -255,6 +254,9 @@ class LiveLaunch(commands.Cog):
             ll2_id = cached['ll2_id']
             cached_ll2_events.append(ll2_id)
 
+            # Failure bool
+            failed = False
+
             ## Update existing scheduled events ##
 
             # Check if the event still exists
@@ -265,9 +267,8 @@ class LiveLaunch(commands.Cog):
 
                 # If there are any updates
                 if check:
-                    
+
                     # Iterate over scheduled events corresponding to the ll2_id
-                    failed = False
                     async for scheduled_event_id, guild_id in self.bot.lldb.scheduled_events_ll2_id_iter(ll2_id):
 
                         # webcast_live went from True to False, remove event
@@ -311,11 +312,6 @@ class LiveLaunch(commands.Cog):
                                 await self.bot.lldb.scheduled_events_remove(
                                     scheduled_event_id
                                 )
-                                # Set amount of events to 0
-                                await self.bot.lldb.enabled_guilds_edit(
-                                    guild_id,
-                                    scheduled_events=0
-                                )
 
                     # Update cache
                     if not failed:
@@ -330,7 +326,6 @@ class LiveLaunch(commands.Cog):
             else:
 
                 # Iterate over scheduled events corresponding to the ll2_id
-                failed = False
                 async for scheduled_event_id, guild_id in self.bot.lldb.scheduled_events_ll2_id_iter(ll2_id):
                     success = True
                     try:
@@ -376,45 +371,14 @@ class LiveLaunch(commands.Cog):
         # Asking the database for Guilds that need new events
         async for row in self.bot.lldb.scheduled_events_remove_create_iter():
 
-            # Remove unwanted Discord scheduled events
-            if not row['create_remove']:
-                remove_event = True
-                try:
-                    # Remove the scheduled event from Discord
-                    await self.bot.http.delete_scheduled_event(
-                        row['guild_id'],
-                        row['scheduled_event_id']
-                    )
-                except (discord.errors.Forbidden, discord.errors.NotFound):
-                    # When missing access or already removed event
-                    pass
-                except Exception as e:
-                    # Wrong permissions
-                    if not '50013' in str(e):
-                        remove_event = False
-                        logging.warning(f'Removal failure in iter: {e} {type(e)}')
-                        print('Removal failure in iter:', e, type(e))
-                if remove_event:
-                    # Remove scheduled event from the database
-                    await self.bot.lldb.scheduled_events_remove(
-                        row['scheduled_event_id']
-                    )
-                    # Set amount of events to 0
-                    await self.bot.lldb.enabled_guilds_edit(
-                        row['guild_id'],
-                        scheduled_events=0
-                    )
-
             # Create wanted Launch Library 2 as Discord scheduled events
-            else:
+            if row['create_remove']:
                 reset_settings = False
                 try:
-                    # Remove unwanted item
-                    new_event_data = upcoming[row['ll2_id']]
                     # Create Discord scheduled event
                     new_event = await self.create_scheduled_event(
                         row['guild_id'],
-                        **new_event_data
+                        **upcoming[row['ll2_id']]
                     )
                 except (discord.errors.Forbidden, discord.errors.NotFound):
                     # When missing access or already removed event
@@ -433,11 +397,36 @@ class LiveLaunch(commands.Cog):
                         row['guild_id'],
                         row['ll2_id']
                     )
+                # Guild has kicked or removed permissions, turn events off
                 if reset_settings:
                     # Set amount of events to 0
                     await self.bot.lldb.enabled_guilds_edit(
                         row['guild_id'],
                         scheduled_events=0
+                    )
+
+            # Remove unwanted Discord scheduled events
+            else:
+                removed = True
+                try:
+                    # Remove the scheduled event from Discord
+                    await self.bot.http.delete_scheduled_event(
+                        row['guild_id'],
+                        row['scheduled_event_id']
+                    )
+                except (discord.errors.Forbidden, discord.errors.NotFound):
+                    # When missing access or already removed event
+                    pass
+                except Exception as e:
+                    # Wrong permissions
+                    if not '50013' in str(e):
+                        removed = False
+                        logging.warning(f'Removal failure in iter: {e} {type(e)}')
+                        print('Removal failure in iter:', e, type(e))
+                if removed:
+                    # Remove scheduled event from the database
+                    await self.bot.lldb.scheduled_events_remove(
+                        row['scheduled_event_id']
                     )
 
         #### Sending streams using webhooks ####

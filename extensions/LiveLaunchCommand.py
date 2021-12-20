@@ -1,8 +1,7 @@
-from inspect import istraceback
 import aiohttp
 from discord import TextChannel, Webhook
 from discord.ext import commands
-from discord.member import M
+import logging
 
 class LiveLaunchCommand(commands.Cog):
     """
@@ -220,6 +219,7 @@ class LiveLaunchCommand(commands.Cog):
                 ephemeral=True
             )
         else:
+            logging.warning(f'Command: {ctx.command}\nError: {error}')
             print(f'Command: {ctx.command}\nError: {error}')
 
 

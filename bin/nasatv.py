@@ -4,6 +4,7 @@ from os.path import isfile
 from selenium.webdriver import Firefox
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from threading import Thread
@@ -81,12 +82,14 @@ class NASATV:
         # Render NASA page to get URLs
         options = Options()
         options.headless = True
-        with Firefox(executable_path=f'{os.getcwd()}/geckodriver{extension}', options=options) as driver:
+        service = Service(f'{os.getcwd()}/geckodriver{extension}')
+        with Firefox(service=service, options=options) as driver:
             try:
                 # Opening the webpage and wait for it to render
                 driver.get(self._nasatv_url)
                 element = WebDriverWait(driver, 8).until(
-                    EC.presence_of_element_located((By.CLASS_NAME, 'link-block')))
+                    EC.presence_of_element_located((By.CLASS_NAME, 'link-block'))
+                )
                 # Getting URLs
                 streams = [get_href(i) for i in ('Public-Education Channel', 'Media')]
             except:
@@ -102,7 +105,7 @@ class NASATV:
                     with open(self._nasatv_file, 'w', encoding='utf-8') as f:
                         json.dump({'nasatv': self.nasatv}, f, indent=2)
             finally:
-                driver.quit()
+                driver.close()
 
     def update(self) -> None:
         """

@@ -1,4 +1,3 @@
-from datetime import datetime, timedelta
 from discord.ext import commands, tasks
 
 from bin import Database

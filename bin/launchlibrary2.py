@@ -156,7 +156,7 @@ class LaunchLibrary2:
             if not event_type in self.event_duration:
                 event_type = 'default'
             # Check if event is not in the past using the event type for duration
-            if net - datetime.now(timezone.utc).replace(tzinfo=None) > self.event_duration[event_type]:
+            if net > datetime.now(timezone.utc).replace(tzinfo=None) - self.event_duration[event_type]:
 
                 # Check for video
                 picked_video = self.no_stream

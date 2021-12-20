@@ -734,6 +734,7 @@ class Database:
                         (
                             SELECT
                                 le.ll2_id,
+                                le.`start`,
                                 ROW_NUMBER() OVER
                                 (
                                     ORDER BY
@@ -742,9 +743,9 @@ class Database:
                                 ) row_nr
                             FROM
                                 ll2_events AS le
-                            WHERE
-                                le.`start` > DATE_ADD(NOW(), INTERVAL 2 MINUTE)
                         ) AS le
+                    WHERE
+                        le.`start` > DATE_ADD(NOW(), INTERVAL 2 MINUTE)
                     GROUP BY
                         eg.guild_id,
                         le.ll2_id,

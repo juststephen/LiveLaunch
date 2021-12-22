@@ -616,6 +616,38 @@ class Database:
                     (scheduled_event_id,)
                 )
 
+    async def scheduled_events_guild_id_iter(
+        self,
+        guild_id: int
+    ) -> int or None:
+        """
+        Iterate over the scheduled events
+        of the Discord guild.
+
+        Parameters
+        ----------
+        guild_id : int
+            Discord guild ID corresponding
+            to the scheduled events.
+
+        Yields
+        ------
+        scheduled_event_id : int
+            Discord scheduled event ID.
+        """
+        with await self.pool as con:
+            async with con.cursor() as cur:
+                await cur.execute(
+                    """
+                    SELECT scheduled_event_id
+                    FROM scheduled_events
+                    WHERE guild_id=%s
+                    """,
+                    (guild_id,)
+                )
+                async for row in cur:
+                    yield row[0]
+
     async def scheduled_events_ll2_id_iter(
         self,
         ll2_id: str

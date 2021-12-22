@@ -54,6 +54,11 @@
             "name":"help",
             "description":"Explanation of LiveLaunch",
             "type":1
+        },
+        {
+            "name":"synchronize",
+            "description":"Manually synchronize LiveLaunch events, only for administrators.",
+            "type":1
         }
     ]
 }

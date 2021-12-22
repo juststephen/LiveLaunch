@@ -1,5 +1,6 @@
 from discord import Embed
 from discord.ext import commands
+import logging
 
 class LiveLaunchHelp(commands.Cog):
     """
@@ -27,13 +28,19 @@ class LiveLaunchHelp(commands.Cog):
         )
         # Enable
         embed.add_field(
-            name='enable',
+            name='Enable',
             value='Use `/enable` to enable `messages` and/or `events`'
         )
         # Disable
         embed.add_field(
-            name='disable',
+            name='Disable',
             value='Use `/disable` to disable either `messages`, `events` or `all`'
+        )
+        # Synchronize
+        embed.add_field(
+            name='Synchronize',
+            value='Use `/synchronize` to manually synchronize events,' \
+                ' for example after accidentally deleting an event.'
         )
         # Send embed
         await ctx.send(embed=embed, ephemeral=True)
@@ -43,7 +50,8 @@ class LiveLaunchHelp(commands.Cog):
         """
         Method that handles erroneous interactions.
         """
-        print(f'Command: {ctx.name}\nError: {error}')
+        logging.warning(f'Command: {ctx.command}\nError: {error}')
+        print(f'Command: {ctx.command}\nError: {error}')
 
 
 def setup(client):

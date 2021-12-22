@@ -16,10 +16,12 @@ class LiveLaunchCommand(commands.Cog):
     @commands.has_guild_permissions(administrator=True)
     @commands.cooldown(1, 16)
     @commands.defer(ephemeral=True)
-    async def enable(self, ctx,
+    async def enable(
+        self,
+        ctx,
         messages: TextChannel = None,
         events: int = None
-    ):
+    ) -> None:
         """
         Enable LiveLaunch features, only for administrators.
 
@@ -124,7 +126,7 @@ class LiveLaunchCommand(commands.Cog):
     @commands.has_guild_permissions(administrator=True)
     @commands.cooldown(1, 16)
     @commands.defer(ephemeral=True)
-    async def disable(self, ctx, features: str):
+    async def disable(self, ctx, features: str) -> None:
         """
         Disable LiveLaunch features, only for administrators.
 
@@ -202,8 +204,49 @@ class LiveLaunchCommand(commands.Cog):
                     ephemeral=True
                 )
 
+    @commands.command()
+    @commands.has_guild_permissions(administrator=True)
+    @commands.cooldown(1, 1024)
+    @commands.defer(ephemeral=True)
+    async def synchronize(self, ctx) -> None:
+        """
+        Manually synchronize LiveLaunch events, only for administrators.
+        """
+        # Amount of unsynchronized scheduled events
+        amount = 0
+
+        # Guild ID
+        guild_id = ctx.guild.id
+
+        # Get guild's Discord scheduled events
+        discord_events = await self.bot.http.list_scheduled_events(guild_id)
+
+        # Get a list of the scheduled event IDs only made by the bot itself
+        discord_events = [
+            int(i['id']) for i in discord_events \
+            if int(i['creator_id']) == self.bot.application_id
+        ]
+
+        # Get guild's scheduled events cached in the database
+        async for scheduled_event_id in self.bot.lldb.scheduled_events_guild_id_iter(guild_id):
+            # Check if the event still exists
+            if scheduled_event_id not in discord_events:
+                # Increment amount
+                amount += 1
+                # Remove scheduled_event_id from the database
+                await self.bot.lldb.scheduled_events_remove(
+                    scheduled_event_id
+                )
+
+        # Notify user
+        await ctx.send(
+            f"Synchronized, {amount} event{'s are' if amount != 1 else ' is'} missing.",
+            ephemeral=True
+        )
+
     @enable.error
     @disable.error
+    @synchronize.error
     async def command_error(self, ctx, error) -> None:
         """
         Method that handles interactions with non administrators for the enable/disable commands.

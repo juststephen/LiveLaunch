@@ -20,6 +20,8 @@ class LaunchLibrary2:
             'end',
             'webcast_live'
         )
+        # Max amount of events
+        self.max_events = 50
         # Max description length
         self.max_description_length = 1000
         # 1 hour timedelta
@@ -34,9 +36,7 @@ class LaunchLibrary2:
         # Text if there is no stream
         self.no_stream = 'No stream yet'
         # Launch Library 2 API
-        self.max_launches = 25
         self.ll2_launch_url = 'https://ll.thespacedevs.com/2.0.0/launch/upcoming/?mode=detailed&limit=32'
-        self.max_events = 25
         self.ll2_event_url = 'https://ll.thespacedevs.com/2.0.0/event/upcoming/?limit=32'
 
     async def ll2_request(self, url: str) -> dict or None:
@@ -77,8 +77,7 @@ class LaunchLibrary2:
         if results is None:
             return {}
 
-        # Storage
-        amount = 0
+        # Storage dict for returning
         launches = {}
 
         # Go through data
@@ -111,19 +110,14 @@ class LaunchLibrary2:
                         description = description[:self.max_description_length-3] + '...'
 
                 # Adding event to launches list
-                amount += 1
                 launches[entry['id']] = {
-                        'name': entry['name'],
-                        'description': description,
-                        'url': picked_video,
-                        'start': net,
-                        'end': net + self.event_duration['default'],
-                        'webcast_live': entry['webcast_live']
+                    'name': entry['name'],
+                    'description': description,
+                    'url': picked_video,
+                    'start': net,
+                    'end': net + self.event_duration['default'],
+                    'webcast_live': entry['webcast_live']
                 }
-
-                # No more than max amount of launches
-                if amount >= self.max_launches:
-                    break
 
         # Returning
         return launches
@@ -143,8 +137,7 @@ class LaunchLibrary2:
         if results is None:
             return {}
 
-        # Storage
-        amount = 0
+        # Storage dict for returning
         events = {}
 
         # Go through data
@@ -173,19 +166,14 @@ class LaunchLibrary2:
                         description = description[:self.max_description_length-3] + '...'
 
                 # Adding event to events list
-                amount += 1
                 events[str(entry['id'])] = {
-                        'name': entry['name'],
-                        'description': description,
-                        'url': picked_video,
-                        'start': net,
-                        'end': net + self.event_duration[event_type],
-                        'webcast_live': False
+                    'name': entry['name'],
+                    'description': description,
+                    'url': picked_video,
+                    'start': net,
+                    'end': net + self.event_duration[event_type],
+                    'webcast_live': False
                 }
-
-                # No more than max amount of events
-                if amount >= self.max_events:
-                    break
 
         # Returning
         return events
@@ -213,8 +201,10 @@ class LaunchLibrary2:
         except: # Older versions
             upcoming = {**launches, **events}
 
-        # Sort by start datetime
-        upcoming = dict(sorted(upcoming.items(), key=lambda item: item[1]['start']))
+        # Sort by start datetime and limit it to `.max_events` items
+        upcoming = dict(
+            sorted(upcoming.items(), key=lambda item: item[1]['start'])[:self.max_events]
+        )
 
         # Returning
         return upcoming

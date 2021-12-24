@@ -294,10 +294,10 @@ class LiveLaunch(commands.Cog):
                             # Seperate dict for updating Discord & database for next if statement
                             modify = check.copy()
 
-                            # If start changed to a datetime prior to now
+                            # If `start` changed to a datetime in the past
                             if ((start := check.get('start')) and
                                 start < (now := datetime.now(timezone.utc).replace(tzinfo=None) + self.timedelta_1)):
-                                # Replace start with webcast_live to force event live
+                                # Remove `start` value from the modify dict, can't update
                                 del modify['start']
                                 # Start event if it hasn't yet
                                 if cached['start'] > now:

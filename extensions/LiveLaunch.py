@@ -19,6 +19,8 @@ class LiveLaunch(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         #### Settings ####
+        # datetime accuracy
+        self.timedelta_1 = timedelta(minutes=1)
         # Launch Library 2
         self.ll2 = LaunchLibrary2()
         # NASA
@@ -288,12 +290,25 @@ class LiveLaunch(commands.Cog):
 
                         # Updating
                         else:
+
+                            # Seperate dict for updating Discord & database for next if statement
+                            modify = check.copy()
+
+                            # If start changed to a datetime prior to now
+                            if ((start := check.get('start')) and
+                                start < (now := datetime.now(timezone.utc).replace(tzinfo=None) + self.timedelta_1)):
+                                # Replace start with webcast_live to force event live
+                                del modify['start']
+                                # Start event if it hasn't yet
+                                if cached['start'] > now:
+                                    modify['webcast_live'] = True
+
                             remove_event = False
                             try:
                                 await self.modify_scheduled_event(
                                     guild_id,
                                     scheduled_event_id,
-                                    **check
+                                    **modify
                                 )
                             except (discord.errors.Forbidden, discord.errors.NotFound):
                                 # When missing access or already removed event

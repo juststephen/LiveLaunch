@@ -36,8 +36,8 @@ class LaunchLibrary2:
         # Text if there is no stream
         self.no_stream = 'No stream yet'
         # Launch Library 2 API
-        self.ll2_launch_url = 'https://ll.thespacedevs.com/2.0.0/launch/upcoming/?mode=detailed&limit=32'
-        self.ll2_event_url = 'https://ll.thespacedevs.com/2.0.0/event/upcoming/?limit=32'
+        self.ll2_launch_url = 'https://ll.thespacedevs.com/2.2.0/launch/upcoming/?mode=detailed&limit=32'
+        self.ll2_event_url = 'https://ll.thespacedevs.com/2.2.0/event/upcoming/?limit=32'
 
     async def ll2_request(self, url: str) -> dict or None:
         """
@@ -172,7 +172,7 @@ class LaunchLibrary2:
                     'url': picked_video,
                     'start': net,
                     'end': net + self.event_duration[event_type],
-                    'webcast_live': False
+                    'webcast_live': entry['webcast_live']
                 }
 
         # Returning

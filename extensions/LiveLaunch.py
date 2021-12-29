@@ -20,7 +20,7 @@ class LiveLaunch(commands.Cog):
         self.bot = bot
         #### Settings ####
         # datetime accuracy
-        self.timedelta_1 = timedelta(minutes=1)
+        self.timedelta_1m = timedelta(minutes=1)
         # Launch Library 2
         self.ll2 = LaunchLibrary2()
         # NASA
@@ -105,7 +105,7 @@ class LiveLaunch(commands.Cog):
         url: str,
         start: datetime,
         end: datetime,
-        **kwargs
+        webcast_live: bool = False
     ) -> dict[str, int and str]:
         """
         Create a Discord scheduled event
@@ -115,20 +115,20 @@ class LiveLaunch(commands.Cog):
         ----------
         guild_id : int
             Discord guild ID.
-        name : str, default: None
+        name : str
             Name of the event.
-        description : str, default: None
+        description : str
             Description of the event.
-        url : str, default: None
+        url : str
             External location of the event.
-        start : datetime, default: None
+        start : datetime
             Start datetime of the event, if
             given, end must also be given.
-        end : datetime, default: None
+        end : datetime
             End datetime of the event, if
             given, start must also be given.
-        **kwargs
-            Catch all for unwanted parameters.
+        webcast_live : bool, default: False
+            Start the Discord event.
 
         Returns
         -------
@@ -150,6 +150,10 @@ class LiveLaunch(commands.Cog):
                 ` 2 `: VOICE
                 ` 3 `: EXTERNAL
         """
+        # Replace start with now + `.timedelta_1m` if `webcast_live`
+        if webcast_live:
+            start = datetime.now(timezone.utc).replace(tzinfo=None) + self.timedelta_1m
+        # Return creation coroutine
         return self.bot.http.create_scheduled_events(
             guild_id,
             {
@@ -296,7 +300,7 @@ class LiveLaunch(commands.Cog):
 
                             # If `start` changed to a datetime in the past
                             if ((start := check.get('start')) and
-                                start < (now := datetime.now(timezone.utc).replace(tzinfo=None) + self.timedelta_1)):
+                                start < (now := datetime.now(timezone.utc).replace(tzinfo=None) + self.timedelta_1m)):
                                 # Remove `start` value from the modify dict, can't update
                                 del modify['start']
                                 # Start event if it hasn't yet

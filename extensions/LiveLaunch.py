@@ -324,7 +324,10 @@ class LiveLaunch(commands.Cog):
                                     remove_event = True
                                 else:
                                     failed = True
-                                    logging.warning(f'Modify failure: {e} {type(e)}')
+                                    logging.warning(
+                                        f'LL2 ID: {ll2_id}\tGuild ID: {guild_id}\t' \
+                                        f'Modify failure: {e} {type(e)}'
+                                    )
                                     print('Modify failure:', e, type(e))
                             if remove_event:
                                 # Remove scheduled event from the database
@@ -361,7 +364,10 @@ class LiveLaunch(commands.Cog):
                         if not '50013' in str(e):
                             failed = True
                             success = False
-                            logging.warning(f'Removal failure: {e} {type(e)}')
+                            logging.warning(
+                                f'LL2 ID: {ll2_id}\tGuild ID: {guild_id}\t' \
+                                f'Removal failure: {e} {type(e)}'
+                            )
                             print('Removal failure:', e, type(e))
                     if success:
                         # Remove scheduled event from the database

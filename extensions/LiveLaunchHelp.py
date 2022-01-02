@@ -17,14 +17,16 @@ class LiveLaunchHelp(commands.Cog):
         """
         # Create embed
         embed = Embed(
+            color=0x00FF00,
+            description='Creates space related events and sends live streams!',
             title='LiveLaunch - Help',
-            description='Send live launches and events to your guild!',
-            color=0x00FF00
+            url='https://juststephen.com/projects/LiveLaunch'
         )
         # Set author
         embed.set_author(
             name='by juststephen',
-            url='https://juststephen.com'
+            url='https://juststephen.com',
+            icon_url='https://juststephen.com/images/apple-touch-icon.png'
         )
         # Enable
         embed.add_field(
@@ -34,7 +36,7 @@ class LiveLaunchHelp(commands.Cog):
         # Disable
         embed.add_field(
             name='Disable',
-            value='Use `/disable` to disable either `messages`, `events` or `all`'
+            value='Use `/disable` to disable either `messages`, `events`, or `all`'
         )
         # Synchronize
         embed.add_field(

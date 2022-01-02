@@ -14,6 +14,12 @@ class LiveLaunchCommand(commands.Cog):
 
     @commands.command()
     @commands.has_guild_permissions(administrator=True)
+    @commands.bot_has_guild_permissions(
+        manage_webhooks=True,
+        manage_events=True,
+        send_messages=True,
+        embed_links=True
+    )
     @commands.cooldown(1, 16)
     @commands.defer(ephemeral=True)
     async def enable(
@@ -249,7 +255,7 @@ class LiveLaunchCommand(commands.Cog):
     @synchronize.error
     async def command_error(self, ctx, error) -> None:
         """
-        Method that handles interactions with non administrators for the enable/disable commands.
+        Method that handles erroneous interactions with the commands.
         """
         if isinstance(error, commands.errors.MissingPermissions):
             if ctx.prefix == '/':
@@ -260,6 +266,11 @@ class LiveLaunchCommand(commands.Cog):
             await ctx.send(
                 f'This command is on cooldown for {error.retry_after:.0f} more seconds.',
                 ephemeral=True
+            )
+        elif isinstance(error, commands.errors.BotMissingPermissions):
+            await ctx.send(
+                'LiveLaunch requires the `Manage Webhooks`, `Manage Events`, ' \
+                '`Send Messages` and `Embed Links` permissions.'
             )
         else:
             logging.warning(f'Command: {ctx.command}\nError: {error}')

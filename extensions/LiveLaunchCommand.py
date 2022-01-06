@@ -1,5 +1,6 @@
 import aiohttp
-from discord import TextChannel, Webhook
+from discord import Permissions, TextChannel, Webhook
+from discord.errors import Forbidden
 from discord.ext import commands
 import logging
 
@@ -53,6 +54,12 @@ class LiveLaunchCommand(commands.Cog):
             # Try creating the webhook, otherwise send fail message and stop
             try:
                 url = (await messages.create_webhook(name='LiveLaunch', avatar=webhook_avatar)).url
+            except Forbidden:
+                await ctx.send(
+                    'LiveLaunch requires the `Manage Webhooks`, '
+                    '`Send Messages` and `Embed Links` permissions for '
+                    'the `messages` feature in the specified channel.'
+                )
             except:
                 await ctx.send('Failed to enable the messages feature', ephemeral=True)
             else:
@@ -86,8 +93,12 @@ class LiveLaunchCommand(commands.Cog):
                             pass
 
                 # Add new data
-                new_settings['channel_id'] = messages.id
-                new_settings['webhook_url'] = await create_webhook()
+                webhook_url = await create_webhook()
+                if webhook_url is None:
+                    return
+                else:
+                    new_settings['channel_id'] = messages.id
+                    new_settings['webhook_url'] = webhook_url
 
             # Event settings
             if events:
@@ -109,8 +120,12 @@ class LiveLaunchCommand(commands.Cog):
             settings = {'guild_id': guild_id}
             # Get channel ID and create a webhook if requested
             if messages:
-                settings['channel_id'] = messages.id
-                settings['webhook_url'] = await create_webhook()
+                webhook_url = await create_webhook()
+                if webhook_url is None:
+                    return
+                else:
+                    new_settings['channel_id'] = messages.id
+                    new_settings['webhook_url'] = webhook_url
             # Amount of Discord scheduled events if requested
             if events:
                 settings['scheduled_events'] = events
@@ -269,7 +284,7 @@ class LiveLaunchCommand(commands.Cog):
             )
         elif isinstance(error, commands.errors.BotMissingPermissions):
             await ctx.send(
-                'LiveLaunch requires the `Manage Webhooks`, `Manage Events`, ' \
+                'LiveLaunch requires the `Manage Webhooks`, `Manage Events`, '
                 '`Send Messages` and `Embed Links` permissions.'
             )
         else:

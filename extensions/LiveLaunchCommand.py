@@ -124,8 +124,8 @@ class LiveLaunchCommand(commands.Cog):
                 if webhook_url is None:
                     return
                 else:
-                    new_settings['channel_id'] = messages.id
-                    new_settings['webhook_url'] = webhook_url
+                    settings['channel_id'] = messages.id
+                    settings['webhook_url'] = webhook_url
             # Amount of Discord scheduled events if requested
             if events:
                 settings['scheduled_events'] = events

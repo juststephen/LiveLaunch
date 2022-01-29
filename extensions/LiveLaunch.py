@@ -21,6 +21,7 @@ class LiveLaunch(commands.Cog):
         #### Settings ####
         # datetime accuracy
         self.timedelta_1m = timedelta(minutes=1)
+        self.timedelta_1h = timedelta(hours=1)
         # Launch Library 2
         self.ll2 = LaunchLibrary2()
         # NASA
@@ -298,14 +299,34 @@ class LiveLaunch(commands.Cog):
                             # Seperate dict for updating Discord & database for next if statement
                             modify = check.copy()
 
-                            # If `start` changed to a datetime in the past
-                            if ((start := check.get('start')) and
-                                start < (now := datetime.now(timezone.utc).replace(tzinfo=None) + self.timedelta_1m)):
-                                # Remove `start` value from the modify dict, can't update
-                                del modify['start']
-                                # Start event if it hasn't yet
-                                if cached['start'] > now:
-                                    modify['webcast_live'] = True
+                            if (start := check.get('start')):
+
+                                # If `start` changed to a datetime in the past
+                                if start < (now := datetime.now(timezone.utc).replace(tzinfo=None) + self.timedelta_1m):
+                                    # Remove `start` value from the modify dict, can't update
+                                    del modify['start']
+                                    # Start event if it hasn't yet
+                                    if cached['start'] > now:
+                                        modify['webcast_live'] = True
+
+                                # If `start` moved forward while the event is live
+                                elif cached['start'] < now:
+                                    if start > now + self.timedelta_1h:
+                                        try:
+                                            # Remove the scheduled event from Discord
+                                            await self.bot.http.delete_scheduled_event(
+                                                guild_id,
+                                                scheduled_event_id
+                                            )
+                                        except:
+                                            pass
+                                        # Remove scheduled event from the database
+                                        await self.bot.lldb.scheduled_events_remove(
+                                            scheduled_event_id
+                                        )
+                                        continue
+                                    # Remove `start` value from the modify dict, new start isn't too far from current
+                                    del modify['start']
 
                             remove_event = False
                             try:

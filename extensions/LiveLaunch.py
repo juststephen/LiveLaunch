@@ -2,6 +2,7 @@ import aiohttp
 from datetime import datetime, timedelta, timezone
 import discord
 from discord.ext import commands, tasks
+from discord.utils import _bytes_to_base64_data
 import logging
 
 from bin import (
@@ -106,7 +107,9 @@ class LiveLaunch(commands.Cog):
         url: str,
         start: datetime,
         end: datetime,
-        webcast_live: bool = False
+        webcast_live: bool = False,
+        image: bytes = None,
+        **kwargs
     ) -> dict[str, int and str]:
         """
         Create a Discord scheduled event
@@ -130,6 +133,9 @@ class LiveLaunch(commands.Cog):
             given, start must also be given.
         webcast_live : bool, default: False
             Start the Discord event.
+        image : bytes, default: None
+            Event cover image.
+        **kwargs
 
         Returns
         -------
@@ -154,6 +160,9 @@ class LiveLaunch(commands.Cog):
         # Replace start with now + `.timedelta_1m` if `webcast_live`
         if webcast_live:
             start = datetime.now(timezone.utc).replace(tzinfo=None) + self.timedelta_1m
+        # Convert image bytes to base64
+        if image:
+            image = _bytes_to_base64_data(image)
         # Return creation coroutine
         return self.bot.http.create_scheduled_events(
             guild_id,
@@ -162,7 +171,8 @@ class LiveLaunch(commands.Cog):
                 'scheduled_start_time': start.isoformat(),
                 'scheduled_end_time': end.isoformat(),
                 'description': description, 'entity_type': 3,
-                'entity_metadata': {'location': url}
+                'entity_metadata': {'location': url},
+                'image': image
             }
         )
 
@@ -173,9 +183,11 @@ class LiveLaunch(commands.Cog):
         name: str = None,
         description: str = None,
         url: str = None,
+        image: bytes = None,
         start: datetime = None,
         end: datetime = None,
-        webcast_live: bool = False
+        webcast_live: bool = False,
+        **kwargs
     ) -> dict[str, int and str]:
         """
         Update a Discord scheduled event
@@ -193,6 +205,8 @@ class LiveLaunch(commands.Cog):
             Description of the event.
         url : str, default: None
             External location of the event.
+        image : bytes, default: None
+            Event cover image.
         start : datetime, default: None
             Start datetime of the event, if
             given, end must also be given.
@@ -201,6 +215,7 @@ class LiveLaunch(commands.Cog):
             given, start must also be given.
         webcast_live : bool, default: False
             Start the Discord event.
+        **kwargs
 
         Returns
         -------
@@ -217,6 +232,8 @@ class LiveLaunch(commands.Cog):
             payload['description'] = description
         if not url is None:
             payload['entity_metadata'] = {'location': url}
+        if not image is None:
+            payload['image'] = _bytes_to_base64_data(image)
         if not (start and end) is None:
             payload['scheduled_start_time'] = start.isoformat()
             payload['scheduled_end_time'] = end.isoformat()
@@ -274,6 +291,13 @@ class LiveLaunch(commands.Cog):
 
                 # If there are any updates
                 if check:
+
+                    # Downloading image
+                    if (image_url := check.get('image_url')):
+                        async with aiohttp.ClientSession() as session:
+                            async with session.get(image_url) as resp:
+                                if resp.status == 200:
+                                    check['image'] = await resp.read()
 
                     # Iterate over scheduled events corresponding to the ll2_id
                     async for scheduled_event_id, guild_id in self.bot.lldb.scheduled_events_ll2_id_iter(ll2_id):
@@ -358,6 +382,8 @@ class LiveLaunch(commands.Cog):
 
                     # Update cache
                     if not failed:
+                        # Remove image, not cached
+                        check.pop('image', None)
                         await self.bot.lldb.ll2_events_edit(
                             ll2_id,
                             **check
@@ -419,6 +445,15 @@ class LiveLaunch(commands.Cog):
 
             # Create wanted Launch Library 2 as Discord scheduled events
             if row['create_remove']:
+
+                # Downloading image
+                if (upcoming[row['ll2_id']].get('image') is None and
+                    (image_url := upcoming[row['ll2_id']].get('image_url'))):
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(image_url) as resp:
+                            if resp.status == 200:
+                                upcoming[row['ll2_id']]['image'] = await resp.read()
+
                 reset_settings = False
                 try:
                     # Create Discord scheduled event

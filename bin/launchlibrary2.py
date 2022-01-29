@@ -16,6 +16,7 @@ class LaunchLibrary2:
             'name',
             'description',
             'url',
+            'image_url',
             'start',
             'end',
             'webcast_live'
@@ -35,6 +36,8 @@ class LaunchLibrary2:
         }
         # Text if there is no stream
         self.no_stream = 'No stream yet'
+        # Supported image formats
+        self.image_formats = ('.gif', '.jpeg', '.jpg', '.png')
         # Launch Library 2 API
         self.ll2_launch_url = 'https://ll.thespacedevs.com/2.2.0/launch/upcoming/?mode=detailed&limit=32'
         self.ll2_event_url = 'https://ll.thespacedevs.com/2.2.0/event/upcoming/?limit=32'
@@ -109,11 +112,16 @@ class LaunchLibrary2:
                         # Trim
                         description = description[:self.max_description_length-3] + '...'
 
+                # Image format check
+                if (image_url := entry['image']) and not image_url.endswith(self.image_formats):
+                    image_url = None
+
                 # Adding event to launches list
                 launches[entry['id']] = {
                     'name': entry['name'],
                     'description': description,
                     'url': picked_video,
+                    'image_url': image_url,
                     'start': net,
                     'end': net + self.event_duration['default'],
                     'webcast_live': entry['webcast_live']
@@ -165,11 +173,16 @@ class LaunchLibrary2:
                         # Trim
                         description = description[:self.max_description_length-3] + '...'
 
+                # Image format check
+                if (image_url := entry['feature_image']) and not image_url.endswith(self.image_formats):
+                    image_url = None
+
                 # Adding event to events list
                 events[str(entry['id'])] = {
                     'name': entry['name'],
                     'description': description,
                     'url': picked_video,
+                    'image_url': image_url,
                     'start': net,
                     'end': net + self.event_duration[event_type],
                     'webcast_live': entry['webcast_live']

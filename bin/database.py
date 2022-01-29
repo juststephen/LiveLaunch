@@ -63,6 +63,7 @@ class Database:
                     name TEXT DEFAULT NULL,
                     description TEXT DEFAULT NULL,
                     url TEXT DEFAULT NULL,
+                    image_url TEXT DEFAULT NULL,
                     start TEXT DEFAULT NULL,
                     end TEXT DEFAULT NULL,
                     webcast_live TINYINT DEFAULT 0
@@ -267,13 +268,13 @@ class Database:
         """
         cols, args = [], []
         # Update channel ID and webhook URL if given
-        if not (channel_id and webhook_url) is MISSING:
+        if (channel_id and webhook_url) is not MISSING:
             cols.append('channel_id=%s')
             args.append(channel_id)
             cols.append('webhook_url=%s')
             args.append(webhook_url)
         # Update scheduled_events if given
-        if not scheduled_events is None:
+        if scheduled_events is not None:
             cols.append('scheduled_events=%s')
             args.append(scheduled_events)
         # Add guild ID to the arguments
@@ -323,9 +324,10 @@ class Database:
     async def ll2_events_add(
         self,
         ll2_id: str,
-        name : str,
-        description : str,
-        url : str,
+        name: str,
+        description: str,
+        url: str,
+        image_url: str,
         start: datetime,
         end: datetime,
         webcast_live: bool = False
@@ -344,6 +346,8 @@ class Database:
             Event description.
         url : str
             Event live stream URL.
+        image_url : str
+            Event cover image URL.
         start : datetime
             Event start datetime object.
         end : datetime
@@ -356,11 +360,12 @@ class Database:
                 await cur.execute(
                     """
                     INSERT INTO ll2_events
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
                         ll2_id, name,
                         description, url,
+                        image_url,
                         start.isoformat(),
                         end.isoformat(),
                         webcast_live
@@ -415,6 +420,7 @@ class Database:
             name: str,
             description: str
             url: str,
+            image_url: str,
             start: datetime,
             end: datetime,
             webcast_live: bool
@@ -464,6 +470,7 @@ class Database:
             name: str
             description: str
             url: str,
+            image_url: str,
             start: datetime,
             end: datetime,
             webcast_live: bool
@@ -493,8 +500,9 @@ class Database:
         self,
         ll2_id: str,
         name: str = None,
-        description : str = None,
+        description: str = None,
         url: str = None,
+        image_url: str = MISSING,
         start: datetime = None,
         end: datetime = None,
         webcast_live: bool = None
@@ -513,6 +521,8 @@ class Database:
             Event description.
         url : str, default: None
             Event live stream URL.
+        image_url : str, default: MISSING
+            Event cover image URL.
         start : datetime, default: None
             Event start datetime object.
         end : datetime, default: None
@@ -522,22 +532,25 @@ class Database:
         """
         cols, args = [], []
         # Update variables in the row if given
-        if not name is None:
+        if name is not None:
             cols.append('name=%s')
             args.append(name)
-        if not description is None:
+        if description is not None:
             cols.append('description=%s')
             args.append(description)
-        if not url is None:
+        if url is not None:
             cols.append('url=%s')
             args.append(url)
-        if not start is None:
+        if image_url is not MISSING:
+            cols.append('image_url=%s')
+            args.append(image_url)
+        if start is not None:
             cols.append('start=%s')
             args.append(start.isoformat())
-        if not end is None:
+        if end is not None:
             cols.append('end=%s')
             args.append(end.isoformat())
-        if not webcast_live is None:
+        if webcast_live is not None:
             cols.append('webcast_live=%s')
             args.append(webcast_live)
         # Add ll2_id to the arguments

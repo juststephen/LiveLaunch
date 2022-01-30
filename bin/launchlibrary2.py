@@ -93,6 +93,9 @@ class LaunchLibrary2:
 
             if net - datetime.now(timezone.utc).replace(tzinfo=None) > self.dt1 and status:
 
+                # Name with potential [TBD] (To Be Determined) prefix
+                name = entry['name'] if entry['status']['id'] != 2 else '[TBD] ' + entry['name']
+
                 # Check for videos
                 picked_video = self.no_stream
                 if 'vidURLs' in entry and entry['vidURLs']:
@@ -118,7 +121,7 @@ class LaunchLibrary2:
 
                 # Adding event to launches list
                 launches[entry['id']] = {
-                    'name': entry['name'],
+                    'name': name,
                     'description': description,
                     'url': picked_video,
                     'image_url': image_url,

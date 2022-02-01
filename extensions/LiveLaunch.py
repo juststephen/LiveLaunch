@@ -84,16 +84,16 @@ class LiveLaunch(commands.Cog):
 
             # Remove channel and url from the db when either is removed or deleted
             except discord.errors.NotFound:
-                print(f'discord.errors.NotFound for webhook_url: {webhook_url}\tguild_id: {guild_id}')
-                """self.bot.lldb.enabled_guilds_edit(
+                self.bot.lldb.enabled_guilds_edit(
                     guild_id,
                     channel_id=None,
                     webhook_url=None
-                )"""
+                )
+                logging.warning(f'Guild ID: {guild_id}\tRemoved webhook, not found.')
             # When the bot fails (edge case)
             except Exception as e:
-                logging.warning(f'Error during webhook sending: {e}, {type(e)}')
-                print(f'Error during webhook sending: {e}, {type(e)}')
+                logging.warning(f'Guild ID: {guild_id}\tError during webhook sending: {e}, {type(e)}')
+                print(f'Guild ID: {guild_id}\tError during webhook sending: {e}, {type(e)}')
 
         # Sending complete, add streams to the database to prevent sending it again
         for send in sending:

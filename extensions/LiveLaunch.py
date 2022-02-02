@@ -84,7 +84,7 @@ class LiveLaunch(commands.Cog):
 
             # Remove channel and url from the db when either is removed or deleted
             except discord.errors.NotFound:
-                self.bot.lldb.enabled_guilds_edit(
+                await self.bot.lldb.enabled_guilds_edit(
                     guild_id,
                     channel_id=None,
                     webhook_url=None

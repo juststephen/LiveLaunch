@@ -334,8 +334,9 @@ class LiveLaunch(commands.Cog):
                                         modify['webcast_live'] = True
 
                                 # If `start` moved forward while the event is live
-                                elif cached['start'] < now:
+                                elif cached['webcast_live'] or cached['start'] < now:
                                     if start > now + self.timedelta_1h:
+
                                         try:
                                             # Remove the scheduled event from Discord
                                             await self.bot.http.delete_scheduled_event(
@@ -344,11 +345,15 @@ class LiveLaunch(commands.Cog):
                                             )
                                         except:
                                             pass
+
                                         # Remove scheduled event from the database
                                         await self.bot.lldb.scheduled_events_remove(
                                             scheduled_event_id
                                         )
+
+                                        # Skip updating, event is removed
                                         continue
+
                                     # Remove `start` value from the modify dict, new start isn't too far from current
                                     del modify['start']
 

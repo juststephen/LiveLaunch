@@ -51,7 +51,9 @@ class Database:
                     guild_id BIGINT UNSIGNED PRIMARY KEY,
                     channel_id BIGINT UNSIGNED DEFAULT NULL,
                     webhook_url TEXT DEFAULT NULL,
-                    scheduled_events TINYINT UNSIGNED DEFAULT 0
+                    scheduled_events TINYINT UNSIGNED DEFAULT 0,
+                    news_channel_id BIGINT UNSIGNED DEFAULT NULL,
+                    news_webhook_url TEXT DEFAULT NULL
                     )
                     """
                 )
@@ -67,6 +69,28 @@ class Database:
                     start TEXT DEFAULT NULL,
                     end TEXT DEFAULT NULL,
                     webcast_live TINYINT DEFAULT 0
+                    )
+                    """
+                )
+                # Create table for storing news sites
+                await cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS news_sites (
+                    news_site_id SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    news_site_name TEXT
+                    )
+                    """
+                )
+                # Create table for storing filtered news sites per Guild
+                await cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS news_filter (
+                    guild_id BIGINT UNSIGNED,
+                    news_site_id SMALLINT UNSIGNED,
+                    PRIMARY KEY (guild_id, news_site_id),
+                    FOREIGN KEY (guild_id) REFERENCES enabled_guilds(guild_id)
+                        ON DELETE CASCADE,
+                    FOREIGN KEY (news_site_id) REFERENCES news_sites(news_site_id)
                     )
                     """
                 )
@@ -99,7 +123,9 @@ class Database:
         guild_id: int,
         channel_id: int = None,
         webhook_url: str = None,
-        scheduled_events: int = 0
+        scheduled_events: int = 0,
+        news_channel_id: int = None,
+        news_webhook_url: str = None
     ) -> None:
         """
         Adds an entry in the `enabled_guilds`
@@ -115,19 +141,27 @@ class Database:
             Discord webhook URL.
         scheduled_events : int, default: 0
             Maximum amount of events.
+        news_channel_id : int, default: None
+            Discord channel ID
+            for sending news.
+        news_webhook_url : str, default: None
+            Discord webhook URL
+            for sending news.
         """
         with await self.pool as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
                     INSERT INTO enabled_guilds
-                    VALUES (%s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s)
                     """,
                     (
                         guild_id,
                         channel_id,
                         webhook_url,
-                        scheduled_events
+                        scheduled_events,
+                        news_channel_id,
+                        news_webhook_url
                     )
                 )
 
@@ -151,6 +185,32 @@ class Database:
                     (guild_id,)
                 )
 
+    async def enabled_guilds_news_iter(self) -> tuple[int, str]:
+        """
+        Iterates over the guilds
+        that enabled news.
+
+        Yields
+        ------
+        tuple[
+            guild_id : int,
+            news_webhook_url : str
+        ]
+            Yields the guild_id,
+            news_webhook_url.
+        """
+        with await self.pool as con:
+            async with con.cursor() as cur:
+                await cur.execute(
+                    """
+                    SELECT guild_id, news_webhook_url
+                    FROM enabled_guilds
+                    WHERE news_webhook_url IS NOT NULL
+                    """
+                )
+                async for row in cur:
+                    yield row
+
     async def enabled_guilds_scheduled_events_iter(self) -> tuple[int]:
         """
         Go over every row in the
@@ -162,13 +222,15 @@ class Database:
 
         Yields
         ------
-        guild_id : int
+        tuple[
+            guild_id : int,
+            amount : int
+        ]
             Yields Discord Guild ID
             when it scheduled events
-            are enabled.
-        amount : int
-            Amount of events that can
-            be created before reaching
+            are enabled and the amount
+            of events that can be
+            created before reaching
             the guild's maximum amount.
         """
         with await self.pool as con:
@@ -204,7 +266,7 @@ class Database:
                     """
                     SELECT guild_id, webhook_url
                     FROM enabled_guilds
-                    WHERE NOT webhook_url IS NULL
+                    WHERE webhook_url IS NOT NULL
                     """
                 )
                 async for row in cur:
@@ -226,9 +288,11 @@ class Database:
         Returns
         -------
         dict[
-            channel_id: int,
-            webhook_url: str,
-            scheduled_events: int
+            channel_id : int,
+            webhook_url : str,
+            scheduled_events : int,
+            news_channel_id : int,
+            news_webhook_url : str
             ] or None
             Returns a row with the guild's data
             if it exists, otherwise None.
@@ -249,7 +313,9 @@ class Database:
         self, guild_id: int,
         channel_id: int = MISSING,
         webhook_url: str = MISSING,
-        scheduled_events: int = None
+        scheduled_events: int = None,
+        news_channel_id: int = MISSING,
+        news_webhook_url: str = MISSING
     ) -> None:
         """
         Modifies an entry in the `enabled_guilds`
@@ -265,6 +331,12 @@ class Database:
             Discord webhook URL.
         scheduled_events : int, default: None
             Maximum amount of scheduled events.
+        news_channel_id : int, default: `MISSING`
+            Discord channel ID
+            for sending news.
+        news_webhook_url : str, default: `MISSING`
+            Discord webhook URL
+            for sending news.
         """
         cols, args = [], []
         # Update channel ID and webhook URL if given
@@ -277,6 +349,12 @@ class Database:
         if scheduled_events is not None:
             cols.append('scheduled_events=%s')
             args.append(scheduled_events)
+        # Update news channel ID and news webhook URL if given
+        if (news_channel_id and news_webhook_url) is not MISSING:
+            cols.append('news_channel_id=%s')
+            args.append(news_channel_id)
+            cols.append('news_webhook_url=%s')
+            args.append(news_webhook_url)
         # Add guild ID to the arguments
         args.append(guild_id)
         # Update
@@ -308,6 +386,9 @@ class Database:
                     LEFT JOIN
                         scheduled_events AS se
                         ON se.guild_id = eg.guild_id
+                    LEFT JOIN
+                        news_filter as nf
+                        ON nf.guild_id = eg.guild_id
                     WHERE
                         se.guild_id IS NULL
                         AND
@@ -316,6 +397,10 @@ class Database:
                         eg.webhook_url IS NULL
                         AND
                         eg.scheduled_events = 0
+                        AND
+                        eg.news_channel_id IS NULL
+                        AND
+                        eg.news_webhook_url IS NULL
                     """
                 )
 
@@ -416,14 +501,14 @@ class Database:
         Yields
         ------
         dict[
-            ll2_id: str,
-            name: str,
-            description: str
-            url: str,
-            image_url: str,
-            start: datetime,
-            end: datetime,
-            webcast_live: bool
+            ll2_id : str,
+            name : str,
+            description : str
+            url : str,
+            image_url : str,
+            start : datetime,
+            end : datetime,
+            webcast_live : bool
         ]
             Yields row with of an LL2
             event with the relevant data.
@@ -467,13 +552,13 @@ class Database:
         Returns
         -------
         dict[
-            name: str
-            description: str
-            url: str,
-            image_url: str,
-            start: datetime,
-            end: datetime,
-            webcast_live: bool
+            name : str
+            description : str
+            url : str,
+            image_url : str,
+            start : datetime,
+            end : datetime,
+            webcast_live : bool
         ] or None
             Returns a row with the ll2_event's data
             if it exists, otherwise None.
@@ -566,6 +651,215 @@ class Database:
                     """,
                     args
                 )
+
+    # News sites
+
+    async def news_sites_add(self, news_site_name: str) -> None:
+        """
+        Add a news site to the
+        database table `news_sites`.
+
+        Parameters
+        ----------
+        news_site_name : str
+            Name of the news site.
+        """
+        with await self.pool as con:
+            async with con.cursor() as cur:
+                await cur.execute(
+                    """
+                    INSERT INTO
+                    news_sites(news_site_name)
+                    SELECT %s
+                    WHERE NOT EXISTS(
+                        SELECT *
+                        FROM news_sites
+                        WHERE news_site_name=%s
+                    )
+                    """,
+                    (news_site_name, news_site_name)
+                )
+
+    # News filter
+
+    async def news_filter_add(
+        self,
+        guild_id: int,
+        news_site_name: str
+    ) -> bool:
+        """
+        Adds a news site filter to
+        the guild's news settings.
+
+        Parameters
+        ----------
+        guild_id : int
+            Discord guild ID.
+        news_site_name : str
+            News site filter word.
+
+        Returns
+        -------
+        status : bool
+            Whether the filter
+            could be added or not.
+        """
+        with await self.pool as con:
+            async with con.cursor() as cur:
+                await cur.execute(
+                    """
+                    SELECT COUNT(*)
+                    FROM news_sites
+                    WHERE news_site_name=%s
+                    """,
+                    (news_site_name,)
+                )
+                status = (await cur.fetchone())[0] != 0
+                if status:
+                    await cur.execute(
+                        """
+                        REPLACE INTO news_filter
+                        VALUES (%s,
+                            (
+                                SELECT news_site_id
+                                FROM news_sites
+                                WHERE news_site_name=%s
+                            )
+                        )
+                        """,
+                        (guild_id, news_site_name)
+                    )
+                return status
+
+    async def news_filter_remove(
+        self,
+        guild_id: int,
+        news_site_name: str
+    ) -> bool:
+        """
+        Removes a news site filter to
+        the guild's news settings.
+
+        Parameters
+        ----------
+        guild_id : int
+            Discord guild ID.
+        news_site_name : str
+            News site filter word.
+
+        Returns
+        -------
+        status : bool
+            Whether the filter
+            could be removed or not.
+        """
+        with await self.pool as con:
+            async with con.cursor() as cur:
+                await cur.execute(
+                    """
+                    SELECT COUNT(*)
+                    FROM news_sites
+                    WHERE news_site_name=%s
+                    """,
+                    (news_site_name,)
+                )
+                status = (await cur.fetchone())[0] != 0
+                if status:
+                    await cur.execute(
+                        """
+                        DELETE FROM news_filter
+                        WHERE guild_id=%s AND
+                        news_site_id=(
+                            SELECT news_site_id
+                            FROM news_sites
+                            WHERE news_site_name=%s
+                        )
+                        """,
+                        (guild_id, news_site_name)
+                    )
+                return status
+
+    async def news_filter_list(self, *, guild_id: int = None) -> list[str]:
+        """
+        Get all current news site
+        filters of the guild.
+
+        Parameters
+        ----------
+        guild_id : int, default: None
+            Discord guild ID, when
+            None, return all available
+            news sites for filtering.
+
+        Returns
+        -------
+        filters : list[
+            str
+        ]
+            Returns a tuple of strings
+            containing the current
+            news sites being filtered
+            or all available ones.
+        """
+        with await self.pool as con:
+            async with con.cursor() as cur:
+                if guild_id:
+                    await cur.execute(
+                        """
+                        SELECT news_site_name
+                        FROM news_filter AS nf
+                        JOIN
+                            news_sites AS ns
+                            ON ns.news_site_id = nf.news_site_id
+                        WHERE guild_id=%s
+                        """,
+                        (guild_id,)
+                    )
+                else:
+                    await cur.execute(
+                        """
+                        SELECT news_site_name
+                        FROM news_sites
+                        """
+                    )
+                return [i[0] for i in await cur.fetchall()]
+
+    async def news_filter_check(
+        self,
+        guild_id: int,
+        news_site_name: str
+    ) -> bool:
+        """
+        Check if the news site is not
+        being filtered in the guild.
+
+        Parameters
+        ----------
+        guild_id : int
+            Discord guild ID.
+        news_site_name : str
+            News site's name.
+
+        Returns
+        -------
+        check : bool
+            True when the news site is
+            not filtered within the guild.
+        """
+        with await self.pool as con:
+            async with con.cursor() as cur:
+                await cur.execute(
+                    """
+                    SELECT count(*)
+                    FROM news_filter AS nf
+                    JOIN
+                        news_sites AS ns
+                        ON ns.news_site_id = nf.news_site_id
+                    WHERE guild_id=%s AND news_site_name=%s
+                    """,
+                    (guild_id, news_site_name)
+                )
+                return (await cur.fetchone())[0] == 0
 
     # Discord scheduled events table
 
@@ -708,9 +1002,9 @@ class Database:
         Yields
         ------
         dict[
-            guild_id: int,
-            scheduled_event_id: int,
-            create_remove: bool = False
+            guild_id : int,
+            scheduled_event_id : int,
+            create_remove : bool = False
         ]
         """
         with await self.pool as con:
@@ -760,9 +1054,9 @@ class Database:
         Yields
         ------
         dict[
-            guild_id: int,
-            ll2_id: str,
-            create_remove: bool = True
+            guild_id : int,
+            ll2_id : str,
+            create_remove : bool = True
         ]
         """
         with await self.pool as con:
@@ -820,9 +1114,9 @@ class Database:
         Yields
         ------
         dict[
-            guild_id: int,
-            scheduled_event_id: int or ll2_id: str,
-            create_remove: bool
+            guild_id : int,
+            scheduled_event_id : int or ll2_id : str,
+            create_remove : bool
         ]
         """
         async for row in self.scheduled_events_remove_iter():

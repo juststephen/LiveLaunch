@@ -31,18 +31,23 @@ class LiveLaunchHelp(commands.Cog):
         # Enable
         embed.add_field(
             name='Enable',
-            value='Use `/enable` to enable `messages` and/or `events`'
+            value='Use `/enable` to enable `news`, `messages` and/or `events`'
         )
         # Disable
         embed.add_field(
             name='Disable',
-            value='Use `/disable` to disable either `messages`, `events`, or `all`'
+            value='Use `/disable` to disable either `news`, `messages`, `events`, or `all`'
         )
         # Synchronize
         embed.add_field(
             name='Synchronize',
             value='Use `/synchronize` to manually synchronize events,' \
                 ' for example after accidentally deleting an event.'
+        )
+        # News Filter
+        embed.add_field(
+            name='News Filter',
+            value='Use `/newsfilter` to list, add or remove news site filters.'
         )
         # Send embed
         await ctx.send(embed=embed, ephemeral=True)

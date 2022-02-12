@@ -34,7 +34,7 @@ async def on_ready():
     if False:
         with open('LiveLaunch_Commands.json', 'r', encoding='utf-8') as f:
             commands = json.load(f)
-        response = await client.http.bulk_upsert_global_commands(
+        response = await client.http.bulk_create_global_application_commands(
             client.application_id, commands['commands']
         )
         print(response)

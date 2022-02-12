@@ -2,9 +2,18 @@
     "commands":[
         {
             "name":"enable",
-            "description":"Enable LiveLaunch features, only for administrators.",
+            "description":"Enable LiveLaunch features, only for administrators",
             "type":1,
             "options":[
+                {
+                    "name":"news",
+                    "type":7,
+                    "description":"Channel to send news to",
+                    "channel_types":[
+                        0,
+                        5
+                    ]
+                },
                 {
                     "name":"messages",
                     "type":7,
@@ -25,28 +34,32 @@
         },
         {
             "name":"disable",
-            "description":"Disable LiveLaunch features, only for administrators.",
+            "description":"Disable LiveLaunch features, only for administrators",
             "type":1,
             "options":[
                 {
-                        "name":"features",
-                        "type":3,
-                        "description":"Features to disable",
-                        "required":true,
-                        "choices":[
-                            {
-                                "name":"messages",
-                                "value":"messages"
-                            },
-                            {
-                                "name":"events",
-                                "value":"events"
-                            },
-                            {
-                                "name":"all",
-                                "value":"all"
-                            }
-                        ]
+                    "name":"features",
+                    "type":3,
+                    "description":"Features to disable",
+                    "required":true,
+                    "choices":[
+                        {
+                            "name":"news",
+                            "value":"news"
+                        },
+                        {
+                            "name":"messages",
+                            "value":"messages"
+                        },
+                        {
+                            "name":"events",
+                            "value":"events"
+                        },
+                        {
+                            "name":"all",
+                            "value":"all"
+                        }
+                    ]
                 }
             ]
         },
@@ -57,8 +70,46 @@
         },
         {
             "name":"synchronize",
-            "description":"Manually synchronize LiveLaunch events, only for administrators.",
+            "description":"Manually synchronize LiveLaunch events, only for administrators",
             "type":1
+        },
+        {
+            "name":"newsfilter",
+            "description":"List, add and remove filters for news sites",
+            "type":1,
+            "options":[
+                {
+                    "name":"list",
+                    "type":1,
+                    "description":"List filters for news sites"
+                },
+                {
+                    "name":"add",
+                    "type":1,
+                    "description":"Add a filter for a news site",
+                    "options":[
+                        {
+                            "name":"newssite",
+                            "type":3,
+                            "description":"News site name",
+                            "required":true
+                        }
+                    ]
+                },
+                {
+                    "name":"remove",
+                    "type":1,
+                    "description":"Remove a filter for a news site",
+                    "options":[
+                        {
+                            "name":"newssite",
+                            "type":3,
+                            "description":"News site name",
+                            "required":true
+                        }
+                    ]
+                }
+            ]
         }
     ]
 }

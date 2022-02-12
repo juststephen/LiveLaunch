@@ -15,7 +15,7 @@ from bin import (
 
 class LiveLaunch(commands.Cog):
     """
-    Discord.py cog for reporting live launches on YouTube.
+    Discord.py cog for reporting live launches.
     """
     def __init__(self, bot):
         self.bot = bot
@@ -164,7 +164,7 @@ class LiveLaunch(commands.Cog):
         if image:
             image = _bytes_to_base64_data(image)
         # Return creation coroutine
-        return self.bot.http.create_scheduled_events(
+        return self.bot.http.create_guild_scheduled_event(
             guild_id,
             {
                 'name': name, 'privacy_level': 2,
@@ -240,7 +240,7 @@ class LiveLaunch(commands.Cog):
         if webcast_live:
             payload['status'] = 2
         # Modify
-        return self.bot.http.modify_scheduled_event(
+        return self.bot.http.modify_guild_scheduled_event(
             guild_id,
             scheduled_event_id,
             payload
@@ -306,7 +306,7 @@ class LiveLaunch(commands.Cog):
                         if check.get('webcast_live') is False:
                             try:
                                 # Remove the scheduled event from Discord
-                                await self.bot.http.delete_scheduled_event(
+                                await self.bot.http.delete_guild_scheduled_event(
                                     guild_id,
                                     scheduled_event_id
                                 )
@@ -339,7 +339,7 @@ class LiveLaunch(commands.Cog):
 
                                         try:
                                             # Remove the scheduled event from Discord
-                                            await self.bot.http.delete_scheduled_event(
+                                            await self.bot.http.delete_guild_scheduled_event(
                                                 guild_id,
                                                 scheduled_event_id
                                             )
@@ -404,7 +404,7 @@ class LiveLaunch(commands.Cog):
                     success = True
                     try:
                         # Remove the scheduled event from Discord
-                        await self.bot.http.delete_scheduled_event(
+                        await self.bot.http.delete_guild_scheduled_event(
                             guild_id,
                             scheduled_event_id
                         )
@@ -496,7 +496,7 @@ class LiveLaunch(commands.Cog):
                 removed = True
                 try:
                     # Remove the scheduled event from Discord
-                    await self.bot.http.delete_scheduled_event(
+                    await self.bot.http.delete_guild_scheduled_event(
                         row['guild_id'],
                         row['scheduled_event_id']
                     )

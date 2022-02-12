@@ -91,7 +91,7 @@
                         {
                             "name":"newssite",
                             "type":3,
-                            "description":"News site name",
+                            "description":"News site name or ID",
                             "required":true
                         }
                     ]
@@ -104,7 +104,7 @@
                         {
                             "name":"newssite",
                             "type":3,
-                            "description":"News site name",
+                            "description":"News site name or ID",
                             "required":true
                         }
                     ]

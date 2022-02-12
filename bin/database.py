@@ -685,7 +685,9 @@ class Database:
     async def news_filter_add(
         self,
         guild_id: int,
-        news_site_name: str
+        *,
+        news_site_name: str = None,
+        news_site_id: int = None
     ) -> bool:
         """
         Adds a news site filter to
@@ -695,8 +697,10 @@ class Database:
         ----------
         guild_id : int
             Discord guild ID.
-        news_site_name : str
+        news_site_name : str, default: None
             News site filter word.
+        news_site_id : int, default: None
+            News site filter index.
 
         Returns
         -------
@@ -704,37 +708,49 @@ class Database:
             Whether the filter
             could be added or not.
         """
+        if news_site_name:
+            col = 'news_site_name'
+            args = (guild_id, news_site_name)
+            val = """
+                (
+                    SELECT news_site_id
+                    FROM news_sites
+                    WHERE news_site_name=%s
+                )
+            """
+        elif news_site_id:
+            col = 'news_site_id'
+            args = (guild_id, news_site_id)
+            val = '%s'
+        else:
+            return False
         with await self.pool as con:
             async with con.cursor() as cur:
                 await cur.execute(
-                    """
+                    f"""
                     SELECT COUNT(*)
                     FROM news_sites
-                    WHERE news_site_name=%s
+                    WHERE {col}=%s
                     """,
-                    (news_site_name,)
+                    args[1:]
                 )
                 status = (await cur.fetchone())[0] != 0
                 if status:
                     await cur.execute(
-                        """
+                        f"""
                         REPLACE INTO news_filter
-                        VALUES (%s,
-                            (
-                                SELECT news_site_id
-                                FROM news_sites
-                                WHERE news_site_name=%s
-                            )
-                        )
+                        VALUES (%s, {val})
                         """,
-                        (guild_id, news_site_name)
+                        args
                     )
                 return status
 
     async def news_filter_remove(
         self,
         guild_id: int,
-        news_site_name: str
+        *,
+        news_site_name: str = None,
+        news_site_id: int = None
     ) -> bool:
         """
         Removes a news site filter to
@@ -744,8 +760,10 @@ class Database:
         ----------
         guild_id : int
             Discord guild ID.
-        news_site_name : str
+        news_site_name : str, default: None
             News site filter word.
+        news_site_id : int, default: None
+            News site filter index.
 
         Returns
         -------
@@ -753,33 +771,45 @@ class Database:
             Whether the filter
             could be removed or not.
         """
+        if news_site_name:
+            col = 'news_site_name'
+            args = (guild_id, news_site_name)
+            val = """
+                (
+                    SELECT news_site_id
+                    FROM news_sites
+                    WHERE news_site_name=%s
+                )
+            """
+        elif news_site_id:
+            col = 'news_site_id'
+            args = (guild_id, news_site_id)
+            val = '%s'
+        else:
+            return False
         with await self.pool as con:
             async with con.cursor() as cur:
                 await cur.execute(
-                    """
+                    f"""
                     SELECT COUNT(*)
                     FROM news_sites
-                    WHERE news_site_name=%s
+                    WHERE {col}=%s
                     """,
-                    (news_site_name,)
+                    args[1:]
                 )
                 status = (await cur.fetchone())[0] != 0
                 if status:
                     await cur.execute(
-                        """
+                        f"""
                         DELETE FROM news_filter
                         WHERE guild_id=%s AND
-                        news_site_id=(
-                            SELECT news_site_id
-                            FROM news_sites
-                            WHERE news_site_name=%s
-                        )
+                        news_site_id={val}
                         """,
-                        (guild_id, news_site_name)
+                        args
                     )
                 return status
 
-    async def news_filter_list(self, *, guild_id: int = None) -> list[str]:
+    async def news_filter_list(self, *, guild_id: int = None) -> tuple[tuple[int, str]]:
         """
         Get all current news site
         filters of the guild.
@@ -793,12 +823,12 @@ class Database:
 
         Returns
         -------
-        filters : list[
-            str
+        filters : tuple[
+            tuple[int, str]
         ]
             Returns a tuple of strings
             containing the current
-            news sites being filtered
+            news sites & IDs being filtered
             or all available ones.
         """
         with await self.pool as con:
@@ -806,23 +836,27 @@ class Database:
                 if guild_id:
                     await cur.execute(
                         """
-                        SELECT news_site_name
+                        SELECT
+                            ns.news_site_id,
+                            ns.news_site_name
                         FROM news_filter AS nf
                         JOIN
                             news_sites AS ns
                             ON ns.news_site_id = nf.news_site_id
                         WHERE guild_id=%s
+                        ORDER BY ns.news_site_id
                         """,
                         (guild_id,)
                     )
                 else:
                     await cur.execute(
                         """
-                        SELECT news_site_name
+                        SELECT *
                         FROM news_sites
+                        ORDER BY news_site_id
                         """
                     )
-                return [i[0] for i in await cur.fetchall()]
+                return await cur.fetchall()
 
     async def news_filter_check(
         self,

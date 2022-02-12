@@ -75,8 +75,7 @@ class LiveLaunchCommand(commands.Cog):
                     '`Send Messages` and `Embed Links` permissions for '
                     'the `messages` feature in the specified channel.'
                 )
-            except Exception as e:
-                print(e)
+            except:
                 await ctx.send(
                     f'Failed to enable the {feature} feature',
                     ephemeral=True
@@ -377,11 +376,11 @@ class LiveLaunchCommand(commands.Cog):
             title='News Site Filters'
         )
         # Add available filters
-        if (filters_available := set(filters_all) - set(filters_guild)):
+        if (filters_available := [i for i in filters_all if i not in filters_guild]):
             embed.add_field(
                 name='Available',
                 value='```' +
-                    '\n'.join(filters_available) +
+                    '\n'.join(f'{i}) {j}' for i, j in filters_available) +
                     '```'
             )
         # Add enabled filters
@@ -389,7 +388,7 @@ class LiveLaunchCommand(commands.Cog):
             embed.add_field(
                 name='Enabled',
                 value='```' +
-                    '\n'.join(filters_guild) +
+                    '\n'.join(f'{i}) {j}' for i, j in filters_guild) +
                     '```'
             )
 
@@ -415,11 +414,27 @@ class LiveLaunchCommand(commands.Cog):
         # Guild ID
         guild_id = ctx.guild.id
 
-        # Lowercase
-        newssite = newssite.lower()
+        try:
+            newssite = int(newssite)
 
-        # Add filter to the db
-        status = await self.bot.lldb.news_filter_add(guild_id, newssite)
+        # Input is a string
+        except:
+            # Lowercase
+            newssite = newssite.lower()
+
+            # Add filter to the db by name
+            status = await self.bot.lldb.news_filter_add(
+                guild_id,
+                news_site_name=newssite
+            )
+
+        # Input is an index number
+        else:
+            # Add filter to the db by index
+            status = await self.bot.lldb.news_filter_add(
+                guild_id,
+                news_site_id=newssite
+            )
 
         # Notify user
         if status:
@@ -449,11 +464,27 @@ class LiveLaunchCommand(commands.Cog):
         # Guild ID
         guild_id = ctx.guild.id
 
-        # Lowercase
-        newssite = newssite.lower()
+        try:
+            newssite = int(newssite)
 
-        # Remove filter to the db
-        status = await self.bot.lldb.news_filter_remove(guild_id, newssite)
+        # Input is a string
+        except:
+            # Lowercase
+            newssite = newssite.lower()
+
+            # Add filter to the db by name
+            status = await self.bot.lldb.news_filter_remove(
+                guild_id,
+                news_site_name=newssite
+            )
+
+        # Input is an index number
+        else:
+            # Add filter to the db by index
+            status = await self.bot.lldb.news_filter_remove(
+                guild_id,
+                news_site_id=newssite
+            )
 
         # Notify user
         if status:

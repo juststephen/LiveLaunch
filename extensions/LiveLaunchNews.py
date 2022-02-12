@@ -17,7 +17,7 @@ class LiveLaunchNews(commands.Cog):
         # Start loops
         self.fetch_news.start()
 
-    @tasks.loop(minutes=1)
+    @tasks.loop(minutes=5)
     async def fetch_news(self):
         """
         Discord task for fetching and

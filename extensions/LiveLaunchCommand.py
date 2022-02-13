@@ -7,6 +7,7 @@ from discord import (
 )
 from discord.errors import Forbidden
 from discord.ext import commands
+from itertools import compress
 import logging
 
 class LiveLaunchCommand(commands.Cog):
@@ -414,37 +415,64 @@ class LiveLaunchCommand(commands.Cog):
         # Guild ID
         guild_id = ctx.guild.id
 
-        try:
-            newssite = int(newssite)
-
-        # Input is a string
-        except:
-            # Lowercase
-            newssite = newssite.lower()
-
-            # Add filter to the db by name
-            status = await self.bot.lldb.news_filter_add(
-                guild_id,
-                news_site_name=newssite
+        # Check if guild has settings
+        if await self.bot.lldb.enabled_guilds_get(guild_id) is None:
+            await ctx.send(
+                'This guild has nothing enabled, can\'t add filters.',
+                ephemeral=True
             )
+            return
 
-        # Input is an index number
-        else:
-            # Add filter to the db by index
-            status = await self.bot.lldb.news_filter_add(
-                guild_id,
-                news_site_id=newssite
-            )
+        # Split bulk into a list
+        newssite = [i.strip() for i in newssite.split(',')]
+
+        status_list = []
+        for item in newssite:
+
+            try:
+                item = int(item)
+
+            # Input is a string
+            except:
+                # Lowercase
+                item = item.lower()
+
+                # Add filter to the db by name
+                status = await self.bot.lldb.news_filter_add(
+                    guild_id,
+                    news_site_name=item
+                )
+
+            # Input is an index number
+            else:
+                # Add filter to the db by index
+                status = await self.bot.lldb.news_filter_add(
+                    guild_id,
+                    news_site_id=item
+                )
+
+            # Add to status list
+            status_list.append(status)
 
         # Notify user
-        if status:
+        if all(status_list):
             await ctx.send(
-                f'Added news site filter: `{newssite}`',
+                f"Added news site filter(s): `{', '.join(newssite)}`.",
+                ephemeral=True
+            )
+        elif not any(status_list):
+            await ctx.send(
+                f"News site filter(s) `{', '.join(newssite)}` doesn\'t/don\'t exist.",
                 ephemeral=True
             )
         else:
+            # Check failed / success
+            successes = list(compress(newssite, status_list))
+            fails = [i for i in newssite if i not in successes]
+            # Send
             await ctx.send(
-                f'News site filter `{newssite}` doesn\'t exist.',
+                f"Added news site filter(s): `{', '.join(successes)}`, "
+                f"couldn\'t add site filter(s): `{', '.join(fails)}`.",
                 ephemeral=True
             )
 
@@ -464,37 +492,64 @@ class LiveLaunchCommand(commands.Cog):
         # Guild ID
         guild_id = ctx.guild.id
 
-        try:
-            newssite = int(newssite)
-
-        # Input is a string
-        except:
-            # Lowercase
-            newssite = newssite.lower()
-
-            # Add filter to the db by name
-            status = await self.bot.lldb.news_filter_remove(
-                guild_id,
-                news_site_name=newssite
+        # Check if guild has settings
+        if await self.bot.lldb.enabled_guilds_get(guild_id) is None:
+            await ctx.send(
+                'This guild has nothing enabled, can\'t remove filters.',
+                ephemeral=True
             )
+            return
 
-        # Input is an index number
-        else:
-            # Add filter to the db by index
-            status = await self.bot.lldb.news_filter_remove(
-                guild_id,
-                news_site_id=newssite
-            )
+        # Split bulk into a list
+        newssite = [i.strip() for i in newssite.split(',')]
+
+        status_list = []
+        for item in newssite:
+
+            try:
+                item = int(item)
+
+            # Input is a string
+            except:
+                # Lowercase
+                item = item.lower()
+
+                # Remove filter to the db by name
+                status = await self.bot.lldb.news_filter_remove(
+                    guild_id,
+                    news_site_name=item
+                )
+
+            # Input is an index number
+            else:
+                # Remove filter to the db by index
+                status = await self.bot.lldb.news_filter_remove(
+                    guild_id,
+                    news_site_id=item
+                )
+
+            # Add to status list
+            status_list.append(status)
 
         # Notify user
-        if status:
+        if all(status_list):
             await ctx.send(
-                f'Removed news site filter: `{newssite}`',
+                f"Removed news site filter(s): `{', '.join(newssite)}`.",
+                ephemeral=True
+            )
+        elif not any(status_list):
+            await ctx.send(
+                f"News site filter(s) `{', '.join(newssite)}` doesn\'t/don\'t exist.",
                 ephemeral=True
             )
         else:
+            # Check failed / success
+            successes = list(compress(newssite, status_list))
+            fails = [i for i in newssite if i not in successes]
+            # Send
             await ctx.send(
-                f'News site filter `{newssite}` doesn\'t exist.',
+                f"Removed news site filter(s): `{', '.join(successes)}`, "
+                f"couldn\'t remove site filter(s): `{', '.join(fails)}`.",
                 ephemeral=True
             )
 

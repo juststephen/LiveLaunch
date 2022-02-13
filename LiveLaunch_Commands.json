@@ -86,7 +86,7 @@
                 {
                     "name":"add",
                     "type":1,
-                    "description":"Add a filter for a news site",
+                    "description":"Add a filter for a news site, either one or comma-separated",
                     "options":[
                         {
                             "name":"newssite",
@@ -99,7 +99,7 @@
                 {
                     "name":"remove",
                     "type":1,
-                    "description":"Remove a filter for a news site",
+                    "description":"Remove a filter for a news site, either one or comma-separated",
                     "options":[
                         {
                             "name":"newssite",

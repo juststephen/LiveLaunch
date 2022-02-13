@@ -159,7 +159,7 @@ class LiveLaunch(commands.Cog):
         """
         # Replace start with now + `.timedelta_1m` if `webcast_live`
         if webcast_live:
-            start = datetime.now(timezone.utc).replace(tzinfo=None) + self.timedelta_1m
+            start = datetime.now(timezone.utc) + self.timedelta_1m
         # Convert image bytes to base64
         if image:
             image = _bytes_to_base64_data(image)
@@ -326,7 +326,7 @@ class LiveLaunch(commands.Cog):
                             if (start := check.get('start')):
 
                                 # If `start` changed to a datetime in the past
-                                if start < (now := datetime.now(timezone.utc).replace(tzinfo=None) + self.timedelta_1m):
+                                if start < (now := datetime.now(timezone.utc) + self.timedelta_1m):
                                     # Remove `start` value from the modify dict, can't update
                                     del modify['start']
                                     # Start event if it hasn't yet
@@ -521,7 +521,7 @@ class LiveLaunch(commands.Cog):
         sending = []
         for ll2_id, data in upcoming.items():
             # Add stream if it is within 1 hour to the sending list
-            now = datetime.now(timezone.utc).replace(tzinfo=None)
+            now = datetime.now(timezone.utc)
             if data['start'] - now < timedelta(hours=1):
                 # Check if the stream is on YouTube and not a NASA TV stream
                 yt_vid_id = self.ytid_re(data['url'])

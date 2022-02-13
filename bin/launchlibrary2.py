@@ -1,5 +1,6 @@
 from __future__ import annotations
 from datetime import datetime, timedelta, timezone
+from dateutil.parser import isoparse
 
 try:
     from bin import ll2_get
@@ -37,7 +38,7 @@ class LaunchLibrary2:
         # Text if there is no stream
         self.no_stream = 'No stream yet'
         # Supported image formats
-        self.image_formats = ('.gif', '.jpeg', '.jpg', '.png')
+        self.image_formats = ('.gif', '.jpeg', '.jpg', '.png', '.webp')
         # Launch Library 2 API
         self.ll2_launch_url = 'https://ll.thespacedevs.com/2.2.0/launch/upcoming/?mode=detailed&limit=32'
         self.ll2_event_url = 'https://ll.thespacedevs.com/2.2.0/event/upcoming/?limit=32'
@@ -85,13 +86,14 @@ class LaunchLibrary2:
 
         # Go through data
         for entry in results:
-            # Check if launch is not in the past (minus 1 hour for the actual event duration)
-            net = datetime.fromisoformat(entry['net'][:-1])
+            # Start datetime of the entry
+            net = isoparse(entry['net'])
 
             # Check if the entry is not yet done
             status = not entry['status']['id'] in self.launch_status_end
 
-            if net - datetime.now(timezone.utc).replace(tzinfo=None) > self.dt1 and status:
+            # Check if launch is not in the past (minus 1 hour for the actual event duration)
+            if net - datetime.now(timezone.utc) > self.dt1 and status:
 
                 # Name with potential [TBD] (To Be Determined) prefix
                 name = entry['name'] if entry['status']['id'] != 2 else '[TBD] ' + entry['name']
@@ -154,13 +156,15 @@ class LaunchLibrary2:
         # Go through data
         for entry in results:
             # Start datetime of the entry
-            net = datetime.fromisoformat(entry['date'][:-1])
+            net = isoparse(entry['date'])
+
             # Default duration if event is not known
             event_type = entry['type']['name']
             if not event_type in self.event_duration:
                 event_type = 'default'
+
             # Check if event is not in the past using the event type for duration
-            if net > datetime.now(timezone.utc).replace(tzinfo=None) - self.event_duration[event_type]:
+            if net > datetime.now(timezone.utc) - self.event_duration[event_type]:
 
                 # Check for video
                 picked_video = self.no_stream

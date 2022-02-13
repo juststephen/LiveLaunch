@@ -44,7 +44,7 @@ class SpaceflightNewsAPI:
 
         # Iterate over articles to filter and convert
         new_news = []
-        for i, article in enumerate(news):
+        for article in news:
             # Convert `publishedAT`'s to datetime
             article['publishedAt'] = isoparse(article['publishedAt'])
 

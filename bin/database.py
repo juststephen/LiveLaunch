@@ -185,6 +185,33 @@ class Database:
                     (guild_id,)
                 )
 
+    async def enabled_guilds_check(self, guild_id: int) -> bool:
+        """
+        Check if a guild has any settings.
+
+        Parameters
+        ----------
+        guild_id : int
+            Discord guild ID.
+
+        Returns
+        -------
+        exists : bool
+            Whether or not the
+            guild has any settings.
+        """
+        with await self.pool as con:
+            async with con.cursor() as cur:
+                await cur.execute(
+                    """
+                    SELECT COUNT(*)
+                    FROM enabled_guilds
+                    WHERE guild_id=%s
+                    """,
+                    (guild_id,)
+                )
+                return (await cur.fetchone())[0] != 0
+
     async def enabled_guilds_news_iter(self) -> tuple[int, str]:
         """
         Iterates over the guilds
@@ -884,7 +911,7 @@ class Database:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
-                    SELECT count(*)
+                    SELECT COUNT(*)
                     FROM news_filter AS nf
                     JOIN
                         news_sites AS ns
@@ -1223,7 +1250,7 @@ class Database:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
-                    SELECT count(*)
+                    SELECT COUNT(*)
                     FROM sent_streams
                     WHERE yt_vid_id=%s
                     """,

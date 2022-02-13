@@ -416,7 +416,7 @@ class LiveLaunchCommand(commands.Cog):
         guild_id = ctx.guild.id
 
         # Check if guild has settings
-        if await self.bot.lldb.enabled_guilds_get(guild_id) is None:
+        if not await self.bot.lldb.enabled_guilds_check(guild_id):
             await ctx.send(
                 'This guild has nothing enabled, can\'t add filters.',
                 ephemeral=True
@@ -493,7 +493,7 @@ class LiveLaunchCommand(commands.Cog):
         guild_id = ctx.guild.id
 
         # Check if guild has settings
-        if await self.bot.lldb.enabled_guilds_get(guild_id) is None:
+        if not await self.bot.lldb.enabled_guilds_check(guild_id):
             await ctx.send(
                 'This guild has nothing enabled, can\'t remove filters.',
                 ephemeral=True

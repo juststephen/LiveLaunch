@@ -28,7 +28,7 @@ class LiveLaunchDB(commands.Cog):
         if not self.bot.lldb.started:
             await self.bot.lldb.start()
         # Clean
-        await self.bot.lldb.sent_streams_clean()
+        await self.bot.lldb.sent_media_clean()
 
 
 def setup(client):

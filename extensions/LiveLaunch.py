@@ -97,7 +97,7 @@ class LiveLaunch(commands.Cog):
 
         # Sending complete, add streams to the database to prevent sending it again
         for send in sending:
-            await self.bot.lldb.sent_streams_add(send['yt_vid_id'])
+            await self.bot.lldb.sent_media_add(yt_vid_id=send['yt_vid_id'])
 
     def create_scheduled_event(
         self,
@@ -527,7 +527,7 @@ class LiveLaunch(commands.Cog):
                 yt_vid_id = self.ytid_re(data['url'])
                 if yt_vid_id and self.yt_base_url + (yt_vid_id := yt_vid_id[0]) not in self.nasatv:
                     # Only send streams that aren't sent already
-                    if not await self.bot.lldb.sent_streams_exists(yt_vid_id):
+                    if not await self.bot.lldb.sent_media_exists(yt_vid_id=yt_vid_id):
 
                         # Get YouTube channel
                         channel = self.ytapi.get_channel_from_video(yt_vid_id)
@@ -569,7 +569,7 @@ class LiveLaunch(commands.Cog):
                 # Iterate through the streams of a channel
                 for yt_vid_id in streams[channel]:
                     # Only send streams that aren't sent already
-                    if not await self.bot.lldb.sent_streams_exists(yt_vid_id):
+                    if not await self.bot.lldb.sent_media_exists(yt_vid_id=yt_vid_id):
 
                         # Get YouTube channel name and avatar
                         thumb, title = self.ytapi.get_channel_thumbtitle(channel)

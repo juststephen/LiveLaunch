@@ -23,15 +23,18 @@ class LiveLaunchNews(commands.Cog):
         Discord task for fetching and
         sending new news articles.
         """
-        # Get new news articles
+        # Get news articles
         news = await self.snapi()
 
-        # Only continue when there are new articles
-        if not news:
-            return
-
-        # Generate embeds
+        # Check if article is already sent, then generate embeds
+        new_news = []
         for article in news:
+            if await self.bot.lldb.sent_media_exists(snapi_id=article['id']):
+                continue
+
+            # Add `snapi_id` to the db to prevent resending
+            await self.bot.lldb.sent_media_add(snapi_id=article['id'])
+
             # Add the news site to the db if needed
             await self.bot.lldb.news_sites_add(article['newsSite'])
 
@@ -54,11 +57,18 @@ class LiveLaunchNews(commands.Cog):
             # Add to news dict
             article['embed'] = embed
 
+            # Add article to sending list
+            new_news.append(article)
+
+        # Only continue when there are new articles
+        if not new_news:
+            return
+
         # Sending
         async for guild_id, webhook_url in self.bot.lldb.enabled_guilds_news_iter():
             # Continue when a guild doesn't want any articles
             if not any(
-                filters := [await self.bot.lldb.news_filter_check(guild_id, i['newsSite']) for i in news]
+                filters := [await self.bot.lldb.news_filter_check(guild_id, i['newsSite']) for i in new_news]
             ):
                 continue
             try:
@@ -71,7 +81,7 @@ class LiveLaunchNews(commands.Cog):
                     )
 
                     # Sending filtered articles
-                    for article in compress(news, filters):
+                    for article in compress(new_news, filters):
                         await webhook.send(
                             embed=article['embed'],
                             username=article['newsSite']

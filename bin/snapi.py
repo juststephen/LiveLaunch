@@ -15,6 +15,7 @@ class SpaceflightNewsAPI:
     def __init__(self):
         # Keys in the returned data containing non ID data.
         self.data_keys = (
+            'id',
             'title',
             'url',
             'imageUrl',
@@ -24,8 +25,6 @@ class SpaceflightNewsAPI:
         )
         # Object to filter dictionaries
         self.get_items = itemgetter(*self.data_keys)
-        # Store current datetime for first call of `.fetch_news()`
-        self.last_check = datetime.now(timezone.utc)
         # SNAPI
         self.snapi_url = 'https://api.spaceflightnewsapi.net/v3/articles'
 
@@ -36,29 +35,24 @@ class SpaceflightNewsAPI:
         after last call or object creation.
         """
         # Request data
-        news = await get(self.snapi_url, True)
+        news = await get(self.snapi_url, json=True)
 
         # Retun empty list when failed
         if not news:
             return []
 
         # Iterate over articles to filter and convert
-        new_news = []
+        filtered_news = []
         for article in news:
-            # Convert `publishedAT`'s to datetime
+            # Convert `publishedAt`'s to datetime
             article['publishedAt'] = isoparse(article['publishedAt'])
 
-            # Check if the article is new, otherwise ignore it
-            if article['publishedAt'] > self.last_check:
-                # Filter news so it only contains `.data_keys` keys
-                new_news.append(
-                    dict(
-                        zip(self.data_keys, self.get_items(article))
-                    )
+            # Filter news so it only contains `.data_keys` keys
+            filtered_news.append(
+                dict(
+                    zip(self.data_keys, self.get_items(article))
                 )
+            )
 
-        # Store current datetime for next call
-        self.last_check = datetime.now(timezone.utc)
-
-        # Return new news list
-        return new_news
+        # Return filtered news list
+        return filtered_news

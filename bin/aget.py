@@ -4,7 +4,7 @@ from os import getenv
 # Authentication header
 __ll2_header = {'Authorization': f'Token {getenv("LL2_TOKEN")}'}
 
-async def get(url: str, json: bool = False) -> str or dict:
+async def get(url: str, *, json: bool = False) -> str or dict:
     """
     Use aiohttp to get the contents of
     a webpage or API asynchronously.

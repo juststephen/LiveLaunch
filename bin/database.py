@@ -94,6 +94,15 @@ class Database:
                     )
                     """
                 )
+                # Create table for storing sent news articles
+                await cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS sent_news (
+                    snapi_id MEDIUMINT UNSIGNED PRIMARY KEY,
+                    datetime TEXT DEFAULT NULL
+                    )
+                    """
+                )
                 # Create table for storing Discord scheduled event IDs
                 await cur.execute(
                     """
@@ -1185,37 +1194,51 @@ class Database:
         async for row in self.scheduled_events_create_iter():
             yield row
 
-    # Sent streams table
+    # Sent streams/news tables
 
-    async def sent_streams_add(
-        self, yt_vid_id: str,
+    async def sent_media_add(
+        self,
+        *,
+        snapi_id: int = None,
+        yt_vid_id: str = None,
         datetime: datetime = datetime.now(timezone.utc)
     ) -> None:
         """
-        Adds an entry in the `sent_streams`
+        Adds an entry in the specified sent media
         table of the LiveLaunch database.
 
         Parameters
         ----------
-        yt_vid_id : str
+        snapi_id : int, default: None
+            SNAPI article ID.
+        yt_vid_id : str, default: None
             YouTube video ID.
         datetime : datetime, default: datetime.now(timezone.utc)
             Datetime object, default is the current UTC datetime.
         """
+        # Select the correct sent media table
+        if snapi_id:
+            table = 'news'
+            args = (snapi_id, datetime.isoformat())
+        else:
+            table = 'streams'
+            args = (yt_vid_id, datetime.isoformat())
+
+        # Connect and add
         with await self.pool as con:
             async with con.cursor() as cur:
                 await cur.execute(
-                    """
-                    INSERT INTO sent_streams
+                    f"""
+                    INSERT INTO sent_{table}
                     VALUES (%s, %s)
                     """,
-                    (yt_vid_id, datetime.isoformat())
+                    args
                 )
 
-    async def sent_streams_clean(self) -> None:
+    async def sent_media_clean(self) -> None:
         """
-        Removes old entries in the `sent_streams`
-        table of the LiveLaunch database.
+        Removes old entries in the sent media
+        tables of the LiveLaunch database.
 
         Notes
         -----
@@ -1225,35 +1248,55 @@ class Database:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
+                    DELETE FROM sent_news
+                    WHERE datetime < DATE_SUB(NOW(), INTERVAL 1 YEAR);
                     DELETE FROM sent_streams
                     WHERE datetime < DATE_SUB(NOW(), INTERVAL 1 YEAR)
                     """
                 )
 
-    async def sent_streams_exists(self, yt_vid_id: str) -> bool:
+    async def sent_media_exists(
+        self,
+        *,
+        snapi_id: int = None,
+        yt_vid_id: str = None,
+    ) -> bool:
         """
-        Checks if an entry exists in the `sent_streams`
-        table of the LiveLaunch database.
+        Checks if an entry exists in the specified
+        sent media table of the LiveLaunch database.
 
         Parameters
         ----------
-        yt_vid_id : str
+        snapi_id : int, default: None
+            SNAPI article ID.
+        yt_vid_id : str, default: None
             YouTube video ID.
 
         Returns
         -------
         check : bool
-            Returns a boolean wheter an entry
-            exists with the given yt_vid_id.
+            Returns a boolean whether an entry
+            exists with the given ID.
         """
+        # Select the correct sent media table
+        if snapi_id:
+            table = 'news'
+            col = 'snapi_id'
+            args = (snapi_id,)
+        else:
+            table = 'streams'
+            col = 'yt_vid_id'
+            args = (yt_vid_id,)
+
+        # Connect and check
         with await self.pool as con:
             async with con.cursor() as cur:
                 await cur.execute(
-                    """
+                    f"""
                     SELECT COUNT(*)
-                    FROM sent_streams
-                    WHERE yt_vid_id=%s
+                    FROM sent_{table}
+                    WHERE {col}=%s
                     """,
-                    (yt_vid_id,)
+                    args
                 )
                 return (await cur.fetchone())[0] != 0

@@ -374,6 +374,7 @@ class LiveLaunchCommand(commands.Cog):
         # Create list embed
         embed = Embed(
             color=0x00E8FF,
+            description='When a news site filter is enabled it will not be posted.',
             title='News Site Filters'
         )
         # Add available filters

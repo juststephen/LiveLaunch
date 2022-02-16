@@ -1201,7 +1201,7 @@ class Database:
         *,
         snapi_id: int = None,
         yt_vid_id: str = None,
-        datetime: datetime = datetime.now(timezone.utc)
+        timestamp: datetime = None
     ) -> None:
         """
         Adds an entry in the specified sent media
@@ -1213,16 +1213,20 @@ class Database:
             SNAPI article ID.
         yt_vid_id : str, default: None
             YouTube video ID.
-        datetime : datetime, default: datetime.now(timezone.utc)
-            Datetime object, default is the current UTC datetime.
+        timestamp : datetime, default: None
+            Datetime object, when default,
+            the current UTC datetime is used.
         """
+        if timestamp is None:
+            timestamp = datetime.now(timezone.utc).isoformat()
+
         # Select the correct sent media table
         if snapi_id:
             table = 'news'
-            args = (snapi_id, datetime.isoformat())
+            args = (snapi_id, timestamp)
         else:
             table = 'streams'
-            args = (yt_vid_id, datetime.isoformat())
+            args = (yt_vid_id, timestamp)
 
         # Connect and add
         with await self.pool as con:

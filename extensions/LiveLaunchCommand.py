@@ -301,7 +301,7 @@ class LiveLaunchCommand(commands.Cog):
             else:
                 # Notify user
                 await ctx.send(
-                    'Requested feature is arleady disabled',
+                    'Requested feature is already disabled',
                     ephemeral=True
                 )
 

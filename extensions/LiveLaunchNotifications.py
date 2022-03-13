@@ -137,10 +137,10 @@ class LiveLaunchNotifications(commands.Cog):
         )
         # Add countdown settings
         embed.add_field(
-                name='List:',
-                value='```index) time```\n```' +
-                    '\n'.join(f'{i}) {convert_minutes(j)}' for i, j in settings) +
-                    '```'
+            name='List:',
+            value='```index) time```\n```' +
+                '\n'.join(f'{i}) {convert_minutes(j)}' for i, j in settings) +
+                '```'
         )
 
         # Send embed

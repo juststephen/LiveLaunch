@@ -229,7 +229,13 @@ class EnabledGuilds:
             news_channel_id : int,
             news_webhook_url : str,
             notification_channel_id : int,
-            notification_webhook_url : str
+            notification_webhook_url : str,
+            notification_launch: int,
+            notification_event: int,
+            notification_liftoff: int,
+            notification_hold: int,
+            notification_end_status: int,
+            notification_scheduled_event: int
             ] or None
             Returns a row with the guild's data
             if it exists, otherwise None.

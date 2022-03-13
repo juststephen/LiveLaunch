@@ -87,8 +87,13 @@
             "type":1
         },
         {
+            "name":"settings_list",
+            "description":"List all LiveLaunch settings within this Guild, only for administrators",
+            "type":1
+        },
+        {
             "name":"newsfilter",
-            "description":"List, add and remove filters for news sites",
+            "description":"List, add and remove filters for news sites, only for administrators",
             "type":1,
             "options":[
                 {
@@ -126,7 +131,7 @@
         },
         {
             "name":"notifications",
-            "description":"Notification settings",
+            "description":"Notification settings, only for administrators",
             "type":1,
             "options":[
                 {

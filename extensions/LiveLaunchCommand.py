@@ -10,6 +10,8 @@ from discord.ext import commands
 from itertools import compress
 import logging
 
+from bin import convert_minutes
+
 class LiveLaunchCommand(commands.Cog):
     """
     Discord.py cog for enabling/disabling LiveLaunch in a Discord channel.
@@ -283,83 +285,84 @@ class LiveLaunchCommand(commands.Cog):
         # Guild ID
         guild_id = ctx.guild.id
 
-        # Check if it is even enabled in the channel
+        # Check if anything is enabled
         if not (settings := await self.bot.lldb.enabled_guilds_get(guild_id)):
             await ctx.send(
                 'No features are enabled',
                 ephemeral=True
             )
+            return
+
+        new_settings = {'guild_id': guild_id}
+
+        # Remove webhooks if needed
+        for i, key in zip(
+            (
+                'notifications',
+                'news',
+                'messages'
+            ),
+            (
+                'notification_',
+                'news_',
+                ''
+            )
+        ):
+            if features in (i, 'all') and settings[f'{key}webhook_url']:
+                # Create webhook for deletion
+                async with aiohttp.ClientSession() as session:
+                    webhook = Webhook.from_url(
+                        settings[f'{key}webhook_url'],
+                        session=session
+                    )
+                    # Delete webhook
+                    try:
+                        await webhook.delete()
+                    except:
+                        pass
+
+                new_settings[f'{key}channel_id'] = None
+                new_settings[f'{key}webhook_url'] = None
+
+        # Remove the events feature if needed
+        if features in ('events', 'all') and settings['scheduled_events']:
+            new_settings['scheduled_events'] = 0
+
+        # Remove row from the database
+        if all(
+            i in new_settings for i in (
+                'webhook_url',
+                'scheduled_events',
+                'news_webhook_url',
+                'notification_webhook_url'
+            )
+        ):
+            # Update database
+            await self.bot.lldb.enabled_guilds_edit(
+                **new_settings
+            )
+            # Notify user
+            await ctx.send(
+                'All features are now disabled',
+                ephemeral=True
+            )
+        # Update row, other feature stays enabled
+        elif len(new_settings) > 1:
+            # Update database
+            await self.bot.lldb.enabled_guilds_edit(
+                **new_settings
+            )
+            # Notify user
+            await ctx.send(
+                'Requested features are now disabled',
+                ephemeral=True
+            )
         else:
-            new_settings = {'guild_id': guild_id}
-
-            # Remove webhooks if needed
-            for i, key in zip(
-                (
-                    'notifications',
-                    'news',
-                    'messages'
-                ),
-                (
-                    'notification_',
-                    'news_',
-                    ''
-                )
-            ):
-                if features in (i, 'all') and settings[f'{key}webhook_url']:
-                    # Create webhook for deletion
-                    async with aiohttp.ClientSession() as session:
-                        webhook = Webhook.from_url(
-                            settings[f'{key}webhook_url'],
-                            session=session
-                        )
-                        # Delete webhook
-                        try:
-                            await webhook.delete()
-                        except:
-                            pass
-
-                    new_settings[f'{key}channel_id'] = None
-                    new_settings[f'{key}webhook_url'] = None
-
-            # Remove the events feature if needed
-            if features in ('events', 'all') and settings['scheduled_events']:
-                new_settings['scheduled_events'] = 0
-
-            # Remove row from the database
-            if all(
-                i in new_settings for i in (
-                    'webhook_url',
-                    'scheduled_events',
-                    'news_webhook_url',
-                    'notification_webhook_url'
-                )
-            ):
-                # Update database
-                await self.bot.lldb.enabled_guilds_edit(
-                    **new_settings
-                )
-                # Notify user
-                await ctx.send(
-                    'All features are now disabled',
-                    ephemeral=True
-                )
-            # Update row, other feature stays enabled
-            elif len(new_settings) > 1:
-                # Update database
-                await self.bot.lldb.enabled_guilds_edit(
-                    **new_settings
-                )
-                # Notify user
-                await ctx.send(
-                    'Requested features are now disabled',
-                    ephemeral=True
-                )
-            else:
-                # Notify user
-                await ctx.send(
-                    'Requested feature is already disabled',
-                    ephemeral=True
-                )
+            # Notify user
+            await ctx.send(
+                'Requested feature is already disabled',
+                ephemeral=True
+            )
 
     @commands.command()
     @commands.has_guild_permissions(administrator=True)
@@ -401,9 +404,127 @@ class LiveLaunchCommand(commands.Cog):
             ephemeral=True
         )
 
+    @commands.command()
+    @commands.has_guild_permissions(administrator=True)
+    @commands.cooldown(1, 8)
+    @commands.defer(ephemeral=True)
+    async def settings_list(self, ctx) -> None:
+        """
+        List all LiveLaunch settings within
+        this Guild, only for administrators.
+        """
+        # Guild ID
+        guild_id = ctx.guild.id
+
+        # Check if anything is enabled
+        if not (settings := await self.bot.lldb.enabled_guilds_get(guild_id)):
+            await ctx.send(
+                'No features are enabled',
+                ephemeral=True
+            )
+            return
+
+        # Create settings embed
+        embed = Embed(
+            color=0x00E8FF,
+            description='All LiveLaunch settings within this server.',
+            title='LiveLaunch Settings'
+        )
+
+        # Feature settings
+        features = ''
+        for key, name in zip(
+            (
+                'notification_webhook_url',
+                'news_webhook_url',
+                'webhook_url',
+                'scheduled_events'
+            ),
+            (
+                'Notifications',
+                'News',
+                'Messages',
+                'Events'
+            )
+        ):
+            if settings[key]:
+                features += '\n:white_check_mark:  ' + name
+            else:
+                features += '\n:x:  ' + name
+        # Add features to embed
+        embed.add_field(
+            name='Features',
+            value=features,
+            inline=False
+        )
+
+        # List news filters
+        filters_guild = await self.bot.lldb.news_filter_list(
+            guild_id=guild_id
+        )
+        # Add enabled filters
+        if filters_guild:
+            embed.add_field(
+                name='Enabled news filters',
+                value='```' +
+                    '\n'.join(j for i, j in filters_guild) +
+                    '```',
+                inline=False
+            )
+
+        # Add notification settings
+        features = ''
+        for key, name in zip(
+            (
+                'notification_event',
+                'notification_launch',
+                'notification_scheduled_event',
+                'notification_end_status',
+                'notification_hold',
+                'notification_liftoff'
+            ),
+            (
+                'Events',
+                'Launches',
+                'Include Discord scheduled events',
+                'Launch end status',
+                'Launch hold',
+                'Launch liftoff'
+            )
+        ):
+            if settings[key]:
+                features += '\n:white_check_mark:  ' + name
+            else:
+                features += '\n:x:  ' + name
+        # Add features to embed
+        embed.add_field(
+            name='Notifications',
+            value=features,
+            inline=False
+        )
+
+        # List countdown settings
+        countdown = await self.bot.lldb.notification_countdown_list(ctx.guild.id)
+        # Add countdown settings
+        if countdown:
+            embed.add_field(
+                name='Current countdowns',
+                value='```' +
+                    '\n'.join(convert_minutes(j) for i, j in countdown) +
+                    '```',
+                inline=False
+            )
+
+        # Notify user
+        await ctx.send(
+            embed=embed,
+            ephemeral=True
+        )
+
     @enable.error
     @disable.error
     @synchronize.error
+    @settings_list.error
     async def command_error(self, ctx, error) -> None:
         """
         Method that handles erroneous interactions with the commands.

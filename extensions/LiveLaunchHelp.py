@@ -31,12 +31,12 @@ class LiveLaunchHelp(commands.Cog):
         # Enable
         embed.add_field(
             name='Enable',
-            value='Use `/enable` to enable `news`, `messages` and/or `events`'
+            value='Use `/enable` to enable `notifications`, `news`, `messages` and/or `events`'
         )
         # Disable
         embed.add_field(
             name='Disable',
-            value='Use `/disable` to disable either `news`, `messages`, `events`, or `all`'
+            value='Use `/disable` to disable either `notifications`, `news`, `messages`, `events`, or `all`'
         )
         # Synchronize
         embed.add_field(
@@ -49,6 +49,24 @@ class LiveLaunchHelp(commands.Cog):
             name='News Filter',
             value='Use `/newsfilter` to list, add or remove news site filters.'
         )
+        # Notifications
+        embed.add_field(
+            name='Notifications Countdown',
+            value='Use `/notifications countdown` to list, add or remove countdown from'
+                'the notifications.\nRemoving is done by index, which is shown in the list.'
+        )
+        embed.add_field(
+            name='Notifications General',
+            value='Use `/notifications general` to enable/disable `launches`, `events` '
+                'and include/exclude Discord scheduled events in the countdown notifications.'
+                '\n`everything` is used to enable all general and launch status settings.'
+        )
+        embed.add_field(
+            name='Notifications Launch Status',
+            value='Use `/notifications launch_status` to enable/disable notifications '
+                'for launch status changes. These are `end_status`, `hold` and `liftoff`.'
+        )
+
         # Send embed
         await ctx.send(embed=embed, ephemeral=True)
 

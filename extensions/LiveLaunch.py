@@ -4,10 +4,15 @@ import discord
 from discord.ext import commands, tasks
 from discord.utils import _bytes_to_base64_data
 import logging
+import re
 
 from bin import (
     LaunchLibrary2,
     NASATV,
+    sln_event_url,
+    sln_launch_url,
+    status_colours,
+    status_names,
     YouTubeAPI,
     YouTubeRSS,
     YouTubeStripVideoID
@@ -37,6 +42,8 @@ class LiveLaunch(commands.Cog):
         self.ytid_re = YouTubeStripVideoID()
         # YouTube base url for videos
         self.yt_base_url = 'https://www.youtube.com/watch?v='
+        # Regex check for type checking
+        self.type_check = re.compile('^[0-9]+$')
         #### Start service ####
         # Start loops
         self.update_variables.start()
@@ -246,6 +253,260 @@ class LiveLaunch(commands.Cog):
             payload
         )
 
+    async def scheduled_events_update(
+        self,
+        ll2_id: str,
+        *,
+        cached: dict[str, bool and datetime and int and str],
+        check: dict[str, bool or datetime or int or str]
+    ) -> None:
+        """
+        Update scheduled events when any
+        changes appear to upcoming events.
+
+        Parameters
+        ----------
+        ll2_id : str
+            Launch Library 2 ID.
+        cached: dict[
+            str, bool and datetime and int and str
+        ]
+            Cached data for the event.
+        check : dict[
+            str, bool or datetime or int or str
+        ]
+            Data from events that changed.
+        """
+        failed = False
+
+        # Downloading image
+        if (image_url := check.get('image_url')):
+            async with aiohttp.ClientSession() as session:
+                async with session.get(image_url) as resp:
+                    if resp.status == 200:
+                        check['image'] = await resp.read()
+
+        # Iterate over scheduled events corresponding to the ll2_id
+        async for scheduled_event_id, guild_id in self.bot.lldb.scheduled_events_ll2_id_iter(ll2_id):
+
+            # webcast_live went from True to False, remove event
+            if check.get('webcast_live') is False:
+                try:
+                    # Remove the scheduled event from Discord
+                    await self.bot.http.delete_guild_scheduled_event(
+                        guild_id,
+                        scheduled_event_id
+                    )
+                except:
+                    pass
+                # Remove scheduled event from the database
+                await self.bot.lldb.scheduled_events_remove(
+                    scheduled_event_id
+                )
+
+            # Updating
+            else:
+
+                # Seperate dict for updating Discord & database for next if statement
+                modify = check.copy()
+
+                if (start := check.get('start')):
+
+                    # If `start` changed to a datetime in the past
+                    if start < (now := datetime.now(timezone.utc) + self.timedelta_1m):
+                        # Remove `start` value from the modify dict, can't update
+                        del modify['start']
+                        # Start event if it hasn't yet
+                        if cached['start'] > now:
+                            modify['webcast_live'] = True
+
+                    # If `start` moved forward while the event is live
+                    elif cached['webcast_live'] or cached['start'] < now:
+                        if start > now + self.timedelta_1h:
+
+                            try:
+                                # Remove the scheduled event from Discord
+                                await self.bot.http.delete_guild_scheduled_event(
+                                    guild_id,
+                                    scheduled_event_id
+                                )
+                            except:
+                                pass
+
+                            # Remove scheduled event from the database
+                            await self.bot.lldb.scheduled_events_remove(
+                                scheduled_event_id
+                            )
+
+                            # Skip updating, event is removed
+                            continue
+
+                        # Remove `start` value from the modify dict, new start isn't too far from current
+                        del modify['start']
+
+                remove_event = False
+                try:
+                    await self.modify_scheduled_event(
+                        guild_id,
+                        scheduled_event_id,
+                        **modify
+                    )
+                except (discord.errors.Forbidden, discord.errors.NotFound):
+                    # When missing access or already removed event
+                    remove_event = True
+                except Exception as e:
+                    str_e = str(e)
+                    # Wrong permissions
+                    if '50013' in str_e:
+                        remove_event = True
+                    else:
+                        failed = True
+                        logging.warning(
+                            f'LL2 ID: {ll2_id}\tGuild ID: {guild_id}\t' \
+                            f'Modify failure: {e} {type(e)}'
+                        )
+                        print('Modify failure:', e, type(e))
+                if remove_event:
+                    # Remove scheduled event from the database
+                    await self.bot.lldb.scheduled_events_remove(
+                        scheduled_event_id
+                    )
+
+        # Update cache
+        if not failed:
+            await self.bot.lldb.ll2_events_edit(
+                ll2_id,
+                **check
+            )
+
+    async def scheduled_events_remove(self, ll2_id: str) -> None:
+        """
+        Remove a scheduled event in
+        all Discord guilds.
+
+        Parameters
+        ----------
+        ll2_id : str
+            Launch Library 2 ID.
+        """
+        # Iterate over scheduled events corresponding to the ll2_id
+        async for scheduled_event_id, guild_id in self.bot.lldb.scheduled_events_ll2_id_iter(ll2_id):
+            success = True
+            try:
+                # Remove the scheduled event from Discord
+                await self.bot.http.delete_guild_scheduled_event(
+                    guild_id,
+                    scheduled_event_id
+                )
+            except (discord.errors.Forbidden, discord.errors.NotFound):
+                # When missing access or already removed event
+                pass
+            except Exception as e:
+                # Wrong permissions
+                if not '50013' in str(e):
+                    success = False
+                    logging.warning(
+                        f'LL2 ID: {ll2_id}\tGuild ID: {guild_id}\t' \
+                        f'Removal failure: {e} {type(e)}'
+                    )
+                    print('Removal failure:', e, type(e))
+            if success:
+                # Remove scheduled event from the database
+                await self.bot.lldb.scheduled_events_remove(
+                    scheduled_event_id
+                )
+
+    async def send_status_notification(
+        self,
+        ll2_id: str,
+        data: dict[str, bool and datetime and int and str]
+    ) -> None:
+        """
+        Send a status change notification when called,
+        uses the provided data to create the notification
+        embed and sends it to all guilds that enabled the
+        status type within their settings.
+
+        Parameters
+        ----------
+        ll2_id : str
+            Launch Library 2 ID.
+        data : dict[
+            str, bool and datetime and int and str
+        ]
+            Data of the event.
+        """
+        status = data['status']
+
+        # Only enable video URL when available
+        url = data['url']
+        if url != 'No stream yet':
+            url = f'\n[Stream]({url})'
+        
+        # Select the correct SLN base URL
+        if self.type_check.match(ll2_id):
+            base_url = sln_event_url
+        else:
+            base_url = sln_launch_url
+
+        # Creating embed
+        embed = discord.Embed(
+            color=status_colours.get(data['status'], 0xFFFF00),
+            timestamp=data['start'],
+            title=data['name'],
+            url=base_url % ll2_id
+        )
+        # Status
+        embed.add_field(
+            name=f'Status',
+            value=status_names[status] + url
+        )
+        # Set image
+        embed.set_image(
+            url=data['image_url']
+        )
+        # Set footer
+        embed.set_footer(
+            text='LiveLaunch Notifications'
+        )
+
+        # Get the agency's name and logo
+        if (agency := await self.bot.lldb.ll2_agencies_get(ll2_id)):
+            agency, logo_url = agency
+        else:
+            agency, logo_url = None, None
+
+        # Iterate over guilds that enabled the status for notifications
+        async for guild_id, webhook_url in self.bot.lldb.notification_status_iter(status):
+            try:
+                # Creating session
+                async with aiohttp.ClientSession() as session:
+                    # Creating webhook
+                    webhook = discord.Webhook.from_url(
+                        webhook_url,
+                        session=session
+                    )
+
+                    # Sending notification
+                    await webhook.send(
+                        embed=embed,
+                        username=agency,
+                        avatar_url=logo_url
+                    )
+
+            # Remove channel and url from the db when either is removed or deleted
+            except discord.errors.NotFound:
+                await self.bot.lldb.enabled_guilds_edit(
+                    guild_id,
+                    notification_channel_id=None,
+                    notification_webhook_url=None
+                )
+                logging.warning(f'Guild ID: {guild_id}\tRemoved notification webhook, not found.')
+            # When the bot fails (edge case)
+            except Exception as e:
+                logging.warning(f'Guild ID: {guild_id}\tError during notification webhook sending: {e}, {type(e)}')
+                print(f'Guild ID: {guild_id}\tError during notification webhook sending: {e}, {type(e)}')
+
     @tasks.loop(hours=1)
     async def update_variables(self):
         """
@@ -271,167 +532,71 @@ class LiveLaunch(commands.Cog):
             print('No LL2 Data')
             return
 
-        #### Discord scheduled events ####
+        #### Discord scheduled events & notifications ####
         # Iterate over the cached LL2 events
         cached_ll2_events = []
         async for cached in self.bot.lldb.ll2_events_iter():
             ll2_id = cached['ll2_id']
             cached_ll2_events.append(ll2_id)
 
-            # Failure bool
-            failed = False
-
-            ## Update existing scheduled events ##
+            ## Update LL2 event data ##
 
             # Check if the event still exists
             if data := upcoming.get(ll2_id):
 
+                # Scheduled event check
+                scheduled_event_check = data['end'] > datetime.now(timezone.utc) \
+                    and data.get('status') not in self.ll2.launch_status_end
+
                 # Check for updates to the event
-                check = {key: data[key] for key in self.ll2.data_keys if data[key] != cached[key]}
+                check = {key: data[key] for key in self.ll2.data_keys if data.get(key) != cached[key]}
 
-                # If there are any updates
-                if check:
-
-                    # Downloading image
-                    if (image_url := check.get('image_url')):
-                        async with aiohttp.ClientSession() as session:
-                            async with session.get(image_url) as resp:
-                                if resp.status == 200:
-                                    check['image'] = await resp.read()
-
-                    # Iterate over scheduled events corresponding to the ll2_id
-                    async for scheduled_event_id, guild_id in self.bot.lldb.scheduled_events_ll2_id_iter(ll2_id):
-
-                        # webcast_live went from True to False, remove event
-                        if check.get('webcast_live') is False:
-                            try:
-                                # Remove the scheduled event from Discord
-                                await self.bot.http.delete_guild_scheduled_event(
-                                    guild_id,
-                                    scheduled_event_id
-                                )
-                            except:
-                                pass
-                            # Remove scheduled event from the database
-                            await self.bot.lldb.scheduled_events_remove(
-                                scheduled_event_id
-                            )
-
-                        # Updating
-                        else:
-
-                            # Seperate dict for updating Discord & database for next if statement
-                            modify = check.copy()
-
-                            if (start := check.get('start')):
-
-                                # If `start` changed to a datetime in the past
-                                if start < (now := datetime.now(timezone.utc) + self.timedelta_1m):
-                                    # Remove `start` value from the modify dict, can't update
-                                    del modify['start']
-                                    # Start event if it hasn't yet
-                                    if cached['start'] > now:
-                                        modify['webcast_live'] = True
-
-                                # If `start` moved forward while the event is live
-                                elif cached['webcast_live'] or cached['start'] < now:
-                                    if start > now + self.timedelta_1h:
-
-                                        try:
-                                            # Remove the scheduled event from Discord
-                                            await self.bot.http.delete_guild_scheduled_event(
-                                                guild_id,
-                                                scheduled_event_id
-                                            )
-                                        except:
-                                            pass
-
-                                        # Remove scheduled event from the database
-                                        await self.bot.lldb.scheduled_events_remove(
-                                            scheduled_event_id
-                                        )
-
-                                        # Skip updating, event is removed
-                                        continue
-
-                                    # Remove `start` value from the modify dict, new start isn't too far from current
-                                    del modify['start']
-
-                            remove_event = False
-                            try:
-                                await self.modify_scheduled_event(
-                                    guild_id,
-                                    scheduled_event_id,
-                                    **modify
-                                )
-                            except (discord.errors.Forbidden, discord.errors.NotFound):
-                                # When missing access or already removed event
-                                remove_event = True
-                            except Exception as e:
-                                str_e = str(e)
-                                # Wrong permissions
-                                if '50013' in str_e:
-                                    remove_event = True
-                                else:
-                                    failed = True
-                                    logging.warning(
-                                        f'LL2 ID: {ll2_id}\tGuild ID: {guild_id}\t' \
-                                        f'Modify failure: {e} {type(e)}'
-                                    )
-                                    print('Modify failure:', e, type(e))
-                            if remove_event:
-                                # Remove scheduled event from the database
-                                await self.bot.lldb.scheduled_events_remove(
-                                    scheduled_event_id
-                                )
-
-                    # Update cache
-                    if not failed:
-                        # Remove image, not cached
-                        check.pop('image', None)
-                        await self.bot.lldb.ll2_events_edit(
-                            ll2_id,
-                            **check
-                        )
-
-            ## Removal of existing scheduled events ##
-
-            # Cached event no longer exists
-            else:
-
-                # Iterate over scheduled events corresponding to the ll2_id
-                async for scheduled_event_id, guild_id in self.bot.lldb.scheduled_events_ll2_id_iter(ll2_id):
-                    success = True
-                    try:
-                        # Remove the scheduled event from Discord
-                        await self.bot.http.delete_guild_scheduled_event(
-                            guild_id,
-                            scheduled_event_id
-                        )
-                    except (discord.errors.Forbidden, discord.errors.NotFound):
-                        # When missing access or already removed event
-                        pass
-                    except Exception as e:
-                        # Wrong permissions
-                        if not '50013' in str(e):
-                            failed = True
-                            success = False
-                            logging.warning(
-                                f'LL2 ID: {ll2_id}\tGuild ID: {guild_id}\t' \
-                                f'Removal failure: {e} {type(e)}'
-                            )
-                            print('Removal failure:', e, type(e))
-                    if success:
-                        # Remove scheduled event from the database
-                        await self.bot.lldb.scheduled_events_remove(
-                            scheduled_event_id
-                        )
-
-                # Remove event from the cache
-                if not failed:
-                    await self.bot.lldb.ll2_events_remove(
-                        ll2_id
+                # Update agency data
+                if (agency_id := check.get('agency_id')):
+                    # Update agencies table
+                    await self.bot.lldb.ll2_agencies_replace(
+                        agency_id,
+                        data['agency_name']
                     )
+                    # Update events table
+                    await self.bot.lldb.ll2_events_edit(
+                        ll2_id,
+                        agency_id=agency_id
+                    )
+                    # Done
+                    check.pop('agency_id')
+
+                # Send status change notifications
+                if ((status := check.get('status'))
+                        and status in self.ll2.notification_status):
+                    # Send notifications
+                    await self.send_status_notification(ll2_id, data)
+                    # Update events table
+                    await self.bot.lldb.ll2_events_edit(
+                        ll2_id,
+                        status=status
+                    )
+                    # Done
+                    check.pop('status')
+
+                # Check for scheduled event relevance                
+                if scheduled_event_check:
+                    # If there are any more updates, update the scheduled events
+                    if check:
+                        await self.scheduled_events_update(
+                            ll2_id,
+                            cached=cached,
+                            check=check
+                        )
+                # Removal of existing scheduled events
+                else:
+                    await self.scheduled_events_remove(ll2_id)
+
+            # Cached event no longer exists, remove event from the cache
+            else:
+                await self.bot.lldb.ll2_events_remove(
+                    ll2_id
+                )
 
         ## Creation of new scheduled events ##
 
@@ -440,6 +605,13 @@ class LiveLaunch(commands.Cog):
 
         # Add new events to the database
         for ll2_id in new_ll2_events:
+            # Update agency if needed
+            if (agency_id := upcoming[ll2_id].get('agency_id')):
+                await self.bot.lldb.ll2_agencies_replace(
+                    agency_id,
+                    name=upcoming[ll2_id]['agency_name']
+                )
+            # Add event
             await self.bot.lldb.ll2_events_add(
                 ll2_id,
                 **upcoming[ll2_id]

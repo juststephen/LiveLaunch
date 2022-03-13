@@ -32,6 +32,7 @@ class LiveLaunchCommand(commands.Cog):
     async def enable(
         self,
         ctx,
+        notifications: TextChannel = None,
         news: TextChannel = None,
         messages: TextChannel = None,
         events: int = None
@@ -41,6 +42,9 @@ class LiveLaunchCommand(commands.Cog):
 
         Parameters
         ----------
+        notifications : discord.TextChannel, default: None
+            Discord channel to send
+            notifications to.
         news : discord.TextChannel, default: None
             Discord channel to send news to.
         messages : discord.TextChannel, default: None
@@ -94,10 +98,38 @@ class LiveLaunchCommand(commands.Cog):
         if settings:
             new_settings = {'guild_id': guild_id}
 
+            # Webhook notification settings
+            if notifications:
+                # Move messages to another channel if there was a previous one
+                if settings['notification_channel_id']:
+
+                    # Create webhook for deletion
+                    async with aiohttp.ClientSession() as session:
+                        webhook = Webhook.from_url(
+                            settings['notification_webhook_url'],
+                            session=session
+                        )
+                        # Delete webhook
+                        try:
+                            await webhook.delete()
+                        except:
+                            pass
+
+                # Add new data
+                notification_webhook_url = await create_webhook(
+                    notifications,
+                    feature='Notifications'
+                )
+                if notification_webhook_url is None:
+                    return
+                else:
+                    new_settings['notification_channel_id'] = notifications.id
+                    new_settings['notification_webhook_url'] = notification_webhook_url
+
             # Webhook news settings
             if news:
                 # Move messages to another channel if there was a previous one
-                if news.id != settings['news_channel_id'] and settings['news_channel_id']:
+                if settings['news_channel_id']:
 
                     # Create webhook for deletion
                     async with aiohttp.ClientSession() as session:
@@ -122,7 +154,7 @@ class LiveLaunchCommand(commands.Cog):
             # Webhook stream settings
             if messages:
                 # Move messages to another channel if there was a previous one
-                if messages.id != settings['channel_id'] and settings['channel_id']:
+                if settings['channel_id']:
 
                     # Create webhook for deletion
                     async with aiohttp.ClientSession() as session:
@@ -153,9 +185,16 @@ class LiveLaunchCommand(commands.Cog):
                 **new_settings
             )
 
+            # Base message
+            message = 'Features updated'
+            # Add notification info if needed
+            if notifications:
+                message += '\n**For notifications:**\ndon\'t forget ' \
+                    'to run the `/notifications` commands to ' \
+                    'finish setting up notifications.'
             # Notify user
             await ctx.send(
-                'Features updated',
+                message,
                 ephemeral=True
             )
 
@@ -163,7 +202,19 @@ class LiveLaunchCommand(commands.Cog):
         else:
             settings = {'guild_id': guild_id}
 
-            # Get channel ID and create a news if requested
+            # Get channel ID and create a notification webhook if requested
+            if notifications:
+                notification_webhook_url = await create_webhook(
+                    notifications,
+                    feature='Notifications'
+                )
+                if notification_webhook_url is None:
+                    return
+                else:
+                    settings['notification_channel_id'] = notifications.id
+                    settings['notification_webhook_url'] = notification_webhook_url
+
+            # Get channel ID and create a news webhook if requested
             if news:
                 news_webhook_url = await create_webhook(news, feature='News')
                 if news_webhook_url is None:
@@ -192,9 +243,16 @@ class LiveLaunchCommand(commands.Cog):
                 **settings
             )
 
+            # Base message
+            message = 'Requested features are now enabled'
+            # Add notification info if needed
+            if notifications:
+                message += '\n**For notifications:**\ndon\'t forget ' \
+                    'to run the `/notifications` commands to ' \
+                    'finish setting up notifications.'
             # Notify user
             await ctx.send(
-                'Requested features are now enabled',
+                message,
                 ephemeral=True
             )
 
@@ -211,6 +269,8 @@ class LiveLaunchCommand(commands.Cog):
         features : str
             Features to disable,
             - options:
+                - ` notifications `:
+                    Disable notification sending.
                 - ` news `:
                     Disable news sending.
                 - ` messages `:
@@ -232,39 +292,34 @@ class LiveLaunchCommand(commands.Cog):
         else:
             new_settings = {'guild_id': guild_id}
 
-            # Remove the news webhook if needed
-            if features in ('news', 'all') and settings['news_webhook_url']:
-                # Create webhook for deletion
-                async with aiohttp.ClientSession() as session:
-                    webhook = Webhook.from_url(
-                        settings['news_webhook_url'],
-                        session=session
-                    )
-                    # Delete webhook
-                    try:
-                        await webhook.delete()
-                    except:
-                        pass
+            # Remove webhooks if needed
+            for i, key in zip(
+                (
+                    'notifications',
+                    'news',
+                    'messages'
+                ),
+                (
+                    'notification_',
+                    'news_',
+                    ''
+                )
+            ):
+                if features in (i, 'all') and settings[f'{key}webhook_url']:
+                    # Create webhook for deletion
+                    async with aiohttp.ClientSession() as session:
+                        webhook = Webhook.from_url(
+                            settings[f'{key}webhook_url'],
+                            session=session
+                        )
+                        # Delete webhook
+                        try:
+                            await webhook.delete()
+                        except:
+                            pass
 
-                new_settings['news_channel_id'] = None
-                new_settings['news_webhook_url'] = None
-
-            # Remove the stream webhook if needed
-            if features in ('messages', 'all') and settings['webhook_url']:
-                # Create webhook for deletion
-                async with aiohttp.ClientSession() as session:
-                    webhook = Webhook.from_url(
-                        settings['webhook_url'],
-                        session=session
-                    )
-                    # Delete webhook
-                    try:
-                        await webhook.delete()
-                    except:
-                        pass
-
-                new_settings['channel_id'] = None
-                new_settings['webhook_url'] = None
+                    new_settings[f'{key}channel_id'] = None
+                    new_settings[f'{key}webhook_url'] = None
 
             # Remove the events feature if needed
             if features in ('events', 'all') and settings['scheduled_events']:
@@ -275,7 +330,8 @@ class LiveLaunchCommand(commands.Cog):
                 i in new_settings for i in (
                     'webhook_url',
                     'scheduled_events',
-                    'news_webhook_url'
+                    'news_webhook_url',
+                    'notification_webhook_url'
                 )
             ):
                 # Update database
@@ -345,222 +401,9 @@ class LiveLaunchCommand(commands.Cog):
             ephemeral=True
         )
 
-    @commands.group()
-    @commands.defer(ephemeral=True)
-    async def newsfilter(self, ctx) -> None:
-        """
-        List, add and remove filters for news sites.
-        """
-        pass
-
-    @newsfilter.command(name='list')
-    @commands.has_guild_permissions(administrator=True)
-    @commands.cooldown(1, 8)
-    async def newsfilter_list(self, ctx) -> None:
-        """
-        List filters for news sites.
-        """
-        # Guild ID
-        guild_id = ctx.guild.id
-
-        # Get all available filters
-        filters_all = await self.bot.lldb.news_filter_list()
-
-        # Get all filters enabled in the guild
-        filters_guild = await self.bot.lldb.news_filter_list(
-            guild_id=guild_id
-        )
-
-        # Create list embed
-        embed = Embed(
-            color=0x00E8FF,
-            description='When a news site filter is enabled it will not be posted.',
-            title='News Site Filters'
-        )
-        # Add available filters
-        if (filters_available := [i for i in filters_all if i not in filters_guild]):
-            embed.add_field(
-                name='Available',
-                value='```' +
-                    '\n'.join(f'{i}) {j}' for i, j in filters_available) +
-                    '```'
-            )
-        # Add enabled filters
-        if filters_guild:
-            embed.add_field(
-                name='Enabled',
-                value='```' +
-                    '\n'.join(f'{i}) {j}' for i, j in filters_guild) +
-                    '```'
-            )
-
-        # Send list
-        await ctx.send(
-            embed=embed,
-            ephemeral=True
-        )
-
-    @newsfilter.command(name='add')
-    @commands.has_guild_permissions(administrator=True)
-    @commands.cooldown(1, 8)
-    async def newsfilter_add(self, ctx, newssite: str) -> None:
-        """
-        Add a filter for news sites.
-
-        Parameters
-        ----------
-        newssite : str
-            Enable filter for
-            this news site.
-        """
-        # Guild ID
-        guild_id = ctx.guild.id
-
-        # Check if guild has settings
-        if not await self.bot.lldb.enabled_guilds_check(guild_id):
-            await ctx.send(
-                'This guild has nothing enabled, can\'t add filters.',
-                ephemeral=True
-            )
-            return
-
-        # Split bulk into a list
-        newssite = [i.strip() for i in newssite.split(',')]
-
-        status_list = []
-        for item in newssite:
-
-            try:
-                item = int(item)
-
-            # Input is a string
-            except:
-                # Lowercase
-                item = item.lower()
-
-                # Add filter to the db by name
-                status = await self.bot.lldb.news_filter_add(
-                    guild_id,
-                    news_site_name=item
-                )
-
-            # Input is an index number
-            else:
-                # Add filter to the db by index
-                status = await self.bot.lldb.news_filter_add(
-                    guild_id,
-                    news_site_id=item
-                )
-
-            # Add to status list
-            status_list.append(status)
-
-        # Notify user
-        if all(status_list):
-            await ctx.send(
-                f"Added news site filter(s): `{', '.join(newssite)}`.",
-                ephemeral=True
-            )
-        elif not any(status_list):
-            await ctx.send(
-                f"News site filter(s) `{', '.join(newssite)}` doesn\'t/don\'t exist.",
-                ephemeral=True
-            )
-        else:
-            # Check failed / success
-            successes = list(compress(newssite, status_list))
-            fails = [i for i in newssite if i not in successes]
-            # Send
-            await ctx.send(
-                f"Added news site filter(s): `{', '.join(successes)}`, "
-                f"couldn\'t add site filter(s): `{', '.join(fails)}`.",
-                ephemeral=True
-            )
-
-    @newsfilter.command(name='remove')
-    @commands.has_guild_permissions(administrator=True)
-    @commands.cooldown(1, 8)
-    async def newsfilter_remove(self, ctx, newssite: str) -> None:
-        """
-        Remove a filter for news sites.
-
-        Parameters
-        ----------
-        newssite : str
-            Disable filter for
-            this news site.
-        """
-        # Guild ID
-        guild_id = ctx.guild.id
-
-        # Check if guild has settings
-        if not await self.bot.lldb.enabled_guilds_check(guild_id):
-            await ctx.send(
-                'This guild has nothing enabled, can\'t remove filters.',
-                ephemeral=True
-            )
-            return
-
-        # Split bulk into a list
-        newssite = [i.strip() for i in newssite.split(',')]
-
-        status_list = []
-        for item in newssite:
-
-            try:
-                item = int(item)
-
-            # Input is a string
-            except:
-                # Lowercase
-                item = item.lower()
-
-                # Remove filter to the db by name
-                status = await self.bot.lldb.news_filter_remove(
-                    guild_id,
-                    news_site_name=item
-                )
-
-            # Input is an index number
-            else:
-                # Remove filter to the db by index
-                status = await self.bot.lldb.news_filter_remove(
-                    guild_id,
-                    news_site_id=item
-                )
-
-            # Add to status list
-            status_list.append(status)
-
-        # Notify user
-        if all(status_list):
-            await ctx.send(
-                f"Removed news site filter(s): `{', '.join(newssite)}`.",
-                ephemeral=True
-            )
-        elif not any(status_list):
-            await ctx.send(
-                f"News site filter(s) `{', '.join(newssite)}` doesn\'t/don\'t exist.",
-                ephemeral=True
-            )
-        else:
-            # Check failed / success
-            successes = list(compress(newssite, status_list))
-            fails = [i for i in newssite if i not in successes]
-            # Send
-            await ctx.send(
-                f"Removed news site filter(s): `{', '.join(successes)}`, "
-                f"couldn\'t remove site filter(s): `{', '.join(fails)}`.",
-                ephemeral=True
-            )
-
     @enable.error
     @disable.error
     @synchronize.error
-    @newsfilter.error
-    @newsfilter_list.error
-    @newsfilter_add.error
-    @newsfilter_remove.error
     async def command_error(self, ctx, error) -> None:
         """
         Method that handles erroneous interactions with the commands.

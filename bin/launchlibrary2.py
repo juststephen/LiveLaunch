@@ -7,6 +7,34 @@ try:
 except:
     from aget import ll2_get
 
+# Status colours for embeds
+status_colours = {
+    1: 0x00FF00, # Go
+    2: 0xFF0000, # TBD
+    3: 0x00FF00, # Success
+    4: 0xFF0000, # Failure
+    5: 0xFFFF00, # Hold
+    6: 0x0000FF, # In Flight
+    7: 0xFF7F00, # Partial Failure
+    8: 0xFF7F00, # TBC
+}
+
+# Status names for embeds
+status_names = {
+    1: 'Go for Launch',
+    2: 'To Be Determined',
+    3: 'Launch Successful',
+    4: 'Launch Failure',
+    5: 'On Hold',
+    6: 'Launch in Flight',
+    7: 'Launch was a Partial Failure',
+    8: 'To Be Confirmed',
+}
+
+# Space Launch Now
+sln_event_url = 'https://spacelaunchnow.me/event/%s'
+sln_launch_url = 'https://spacelaunchnow.me/launch/%s'
+
 class LaunchLibrary2:
     """
     Launch Library 2 by The Space Devs (https://thespacedevs.com/).
@@ -15,21 +43,25 @@ class LaunchLibrary2:
         # Keys in the returned data containing non ID data.
         self.data_keys = (
             'name',
+            'status',
             'description',
             'url',
             'image_url',
             'start',
             'end',
-            'webcast_live'
+            'webcast_live',
+            'agency_id'
         )
         # Max amount of events
-        self.max_events = 50
+        self.max_events = 64
         # Max description length
         self.max_description_length = 1000
         # 1 hour timedelta
         self.dt1 = timedelta(hours=-1)
-        # End launch tags
+        # End launch status tags
         self.launch_status_end = (3, 4, 7)
+        # Notification status tags
+        self.notification_status = (3, 4, 5, 6, 7)
         # Event duration (i.e. long EVAs)
         self.event_duration = {
             'EVA': timedelta(hours=6),
@@ -66,7 +98,7 @@ class LaunchLibrary2:
             if 'results' in result:
                 return result['results']
 
-    async def upcoming_launches(self) -> dict[str, dict[str, bool and datetime and str]]:
+    async def upcoming_launches(self) -> dict[str, dict[str, bool and datetime and int and str]]:
         """
         Gets data of upcoming launches.
 
@@ -89,48 +121,44 @@ class LaunchLibrary2:
             # Start datetime of the entry
             net = isoparse(entry['net'])
 
-            # Check if the entry is not yet done
-            status = not entry['status']['id'] in self.launch_status_end
+            # Name with potential [TBD] (To Be Determined) prefix
+            name = entry['name'] if entry['status']['id'] != 2 else '[TBD] ' + entry['name']
 
-            # Check if launch is not in the past (minus 1 hour for the actual event duration)
-            if net - datetime.now(timezone.utc) > self.dt1 and status:
+            # Check for videos
+            picked_video = self.no_stream
+            if 'vidURLs' in entry and entry['vidURLs']:
+                priority = None
+                for url in entry['vidURLs']:
+                    # Find lowest priority value
+                    if priority is None or url['priority'] < priority:
+                        priority = url['priority']
+                        picked_video = url['url']
 
-                # Name with potential [TBD] (To Be Determined) prefix
-                name = entry['name'] if entry['status']['id'] != 2 else '[TBD] ' + entry['name']
+            # Check description length and trim if needed
+            if (description := entry['mission']) is not None:
+                # Grab description
+                description = description['description']
+                # Check length
+                if len(description) > self.max_description_length:
+                    description = description[:self.max_description_length-3] + '...'
 
-                # Check for videos
-                picked_video = self.no_stream
-                if 'vidURLs' in entry and entry['vidURLs']:
-                    priority = None
-                    for url in entry['vidURLs']:
-                        # Find lowest priority value
-                        if priority is None or url['priority'] < priority:
-                            priority = url['priority']
-                            picked_video = url['url']
+            # Image format check
+            if (image_url := entry['image']) and not image_url.endswith(self.image_formats):
+                image_url = None
 
-                # Description check
-                if (temp := entry['mission']) is None:
-                    description = None
-                else:
-                    # Check description length
-                    if len(description := temp['description']) >= self.max_description_length:
-                        # Trim
-                        description = description[:self.max_description_length-3] + '...'
-
-                # Image format check
-                if (image_url := entry['image']) and not image_url.endswith(self.image_formats):
-                    image_url = None
-
-                # Adding event to launches list
-                launches[entry['id']] = {
-                    'name': name,
-                    'description': description,
-                    'url': picked_video,
-                    'image_url': image_url,
-                    'start': net,
-                    'end': net + self.event_duration['default'],
-                    'webcast_live': entry['webcast_live']
-                }
+            # Adding event to launches list
+            launches[entry['id']] = {
+                'name': name,
+                'description': description,
+                'url': picked_video,
+                'image_url': image_url,
+                'start': net,
+                'end': net + self.event_duration['default'],
+                'webcast_live': entry['webcast_live'],
+                'agency_id': entry['launch_service_provider']['id'],
+                'agency_name': entry['launch_service_provider']['name'],
+                'status': entry['status']['id']
+            }
 
         # Returning
         return launches
@@ -158,47 +186,40 @@ class LaunchLibrary2:
             # Start datetime of the entry
             net = isoparse(entry['date'])
 
-            # Default duration if event is not known
+            # Default duration if event type is not known
             event_type = entry['type']['name']
             if not event_type in self.event_duration:
                 event_type = 'default'
 
-            # Check if event is not in the past using the event type for duration
-            if net > datetime.now(timezone.utc) - self.event_duration[event_type]:
+            # Check for video
+            picked_video = self.no_stream
+            if 'video_url' in entry and entry['video_url']:
+                picked_video = entry['video_url']
 
-                # Check for video
-                picked_video = self.no_stream
-                if 'video_url' in entry and entry['video_url']:
-                    picked_video = entry['video_url']
+            # Check description length and trim if needed
+            if ((description := entry['description']) is not None
+                    and len(description) > self.max_description_length):
+                description = description[:self.max_description_length-3] + '...'
 
-                # Description check
-                if (description := entry['description']) is None:
-                    description = None
-                else:
-                    # Check description length
-                    if len(description) >= self.max_description_length:
-                        # Trim
-                        description = description[:self.max_description_length-3] + '...'
+            # Image format check
+            if (image_url := entry['feature_image']) and not image_url.endswith(self.image_formats):
+                image_url = None
 
-                # Image format check
-                if (image_url := entry['feature_image']) and not image_url.endswith(self.image_formats):
-                    image_url = None
-
-                # Adding event to events list
-                events[str(entry['id'])] = {
-                    'name': entry['name'],
-                    'description': description,
-                    'url': picked_video,
-                    'image_url': image_url,
-                    'start': net,
-                    'end': net + self.event_duration[event_type],
-                    'webcast_live': entry['webcast_live']
-                }
+            # Adding event to events list
+            events[str(entry['id'])] = {
+                'name': entry['name'],
+                'description': description,
+                'url': picked_video,
+                'image_url': image_url,
+                'start': net,
+                'end': net + self.event_duration[event_type],
+                'webcast_live': entry['webcast_live']
+            }
 
         # Returning
         return events
 
-    async def upcoming(self) -> dict[str, dict[str, bool and datetime and str]]:
+    async def upcoming(self) -> dict[str, dict[str, bool and datetime and int and str]]:
         """
         Gets data of upcoming events and launches.
 

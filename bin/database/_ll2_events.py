@@ -3,9 +3,10 @@ from datetime import datetime
 
 from ._missing import MISSING
 
-# LL2 events table
-
 class LL2Events:
+    """
+    LL2 events table.
+    """
     async def ll2_events_add(
         self,
         ll2_id: str,
@@ -15,7 +16,10 @@ class LL2Events:
         image_url: str,
         start: datetime,
         end: datetime,
-        webcast_live: bool = False
+        agency_id: int = None,
+        status: int = None,
+        webcast_live: bool = False,
+        **kwargs
     ) -> None:
         """
         Adds an entry in the `ll2_events`
@@ -37,18 +41,26 @@ class LL2Events:
             Event start datetime object.
         end : datetime
             Event end datetime object.
+        agency_id : int, default: None
+            LL2 agency ID.
+        status : int, default: None
+            Status ID.
         webcast_live : bool, default: False
             Event is live or not.
+        **kwargs
         """
         with await self.pool as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
                     INSERT INTO ll2_events
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
-                        ll2_id, name,
+                        ll2_id,
+                        agency_id,
+                        name,
+                        status,
                         description, url,
                         image_url,
                         start.isoformat(),
@@ -83,7 +95,7 @@ class LL2Events:
     async def ll2_events_iter(
         self,
         asc_desc: str = 'asc'
-    ) -> dict[str, bool and str and datetime]:
+    ) -> dict[str, bool and datetime and str]:
         """
         Go over every row in the `ll2_events`
         table of the LiveLaunch database by
@@ -102,8 +114,10 @@ class LL2Events:
         ------
         dict[
             ll2_id : str,
+            agency_id : int,
             name : str,
-            description : str
+            status : int,
+            description : str,
             url : str,
             image_url : str,
             start : datetime,
@@ -139,7 +153,7 @@ class LL2Events:
     async def ll2_events_get(
         self,
         ll2_id: str
-    ) -> dict[str, str and datetime] or None:
+    ) -> dict[str, datetime and str] or None:
         """
         Retrieves an entry from the `ll2_events`
         table of the LiveLaunch database.
@@ -152,8 +166,10 @@ class LL2Events:
         Returns
         -------
         dict[
-            name : str
-            description : str
+            agency_id : int,
+            name : str,
+            status : int,
+            description : str,
             url : str,
             image_url : str,
             start : datetime,
@@ -184,13 +200,16 @@ class LL2Events:
     async def ll2_events_edit(
         self,
         ll2_id: str,
+        agency_id: int = None,
         name: str = None,
+        status: int = None,
         description: str = None,
         url: str = None,
         image_url: str = MISSING,
         start: datetime = None,
         end: datetime = None,
-        webcast_live: bool = None
+        webcast_live: bool = None,
+        **kwargs
     ) -> None:
         """
         Modifies an entry in the `ll2_events`
@@ -200,8 +219,12 @@ class LL2Events:
         ----------
         ll2_id : str
             Launch Library 2 ID.
+        agency_id : int
+            LL2 agency ID.
         name : str, default: None
             Name of the event.
+        status : int, default: None
+            Status ID.
         description : str, default: None
             Event description.
         url : str, default: None
@@ -214,12 +237,19 @@ class LL2Events:
             Event end datetime object.
         webcast_live : bool, default: None
             Event is live or not.
+        **kwargs
         """
         cols, args = [], []
         # Update variables in the row if given
+        if agency_id is not None:
+            cols.append('agency_id=%s')
+            args.append(agency_id)
         if name is not None:
             cols.append('name=%s')
             args.append(name)
+        if status is not None:
+            cols.append('status=%s')
+            args.append(status)
         if description is not None:
             cols.append('description=%s')
             args.append(description)

@@ -6,6 +6,15 @@
             "type":1,
             "options":[
                 {
+                    "name":"notifications",
+                    "type":7,
+                    "description":"Channel to send notifications to",
+                    "channel_types":[
+                        0,
+                        5
+                    ]
+                },
+                {
                     "name":"news",
                     "type":7,
                     "description":"Channel to send news to",
@@ -43,6 +52,10 @@
                     "description":"Features to disable",
                     "required":true,
                     "choices":[
+                        {
+                            "name":"notifications",
+                            "value":"notifications"
+                        },
                         {
                             "name":"news",
                             "value":"news"
@@ -106,6 +119,187 @@
                             "type":3,
                             "description":"News site name or ID",
                             "required":true
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name":"notifications",
+            "description":"Notification settings",
+            "type":1,
+            "options":[
+                {
+                    "name":"general",
+                    "type":1,
+                    "description":"General notification settings",
+                    "options":[
+                        {
+                            "name":"everything",
+                            "type":3,
+                            "description":"Enable/disable all notification settings except for countdowns",
+                            "choices":[
+                                {
+                                    "name":"Enable",
+                                    "value":"True"
+                                },
+                                {
+                                    "name":"Disable",
+                                    "value":"False"
+                                }
+                            ]
+                        },
+                        {
+                            "name":"events",
+                            "type":3,
+                            "description":"Enable/disable event countdown notifications",
+                            "choices":[
+                                {
+                                    "name":"Enable",
+                                    "value":"True"
+                                },
+                                {
+                                    "name":"Disable",
+                                    "value":"False"
+                                }
+                            ]
+                        },
+                        {
+                            "name":"launches",
+                            "type":3,
+                            "description":"Enable/disable launch countdown notifications",
+                            "choices":[
+                                {
+                                    "name":"Enable",
+                                    "value":"True"
+                                },
+                                {
+                                    "name":"Disable",
+                                    "value":"False"
+                                }
+                            ]
+                        },
+                        {
+                            "name":"include_scheduled_events",
+                            "type":3,
+                            "description":"Include/exclude Discord scheduled events in the notification",
+                            "choices":[
+                                {
+                                    "name":"Include",
+                                    "value":"True"
+                                },
+                                {
+                                    "name":"Exclude",
+                                    "value":"False"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name":"countdown",
+                    "type":2,
+                    "description":"Countdown notification settings",
+                    "options":[
+                        {
+                            "name":"list",
+                            "type":1,
+                            "description":"List countdown notifications"
+                        },
+                        {
+                            "name":"add",
+                            "type":1,
+                            "description":"Add a countdown notification",
+                            "options":[
+                                {
+                                    "name":"days",
+                                    "type":4,
+                                    "description":"Amount of days [1-31]",
+                                    "min_value":1,
+                                    "max_value":31
+                                },
+                                {
+                                    "name":"hours",
+                                    "type":4,
+                                    "description":"Amount of hours [1-24]",
+                                    "min_value":1,
+                                    "max_value":24
+                                },
+                                {
+                                    "name":"minutes",
+                                    "type":4,
+                                    "description":"Amount of minutes [1-60]",
+                                    "min_value":1,
+                                    "max_value":60
+                                }
+                            ]
+                        },
+                        {
+                            "name":"remove",
+                            "type":1,
+                            "description":"Remove a countdown notification by index, use list to see these",
+                            "options":[
+                                {
+                                    "name":"index",
+                                    "type":4,
+                                    "description":"Index [1-64]",
+                                    "required":true,
+                                    "min_value":1,
+                                    "max_value":64
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name":"launch_status",
+                    "type":1,
+                    "description":"Launch status notification settings",
+                    "options":[
+                        {
+                            "name":"end_status",
+                            "type":3,
+                            "description":"Enable/disable final status notifications",
+                            "choices":[
+                                {
+                                    "name":"Enable",
+                                    "value":"True"
+                                },
+                                {
+                                    "name":"Disable",
+                                    "value":"False"
+                                }
+                            ]
+                        },
+                        {
+                            "name":"hold",
+                            "type":3,
+                            "description":"Enable/disable hold notifications",
+                            "choices":[
+                                {
+                                    "name":"Enable",
+                                    "value":"True"
+                                },
+                                {
+                                    "name":"Disable",
+                                    "value":"False"
+                                }
+                            ]
+                        },
+                        {
+                            "name":"liftoff",
+                            "type":3,
+                            "description":"Enable/disable liftoff notifications",
+                            "choices":[
+                                {
+                                    "name":"Enable",
+                                    "value":"True"
+                                },
+                                {
+                                    "name":"Disable",
+                                    "value":"False"
+                                }
+                            ]
                         }
                     ]
                 }

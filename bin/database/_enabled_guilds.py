@@ -2,9 +2,10 @@ import aiomysql
 
 from ._missing import MISSING
 
-# Enabled & settings table
-
 class EnabledGuilds:
+    """
+    Enabled & settings table.
+    """
     async def enabled_guilds_add(
         self,
         guild_id: int,
@@ -12,7 +13,9 @@ class EnabledGuilds:
         webhook_url: str = None,
         scheduled_events: int = 0,
         news_channel_id: int = None,
-        news_webhook_url: str = None
+        news_webhook_url: str = None,
+        notification_channel_id: int = None,
+        notification_webhook_url: str = None
     ) -> None:
         """
         Adds an entry in the `enabled_guilds`
@@ -34,13 +37,29 @@ class EnabledGuilds:
         news_webhook_url : str, default: None
             Discord webhook URL
             for sending news.
+        notification_channel_id : int, default: None
+            Discord channel ID for
+            sending notifications.
+        notification_webhook_url : str, default: None
+            Discord webhook URL for
+            sending notifications.
         """
         with await self.pool as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
                     INSERT INTO enabled_guilds
-                    VALUES (%s, %s, %s, %s, %s, %s)
+                    (
+                        guild_id,
+                        channel_id,
+                        webhook_url,
+                        scheduled_events,
+                        news_channel_id,
+                        news_webhook_url,
+                        notification_channel_id,
+                        notification_webhook_url
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
                         guild_id,
@@ -48,7 +67,9 @@ class EnabledGuilds:
                         webhook_url,
                         scheduled_events,
                         news_channel_id,
-                        news_webhook_url
+                        news_webhook_url,
+                        notification_channel_id,
+                        notification_webhook_url
                     )
                 )
 
@@ -206,7 +227,9 @@ class EnabledGuilds:
             webhook_url : str,
             scheduled_events : int,
             news_channel_id : int,
-            news_webhook_url : str
+            news_webhook_url : str,
+            notification_channel_id : int,
+            notification_webhook_url : str
             ] or None
             Returns a row with the guild's data
             if it exists, otherwise None.
@@ -229,7 +252,9 @@ class EnabledGuilds:
         webhook_url: str = MISSING,
         scheduled_events: int = None,
         news_channel_id: int = MISSING,
-        news_webhook_url: str = MISSING
+        news_webhook_url: str = MISSING,
+        notification_channel_id: int = MISSING,
+        notification_webhook_url: str = MISSING
     ) -> None:
         """
         Modifies an entry in the `enabled_guilds`
@@ -251,6 +276,12 @@ class EnabledGuilds:
         news_webhook_url : str, default: `MISSING`
             Discord webhook URL
             for sending news.
+        notification_channel_id : int, default: `MISSING`
+            Discord channel ID for
+            sending notifications.
+        notification_webhook_url : str, default: `MISSING`
+            Discord webhook URL for
+            sending notifications.
         """
         cols, args = [], []
         # Update channel ID and webhook URL if given
@@ -261,7 +292,7 @@ class EnabledGuilds:
             args.append(webhook_url)
         # Update scheduled_events if given
         if scheduled_events is not None:
-            cols.append('scheduled_events=%s')
+            cols.append('scheduled_events=%s')  
             args.append(scheduled_events)
         # Update news channel ID and news webhook URL if given
         if (news_channel_id and news_webhook_url) is not MISSING:
@@ -269,6 +300,14 @@ class EnabledGuilds:
             args.append(news_channel_id)
             cols.append('news_webhook_url=%s')
             args.append(news_webhook_url)
+        # Update notification channel ID and news webhook URL if given
+        if (
+            notification_channel_id and notification_webhook_url
+        ) is not MISSING:
+            cols.append('notification_channel_id=%s')
+            args.append(notification_channel_id)
+            cols.append('notification_webhook_url=%s')
+            args.append(notification_webhook_url)
         # Add guild ID to the arguments
         args.append(guild_id)
         # Update
@@ -300,9 +339,6 @@ class EnabledGuilds:
                     LEFT JOIN
                         scheduled_events AS se
                         ON se.guild_id = eg.guild_id
-                    LEFT JOIN
-                        news_filter as nf
-                        ON nf.guild_id = eg.guild_id
                     WHERE
                         se.guild_id IS NULL
                         AND
@@ -315,5 +351,9 @@ class EnabledGuilds:
                         eg.news_channel_id IS NULL
                         AND
                         eg.news_webhook_url IS NULL
+                        AND
+                        eg.notification_channel_id IS NULL
+                        AND
+                        eg.notification_webhook_url IS NULL
                     """
                 )

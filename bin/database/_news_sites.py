@@ -1,6 +1,7 @@
-# News sites/filter tables
-
 class News:
+    """
+    News sites/filter tables.
+    """
     async def news_sites_add(self, news_site_name: str) -> None:
         """
         Add a news site to the

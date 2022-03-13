@@ -1,8 +1,9 @@
 from datetime import datetime, timezone
 
-# Sent streams/news tables
-
 class SentMedia:
+    """
+    Sent streams/news tables.
+    """
     async def sent_media_add(
         self,
         *,

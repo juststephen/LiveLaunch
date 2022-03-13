@@ -2,6 +2,11 @@ import aiomysql
 from os import getenv
 
 class Start:
+    """
+    Start class containing the `.start()` method for
+    connecting to the database and creating the
+    necessary tables if needed.
+    """
     async def start(self) -> bool:
         """
         Loads the LiveLaunch database.
@@ -26,7 +31,25 @@ class Start:
                     webhook_url TEXT DEFAULT NULL,
                     scheduled_events TINYINT UNSIGNED DEFAULT 0,
                     news_channel_id BIGINT UNSIGNED DEFAULT NULL,
-                    news_webhook_url TEXT DEFAULT NULL
+                    news_webhook_url TEXT DEFAULT NULL,
+                    notification_channel_id BIGINT UNSIGNED DEFAULT NULL,
+                    notification_webhook_url TEXT DEFAULT NULL,
+                    notification_launch TINYINT UNSIGNED DEFAULT 0,
+                    notification_event TINYINT UNSIGNED DEFAULT 0,
+                    notification_liftoff TINYINT UNSIGNED DEFAULT 0,
+                    notification_hold TINYINT UNSIGNED DEFAULT 0,
+                    notification_end_status TINYINT UNSIGNED DEFAULT 0,
+                    notification_scheduled_event TINYINT UNSIGNED DEFAULT 0
+                    )
+                    """
+                )
+                # Create table for storing launch service providers
+                await cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS ll2_agencies (
+                    agency_id SMALLINT UNSIGNED PRIMARY KEY,
+                    name TEXT DEFAULT NULL,
+                    logo_url TEXT DEFAULT NULL
                     )
                     """
                 )
@@ -35,13 +58,16 @@ class Start:
                     """
                     CREATE TABLE IF NOT EXISTS ll2_events (
                     ll2_id VARCHAR(36) PRIMARY KEY,
+                    agency_id SMALLINT UNSIGNED DEFAULT NULL,
                     name TEXT DEFAULT NULL,
+                    status TINYINT DEFAULT NULL,
                     description TEXT DEFAULT NULL,
                     url TEXT DEFAULT NULL,
                     image_url TEXT DEFAULT NULL,
                     start TEXT DEFAULT NULL,
                     end TEXT DEFAULT NULL,
-                    webcast_live TINYINT DEFAULT 0
+                    webcast_live TINYINT DEFAULT 0,
+                    FOREIGN KEY (agency_id) REFERENCES ll2_agencies(agency_id)
                     )
                     """
                 )
@@ -67,6 +93,18 @@ class Start:
                     )
                     """
                 )
+                # Create table for storing the amount of minutes countdown notifications
+                await cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS notification_countdown (
+                    guild_id BIGINT UNSIGNED,
+                    minutes SMALLINT UNSIGNED,
+                    PRIMARY KEY (guild_id, minutes),
+                    FOREIGN KEY (guild_id) REFERENCES enabled_guilds(guild_id)
+                        ON DELETE CASCADE
+                    )
+                    """
+                )
                 # Create table for storing Discord scheduled event IDs
                 await cur.execute(
                     """
@@ -76,6 +114,7 @@ class Start:
                     ll2_id VARCHAR(36) DEFAULT NULL,
                     FOREIGN KEY (guild_id) REFERENCES enabled_guilds(guild_id),
                     FOREIGN KEY (ll2_id) REFERENCES ll2_events(ll2_id)
+                        ON DELETE CASCADE
                     )
                     """
                 )

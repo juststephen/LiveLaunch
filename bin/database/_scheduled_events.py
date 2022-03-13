@@ -1,8 +1,9 @@
 import aiomysql
 
-# Discord scheduled events table
-
 class ScheduledEvents:
+    """
+    Discord scheduled events table.
+    """
     async def scheduled_events_add(
         self,
         scheduled_event_id: int,
@@ -172,6 +173,14 @@ class ScheduledEvents:
                                 ) row_nr
                             FROM
                                 ll2_events AS le
+                            WHERE
+                                le.`start` > NOW()
+                                AND
+                                (
+                                    le.`status` IS NULL
+                                    OR
+                                    le.`status` NOT IN (3, 4, 7)
+                                )
                         ) AS le
                         ON
                         (
@@ -222,6 +231,14 @@ class ScheduledEvents:
                                 ) row_nr
                             FROM
                                 ll2_events AS le
+                            WHERE
+                                le.`start` > NOW()
+                                AND
+                                (
+                                    le.`status` IS NULL
+                                    OR
+                                    le.`status` NOT IN (3, 4, 7)
+                                )
                         ) AS le
                     WHERE
                         le.`start` > DATE_ADD(NOW(), INTERVAL 2 MINUTE)

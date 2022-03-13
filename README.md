@@ -11,9 +11,13 @@ The messages are YouTube livestreams using webhooks so it looks like the actual 
 
 The news articles are queried from the Spaceflight News API, the articles can be filtered by their respective news sites per guild.
 
+Notifications can be set up to send custom countdowns or changes to launch statuses (liftoff, hold, success/failure/partial failure).
+Even Discord events can be included within the countdown notifications.
+
 ## Options:
 - Create events with a maximum of 50 using the events option.
 - Send YouTube livestreams of launches and events to a channel using the messages option.
 - Send Space related news articles and filter them by their respective news site.
+- Receive notifications for countdowns and/or launch status changes (liftoff, hold, success/failure/partial failure).
 
 LiveLaunch can be enabled and disabled using slash commands.

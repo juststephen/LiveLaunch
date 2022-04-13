@@ -28,7 +28,7 @@ class NotificationStatus:
         # Select setting column for the status
         if status == 6:
             status_col = 'notification_liftoff'
-        elif stutus == 5:
+        elif status == 5:
             status_col = 'notification_hold'
         elif status in (3, 4, 7):
             status_col = 'notification_end_status'

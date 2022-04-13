@@ -406,7 +406,7 @@ class LiveLaunchCommand(commands.Cog):
 
     @commands.command()
     @commands.has_guild_permissions(administrator=True)
-    @commands.cooldown(1, 8)
+    @commands.cooldown(1, 16)
     @commands.defer(ephemeral=True)
     async def settings_list(self, ctx) -> None:
         """

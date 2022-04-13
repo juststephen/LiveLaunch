@@ -143,7 +143,7 @@ class LaunchLibrary2:
                     description = description[:self.max_description_length-3] + '...'
 
             # Image format check
-            if (image_url := entry['image']) and not image_url.endswith(self.image_formats):
+            if (image_url := entry['image']) and not image_url.lower().endswith(self.image_formats):
                 image_url = None
 
             # Adding event to launches list
@@ -202,7 +202,7 @@ class LaunchLibrary2:
                 description = description[:self.max_description_length-3] + '...'
 
             # Image format check
-            if (image_url := entry['feature_image']) and not image_url.endswith(self.image_formats):
+            if (image_url := entry['feature_image']) and not image_url.lower().endswith(self.image_formats):
                 image_url = None
 
             # Adding event to events list

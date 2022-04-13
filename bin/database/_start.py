@@ -22,7 +22,7 @@ class Start:
         )
         with await self.pool as con:
             async with con.cursor() as cur:
-                # Create table for storing guild settings and webhook if needed
+                # Create table for storing guild settings
                 await cur.execute(
                     """
                     CREATE TABLE IF NOT EXISTS enabled_guilds (
@@ -43,7 +43,7 @@ class Start:
                     )
                     """
                 )
-                # Create table for storing launch service providers
+                # Create table for storing agencies
                 await cur.execute(
                     """
                     CREATE TABLE IF NOT EXISTS ll2_agencies (
@@ -71,7 +71,7 @@ class Start:
                     )
                     """
                 )
-                # Create table for storing filtered news sites per Guild
+                # Create table for storing filtered news sites per guild
                 await cur.execute(
                     """
                     CREATE TABLE IF NOT EXISTS news_filter (

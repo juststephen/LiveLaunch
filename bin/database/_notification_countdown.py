@@ -28,7 +28,10 @@ class NotificationCountdown:
                 await cur.execute(
                     """
                     INSERT INTO notification_countdown
-                    VALUES (%s, %s)
+                    (guild_id, minutes)
+                    VALUES (%s, %s) AS new
+                    ON DUPLICATE KEY UPDATE
+                        minutes = new.minutes
                     """,
                     (guild_id, minutes)
                 )
@@ -225,6 +228,10 @@ class NotificationCountdown:
                         ON se.guild_id = eg.guild_id AND
                             eg.notification_scheduled_event AND
                             se.ll2_id = le.ll2_id
+                    WHERE
+                        le.status != 5
+                        OR
+                        le.status IS NULL
                     GROUP BY
                         eg.guild_id,
                         nc.minutes,

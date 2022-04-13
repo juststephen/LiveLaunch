@@ -84,7 +84,7 @@ class LiveLaunch(commands.Cog):
                     # Sending streams
                     for send in sending:
                         await webhook.send(
-                            self.yt_base_url + send['yt_vid_id'], 
+                            self.yt_base_url + send['yt_vid_id'],
                             username=send['channel'],
                             avatar_url=send['avatar']
                         )
@@ -233,16 +233,17 @@ class LiveLaunch(commands.Cog):
         # Empty payload
         payload = {}
         # Add given variables to the payload
-        if not name is None:
+        if name is not None:
             payload['name'] = name
-        if not description is None:
+        if description is not None:
             payload['description'] = description
-        if not url is None:
+        if url is not None:
             payload['entity_metadata'] = {'location': url}
-        if not image is None:
+        if image is not None:
             payload['image'] = _bytes_to_base64_data(image)
-        if not (start and end) is None:
+        if start is not None:
             payload['scheduled_start_time'] = start.isoformat()
+        if end is not None:
             payload['scheduled_end_time'] = end.isoformat()
         if webcast_live:
             payload['status'] = 2
@@ -388,7 +389,15 @@ class LiveLaunch(commands.Cog):
         ----------
         ll2_id : str
             Launch Library 2 ID.
+
+        Returns
+        -------
+        status : bool
+            Whether or not the deletion of
+            all Discord events went well.
         """
+        status = True
+
         # Iterate over scheduled events corresponding to the ll2_id
         async for scheduled_event_id, guild_id in self.bot.lldb.scheduled_events_ll2_id_iter(ll2_id):
             success = True
@@ -405,6 +414,7 @@ class LiveLaunch(commands.Cog):
                 # Wrong permissions
                 if not '50013' in str(e):
                     success = False
+                    status = False
                     logging.warning(
                         f'LL2 ID: {ll2_id}\tGuild ID: {guild_id}\t' \
                         f'Removal failure: {e} {type(e)}'
@@ -415,6 +425,9 @@ class LiveLaunch(commands.Cog):
                 await self.bot.lldb.scheduled_events_remove(
                     scheduled_event_id
                 )
+
+        # Return overall success status
+        return status
 
     async def send_status_notification(
         self,
@@ -441,8 +454,8 @@ class LiveLaunch(commands.Cog):
         # Only enable video URL when available
         url = data['url']
         if url != 'No stream yet':
-            url = f'\n[Stream]({url})'
-        
+            url = f'[Stream]({url})'
+
         # Select the correct SLN base URL
         if self.type_check.match(ll2_id):
             base_url = sln_event_url
@@ -452,19 +465,16 @@ class LiveLaunch(commands.Cog):
         # Creating embed
         embed = discord.Embed(
             color=status_colours.get(data['status'], 0xFFFF00),
+            description=f'**Status:** {status_names[status]}\n{url}',
             timestamp=data['start'],
             title=data['name'],
             url=base_url % ll2_id
         )
-        # Status
-        embed.add_field(
-            name=f'Status',
-            value=status_names[status] + url
-        )
-        # Set image
-        embed.set_image(
-            url=data['image_url']
-        )
+        # Set thumbnail
+        if data['image_url']:
+            embed.set_thumbnail(
+                url=data['image_url']
+            )
         # Set footer
         embed.set_footer(
             text='LiveLaunch Notifications'
@@ -579,7 +589,7 @@ class LiveLaunch(commands.Cog):
                     # Done
                     check.pop('status')
 
-                # Check for scheduled event relevance                
+                # Check for scheduled event relevance
                 if scheduled_event_check:
                     # If there are any more updates, update the scheduled events
                     if check:
@@ -592,11 +602,12 @@ class LiveLaunch(commands.Cog):
                 else:
                     await self.scheduled_events_remove(ll2_id)
 
-            # Cached event no longer exists, remove event from the cache
+            # Cached event no longer exists
             else:
-                await self.bot.lldb.ll2_events_remove(
-                    ll2_id
-                )
+                # Remove Discord events
+                if await self.scheduled_events_remove(ll2_id):
+                    # Remove from the database
+                    await self.bot.lldb.ll2_events_remove(ll2_id)
 
         ## Creation of new scheduled events ##
 
@@ -624,8 +635,8 @@ class LiveLaunch(commands.Cog):
             if row['create_remove']:
 
                 # Downloading image
-                if (upcoming[row['ll2_id']].get('image') is None and
-                    (image_url := upcoming[row['ll2_id']].get('image_url'))):
+                if (upcoming[row['ll2_id']].get('image') is None
+                        and (image_url := upcoming[row['ll2_id']].get('image_url'))):
                     async with aiohttp.ClientSession() as session:
                         async with session.get(image_url) as resp:
                             if resp.status == 200:
@@ -694,7 +705,7 @@ class LiveLaunch(commands.Cog):
         for ll2_id, data in upcoming.items():
             # Add stream if it is within 1 hour to the sending list
             now = datetime.now(timezone.utc)
-            if data['start'] - now < timedelta(hours=1):
+            if abs(data['start'] - now) < timedelta(hours=1):
                 # Check if the stream is on YouTube and not a NASA TV stream
                 yt_vid_id = self.ytid_re(data['url'])
                 if yt_vid_id and self.yt_base_url + (yt_vid_id := yt_vid_id[0]) not in self.nasatv:

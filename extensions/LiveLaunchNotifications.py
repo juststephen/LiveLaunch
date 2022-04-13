@@ -333,12 +333,13 @@ class LiveLaunchNotifications(commands.Cog):
         """
         async for notification in self.bot.lldb.notification_countdown_iter():
             guild_id = notification['guild_id']
+            status = notification['status']
 
             # Only enable video URL when available
             url = notification['url']
             if url != 'No stream yet':
                 url = f'[Stream]({url})'
-            
+
             # Select the correct SLN base URL
             if notification['type']:
                 base_url = sln_event_url
@@ -351,20 +352,17 @@ class LiveLaunchNotifications(commands.Cog):
             # Creating embed
             embed = discord.Embed(
                 color=status_colours.get(notification['status'], 0xFFFF00),
+                description=f"**T-{convert_minutes(notification['minutes'])}**\n" +
+                    (f'**Status:** {status_names[status]}\n{url}' if status else url),
                 timestamp=notification['start'],
                 title=notification['name'],
                 url=base_url % notification['ll2_id']
             )
-            # Countdown & Status
-            status = notification['status']
-            embed.add_field(
-                name=f"T-{convert_minutes(notification['minutes'])}",
-                value=f"**Status:** {status_names[status]}\n{url}" if status else url
-            )
-            # Add an image when scheduled events aren't enabled
-            if notification['scheduled_event_id'] is None:
+            # Add a thumbnail when scheduled events aren't enabled
+            if (notification['scheduled_event_id'] is None
+                    and notification['image_url']):
                 # Set image
-                embed.set_image(
+                embed.set_thumbnail(
                     url=notification['image_url']
                 )
             # Set footer

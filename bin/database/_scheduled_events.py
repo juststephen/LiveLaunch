@@ -174,7 +174,7 @@ class ScheduledEvents:
                             FROM
                                 ll2_events AS le
                             WHERE
-                                le.`start` > NOW()
+                                le.`end` > NOW()
                                 AND
                                 (
                                     le.`status` IS NULL
@@ -232,7 +232,7 @@ class ScheduledEvents:
                             FROM
                                 ll2_events AS le
                             WHERE
-                                le.`start` > NOW()
+                                le.`end` > NOW()
                                 AND
                                 (
                                     le.`status` IS NULL

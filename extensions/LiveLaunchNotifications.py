@@ -6,10 +6,7 @@ import logging
 
 from bin import (
     convert_minutes,
-    sln_event_url,
-    sln_launch_url,
-    status_colours,
-    status_names
+    LaunchLibrary2 as ll2
 )
 
 class LiveLaunchNotifications(commands.Cog):
@@ -336,24 +333,25 @@ class LiveLaunchNotifications(commands.Cog):
             status = notification['status']
 
             # Only enable video URL when available
-            url = notification['url']
-            if url != 'No stream yet':
+            if (url := notification['url']):
                 url = f'[Stream]({url})'
+            else:
+                url = ll2.no_stream
 
             # Select the correct SLN base URL
             if notification['type']:
-                base_url = sln_event_url
+                base_url = ll2.sln_event_url
             else:
-                base_url = sln_launch_url
+                base_url = ll2.sln_launch_url
 
             # Message dict
             message = {}
 
             # Creating embed
             embed = discord.Embed(
-                color=status_colours.get(notification['status'], 0xFFFF00),
+                color=ll2.status_colours.get(notification['status'], 0xFFFF00),
                 description=f"**T-{convert_minutes(notification['minutes'])}**\n" +
-                    (f'**Status:** {status_names[status]}\n{url}' if status else url),
+                    (f'**Status:** {ll2.status_names[status]}\n{url}' if status else url),
                 timestamp=notification['start'],
                 title=notification['name'],
                 url=base_url % notification['ll2_id']

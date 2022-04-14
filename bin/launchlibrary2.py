@@ -1,4 +1,3 @@
-from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from dateutil.parser import isoparse
 
@@ -7,38 +6,41 @@ try:
 except:
     from aget import ll2_get
 
-# Status colours for embeds
-status_colours = {
-    1: 0x00FF00, # Go
-    2: 0xFF0000, # TBD
-    3: 0x00FF00, # Success
-    4: 0xFF0000, # Failure
-    5: 0xFFFF00, # Hold
-    6: 0x0000FF, # In Flight
-    7: 0xFF7F00, # Partial Failure
-    8: 0xFF7F00, # TBC
-}
-
-# Status names for embeds
-status_names = {
-    1: 'Go for Launch',
-    2: 'To Be Determined',
-    3: 'Launch Successful',
-    4: 'Launch Failure',
-    5: 'On Hold',
-    6: 'Launch in Flight',
-    7: 'Launch was a Partial Failure',
-    8: 'To Be Confirmed',
-}
-
-# Space Launch Now
-sln_event_url = 'https://spacelaunchnow.me/event/%s'
-sln_launch_url = 'https://spacelaunchnow.me/launch/%s'
-
 class LaunchLibrary2:
     """
     Launch Library 2 by The Space Devs (https://thespacedevs.com/).
     """
+    # Replacement text for when there is no stream
+    no_stream = 'No stream yet'
+
+    # Space Launch Now
+    sln_event_url = 'https://spacelaunchnow.me/event/%s'
+    sln_launch_url = 'https://spacelaunchnow.me/launch/%s'
+
+    # Status colours for embeds
+    status_colours = {
+        1: 0x00FF00, # Go
+        2: 0xFF0000, # TBD
+        3: 0x00FF00, # Success
+        4: 0xFF0000, # Failure
+        5: 0xFFFF00, # Hold
+        6: 0x0000FF, # In Flight
+        7: 0xFF7F00, # Partial Failure
+        8: 0xFF7F00, # TBC
+    }
+
+    # Status names for embeds
+    status_names = {
+        1: 'Go for Launch',
+        2: 'To Be Determined',
+        3: 'Launch Successful',
+        4: 'Launch Failure',
+        5: 'On Hold',
+        6: 'Launch in Flight',
+        7: 'Launch was a Partial Failure',
+        8: 'To Be Confirmed',
+    }
+
     def __init__(self):
         # Keys in the returned data containing non ID data.
         self.data_keys = (
@@ -67,8 +69,6 @@ class LaunchLibrary2:
             'EVA': timedelta(hours=6),
             'default': timedelta(hours=1)
         }
-        # Text if there is no stream
-        self.no_stream = 'No stream yet'
         # Supported image formats
         self.image_formats = ('.gif', '.jpeg', '.jpg', '.png', '.webp')
         # Launch Library 2 API
@@ -125,7 +125,7 @@ class LaunchLibrary2:
             name = entry['name'] if entry['status']['id'] != 2 else '[TBD] ' + entry['name']
 
             # Check for videos
-            picked_video = self.no_stream
+            picked_video = None
             if 'vidURLs' in entry and entry['vidURLs']:
                 priority = None
                 for url in entry['vidURLs']:
@@ -192,7 +192,7 @@ class LaunchLibrary2:
                 event_type = 'default'
 
             # Check for video
-            picked_video = self.no_stream
+            picked_video = None
             if 'video_url' in entry and entry['video_url']:
                 picked_video = entry['video_url']
 

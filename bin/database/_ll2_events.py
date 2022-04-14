@@ -204,7 +204,7 @@ class LL2Events:
         name: str = None,
         status: int = None,
         description: str = None,
-        url: str = None,
+        url: str = MISSING,
         image_url: str = MISSING,
         start: datetime = None,
         end: datetime = None,
@@ -227,7 +227,7 @@ class LL2Events:
             Status ID.
         description : str, default: None
             Event description.
-        url : str, default: None
+        url : str, default: MISSING
             Event live stream URL.
         image_url : str, default: MISSING
             Event cover image URL.
@@ -253,7 +253,7 @@ class LL2Events:
         if description is not None:
             cols.append('description=%s')
             args.append(description)
-        if url is not None:
+        if url is not MISSING:
             cols.append('url=%s')
             args.append(url)
         if image_url is not MISSING:

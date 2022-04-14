@@ -7,12 +7,8 @@ import logging
 import re
 
 from bin import (
-    LaunchLibrary2,
+    LaunchLibrary2 as ll2,
     NASATV,
-    sln_event_url,
-    sln_launch_url,
-    status_colours,
-    status_names,
     YouTubeAPI,
     YouTubeRSS,
     YouTubeStripVideoID
@@ -29,7 +25,7 @@ class LiveLaunch(commands.Cog):
         self.timedelta_1m = timedelta(minutes=1)
         self.timedelta_1h = timedelta(hours=1)
         # Launch Library 2
-        self.ll2 = LaunchLibrary2()
+        self.ll2 = ll2()
         # NASA
         self.nasa_id = 'UCLA_DiR1FfKNvjuUpBHmylQ'
         self.nasa_name = 'NASA'
@@ -164,6 +160,9 @@ class LiveLaunch(commands.Cog):
                 ` 2 `: VOICE
                 ` 3 `: EXTERNAL
         """
+        # Insert a replacement string when there is no stream URL
+        if url is None:
+            url = ll2.no_stream
         # Replace start with now + `.timedelta_1m` if `webcast_live`
         if webcast_live:
             start = datetime.now(timezone.utc) + self.timedelta_1m
@@ -345,6 +344,10 @@ class LiveLaunch(commands.Cog):
                         # Remove `start` value from the modify dict, new start isn't too far from current
                         del modify['start']
 
+                # Insert a replacement string when there is no stream URL
+                if check.get('url', False) is None:
+                    modify['url'] = ll2.no_stream
+
                 remove_event = False
                 try:
                     await self.modify_scheduled_event(
@@ -452,20 +455,21 @@ class LiveLaunch(commands.Cog):
         status = data['status']
 
         # Only enable video URL when available
-        url = data['url']
-        if url != 'No stream yet':
+        if (url := data['url']):
             url = f'[Stream]({url})'
+        else:
+            url = ll2.no_stream
 
         # Select the correct SLN base URL
         if self.type_check.match(ll2_id):
-            base_url = sln_event_url
+            base_url = ll2.sln_event_url
         else:
-            base_url = sln_launch_url
+            base_url = ll2.sln_launch_url
 
         # Creating embed
         embed = discord.Embed(
-            color=status_colours.get(data['status'], 0xFFFF00),
-            description=f'**Status:** {status_names[status]}\n{url}',
+            color=ll2.status_colours.get(data['status'], 0xFFFF00),
+            description=f'**Status:** {ll2.status_names[status]}\n{url}',
             timestamp=data['start'],
             title=data['name'],
             url=base_url % ll2_id

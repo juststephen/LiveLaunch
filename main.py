@@ -43,10 +43,10 @@ async def on_ready():
     # Print amount of servers joined
     print(f'{client.user} Connected to {len(client.guilds)} servers.')
 
-# Load cogs when run, with LiveLaunchDB first
-extensions = ['extensions.LiveLaunchDB', \
+# Load cogs when run, with the database first
+extensions = ['extensions.database', \
     *[f'extensions.{file[:-3]}' for file in listdir('./extensions') if \
-    file.endswith('.py') and not 'LiveLaunchDB' in file]]
+    file.endswith('.py') and not 'database' in file]]
 for extension in extensions:
     client.load_extension(extension)
     print(f'Loaded {extension}')

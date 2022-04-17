@@ -1,8 +1,9 @@
-aiohttp==3.7.4.post0
-aiomysql==0.0.22
-beautifulsoup4==4.10.0
-google_api_python_client==2.33.0
-lxml==4.7.1
-python-dotenv==0.19.2
-selenium==4.1.0
-git+https://github.com/Voxel-Fox-Ltd/Novus
+aiohttp==3.8.1
+aiomysql==0.1.0
+beautifulsoup4==4.11.1
+google-api-python-client==2.44.0
+lxml==4.8.0
+novus==0.0.7
+python-dotenv==0.20.0
+python-dateutil==2.8.2
+selenium==4.1.3

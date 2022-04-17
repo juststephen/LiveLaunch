@@ -74,7 +74,7 @@ class YouTubeRSS:
             Returns a soup object containing the RSS feed entries.
         """
         f = f'https://www.youtube.com/feeds/videos.xml?channel_id={channel}'
-        soup = BeautifulSoup(await get(f), 'lxml')
+        soup = BeautifulSoup(await get(f), features='xml')
         return soup
 
     def _findWholeWord(self, word: str) -> re.Pattern:
@@ -131,7 +131,7 @@ class YouTubeRSS:
                         (ignore := self.ignore.get(channel)) and
                         any([self._findWholeWord(i)(entry.title.text) for i in ignore])
                     ):
-                        streams.append(entry.find('yt:videoid').string)
+                        streams.append(entry.find('yt:videoId').string)
         return streams
 
     async def request(self) -> dict[str, list[str]]:

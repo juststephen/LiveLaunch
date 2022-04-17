@@ -1,5 +1,5 @@
 import aiomysql
-from datetime import datetime
+from datetime import datetime, timezone
 
 from ._missing import MISSING
 
@@ -63,8 +63,8 @@ class LL2Events:
                         status,
                         description, url,
                         image_url,
-                        start.isoformat(),
-                        end.isoformat(),
+                        start,
+                        end,
                         webcast_live
                     )
                 )
@@ -144,9 +144,9 @@ class LL2Events:
                     """
                 )
                 async for row in cur:
-                    # Convert strings back into datetime objects
-                    row['start'] = datetime.fromisoformat(row['start'])
-                    row['end'] = datetime.fromisoformat(row['end'])
+                    # Convert timezone unaware datetimes into UTC datetimes
+                    row['start'] = row['start'].replace(tzinfo=timezone.utc)
+                    row['end'] = row['end'].replace(tzinfo=timezone.utc)
                     row['webcast_live'] = bool(row['webcast_live'])
                     yield row
 
@@ -191,9 +191,9 @@ class LL2Events:
                 )
                 row = await cur.fetchone()
         if row:
-            # Convert strings back into datetime objects
-            row['start'] = datetime.fromisoformat(row['start'])
-            row['end'] = datetime.fromisoformat(row['end'])
+            # Convert timezone unaware datetimes into UTC datetimes
+            row['start'] = row['start'].replace(tzinfo=timezone.utc)
+            row['end'] = row['end'].replace(tzinfo=timezone.utc)
             row['webcast_live'] = bool(row['webcast_live'])
         return row
 
@@ -261,10 +261,10 @@ class LL2Events:
             args.append(image_url)
         if start is not None:
             cols.append('start=%s')
-            args.append(start.isoformat())
+            args.append(start)
         if end is not None:
             cols.append('end=%s')
-            args.append(end.isoformat())
+            args.append(end)
         if webcast_live is not None:
             cols.append('webcast_live=%s')
             args.append(webcast_live)

@@ -64,8 +64,8 @@ class Start:
                     description TEXT DEFAULT NULL,
                     url TEXT DEFAULT NULL,
                     image_url TEXT DEFAULT NULL,
-                    start TEXT DEFAULT NULL,
-                    end TEXT DEFAULT NULL,
+                    start DATETIME DEFAULT NULL,
+                    end DATETIME DEFAULT NULL,
                     webcast_live TINYINT DEFAULT 0,
                     FOREIGN KEY (agency_id) REFERENCES ll2_agencies(agency_id)
                     )
@@ -123,7 +123,7 @@ class Start:
                     """
                     CREATE TABLE IF NOT EXISTS sent_news (
                     snapi_id MEDIUMINT UNSIGNED PRIMARY KEY,
-                    datetime TEXT DEFAULT NULL
+                    datetime DATETIME DEFAULT NULL
                     )
                     """
                 )
@@ -132,7 +132,7 @@ class Start:
                     """
                     CREATE TABLE IF NOT EXISTS sent_streams (
                     yt_vid_id TEXT,
-                    datetime TEXT DEFAULT NULL
+                    datetime DATETIME DEFAULT NULL
                     )
                     """
                 )

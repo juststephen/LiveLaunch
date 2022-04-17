@@ -1,5 +1,5 @@
 import aiomysql
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 class NotificationCountdown:
     """
@@ -190,7 +190,10 @@ class NotificationCountdown:
         """
         # Check for missing `.last_get`
         if not hasattr(self, 'last_get'):
-            self.last_get = datetime.now(timezone.utc).isoformat()
+            self.last_get = datetime.now(timezone.utc).replace(
+                microsecond=0,
+                tzinfo=None
+            )
             return
 
         # Execute SQL
@@ -241,7 +244,10 @@ class NotificationCountdown:
                         se.scheduled_event_id
                     HAVING
                         le.start BETWEEN
-                            DATE_ADD(%s, INTERVAL nc.minutes MINUTE)
+                            DATE_ADD(
+                                STR_TO_DATE(%s, '%%Y-%%m-%%d %%H:%%i:%%s'),
+                                INTERVAL nc.minutes MINUTE
+                            )
                             AND
                             DATE_ADD(NOW(), INTERVAL nc.minutes MINUTE)
                         AND
@@ -258,9 +264,13 @@ class NotificationCountdown:
                     (self.last_get,)
                 )
 
+                # No results, increment `.last_get` for next call
+                if not cur.rowcount:
+                    self.last_get += timedelta(minutes=1)
+
                 async for row in cur:
                     # New `.last_get` for next call
                     self.last_get = row['now']
-                    # Convert strings back into datetime objects
-                    row['start'] = datetime.fromisoformat(row['start'])
+                    # Convert timezone unaware datetime into UTC datetime
+                    row['start'] = row['start'].replace(tzinfo=timezone.utc)
                     yield row

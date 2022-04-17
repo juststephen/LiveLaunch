@@ -709,7 +709,7 @@ class LiveLaunch(commands.Cog):
         for ll2_id, data in upcoming.items():
             # Add stream if it is within 1 hour to the sending list
             now = datetime.now(timezone.utc)
-            if abs(data['start'] - now) < timedelta(hours=1):
+            if abs(data['start'] - now) < timedelta(hours=1) and data['url']:
                 # Check if the stream is on YouTube and not a NASA TV stream
                 yt_vid_id = self.ytid_re(data['url'])
                 if yt_vid_id and self.yt_base_url + (yt_vid_id := yt_vid_id[0]) not in self.nasatv:

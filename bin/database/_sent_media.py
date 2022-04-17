@@ -26,7 +26,7 @@ class SentMedia:
             the current UTC datetime is used.
         """
         if timestamp is None:
-            timestamp = datetime.now(timezone.utc).isoformat()
+            timestamp = datetime.now(timezone.utc)
 
         # Select the correct sent media table
         if snapi_id:

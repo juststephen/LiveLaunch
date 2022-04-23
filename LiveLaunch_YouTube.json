@@ -25,5 +25,10 @@
         "nsf live",
         "nasaspaceflight live"
         ]
+    },
+    "agency_ids": {
+        "UCtI0Hodo5o5dUb67FeUjDeA": 121,
+        "UCsWq7LZaizhIi-c-Yo_bcpw": 147,
+        "UCnrGPRKAg1PgvuSHrRIl3jg": 124
     }
 }

@@ -92,6 +92,44 @@
             "type":1
         },
         {
+            "name":"agencyfilter",
+            "description":"List, add and remove filters for agencies, only for administrators",
+            "type":1,
+            "options":[
+                {
+                    "name":"list",
+                    "type":1,
+                    "description":"List filters for agencies"
+                },
+                {
+                    "name":"add",
+                    "type":1,
+                    "description":"Add a filter for an agency, either one or comma-separated",
+                    "options":[
+                        {
+                            "name":"agency",
+                            "type":3,
+                            "description":"Agency name or ID",
+                            "required":true
+                        }
+                    ]
+                },
+                {
+                    "name":"remove",
+                    "type":1,
+                    "description":"Remove a filter for an agency, either one or comma-separated",
+                    "options":[
+                        {
+                            "name":"agency",
+                            "type":3,
+                            "description":"Agency name or ID",
+                            "required":true
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "name":"newsfilter",
             "description":"List, add and remove filters for news sites, only for administrators",
             "type":1,
@@ -305,6 +343,58 @@
                                     "value":"False"
                                 }
                             ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name":"event_settings",
+            "type":1,
+            "description":"Event settings",
+            "options":[
+                {
+                    "name":"events",
+                    "type":3,
+                    "description":"Enable/disable other Discord events",
+                    "choices":[
+                        {
+                            "name":"Enable",
+                            "value":"True"
+                        },
+                        {
+                            "name":"Disable",
+                            "value":"False"
+                        }
+                    ]
+                },
+                {
+                    "name":"launches",
+                    "type":3,
+                    "description":"Enable/disable launch Discord events",
+                    "choices":[
+                        {
+                            "name":"Enable",
+                            "value":"True"
+                        },
+                        {
+                            "name":"Disable",
+                            "value":"False"
+                        }
+                    ]
+                },
+                {
+                    "name":"no_url",
+                    "type":3,
+                    "description":"Hide/Show scheduled events without live stream URLs",
+                    "choices":[
+                        {
+                            "name":"Hide",
+                            "value":"True"
+                        },
+                        {
+                            "name":"Show",
+                            "value":"False"
                         }
                     ]
                 }

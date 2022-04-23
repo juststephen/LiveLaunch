@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 import discord
 from discord.ext import commands, tasks
 from discord.utils import _bytes_to_base64_data
+from itertools import compress
 import logging
 import re
 
@@ -62,12 +63,26 @@ class LiveLaunch(commands.Cog):
                     Channel name.
                 - ` yt_vid_id ` : str
                     YouTube video ID.
+                - ` agency_id ` : int
+                    Agency ID.
             - Optional key:
                 - ` embed ` : discord.Embed
                     Embed to send for
                     NASA TV streams.
         """
         async for guild_id, webhook_url in self.bot.lldb.enabled_guilds_webhook_iter():
+
+            # Check if the agencies are being filtered
+            if not any(
+                filters := [
+                    await self.bot.lldb.ll2_agencies_filter_check(guild_id, i['agency_id'])
+                    if i['agency_id']
+                    else True
+                    for i in sending
+                ]
+            ):
+                continue
+
             try:
                 # Creating session
                 async with aiohttp.ClientSession() as session:
@@ -78,7 +93,7 @@ class LiveLaunch(commands.Cog):
                     )
 
                     # Sending streams
-                    for send in sending:
+                    for send in compress(sending, filters):
                         await webhook.send(
                             self.yt_base_url + send['yt_vid_id'],
                             username=send['channel'],
@@ -726,7 +741,8 @@ class LiveLaunch(commands.Cog):
                             {
                                 'avatar': thumb,
                                 'channel': title,
-                                'yt_vid_id': yt_vid_id
+                                'yt_vid_id': yt_vid_id,
+                                'agency_id': data.get('agency_id')
                             }
                         )
 
@@ -766,7 +782,8 @@ class LiveLaunch(commands.Cog):
                             {
                                 'avatar': thumb,
                                 'channel': title,
-                                'yt_vid_id': yt_vid_id
+                                'yt_vid_id': yt_vid_id,
+                                'agency_id': self.ytrss.agency_ids.get(channel)
                             }
                         )
 

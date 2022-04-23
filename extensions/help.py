@@ -38,11 +38,23 @@ class LiveLaunchHelp(commands.Cog):
             name='Disable',
             value='Use `/disable` to disable either `notifications`, `news`, `messages`, `events`, or `all`'
         )
+        # Event settings
+        embed.add_field(
+            name='Event Settings',
+            value='Change the default settings for events to include/exclude ' \
+                '`launches`, other `events` and events without live stream URLs ' \
+                '(`no_url`) by using `/event_settings`.'
+        )
         # Synchronize
         embed.add_field(
             name='Synchronize',
             value='Use `/synchronize` to manually synchronize events,' \
                 ' for example after accidentally deleting an event.'
+        )
+        # Agency Filter
+        embed.add_field(
+            name='Agency Filter',
+            value='Use `/agencyfilter` to list, add or remove agency filters.'
         )
         # News Filter
         embed.add_field(

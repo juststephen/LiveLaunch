@@ -30,6 +30,9 @@ class Start:
                     channel_id BIGINT UNSIGNED DEFAULT NULL,
                     webhook_url TEXT DEFAULT NULL,
                     scheduled_events TINYINT UNSIGNED DEFAULT 0,
+                    se_launch TINYINT UNSIGNED DEFAULT 1,
+                    se_event TINYINT UNSIGNED DEFAULT 1,
+                    se_no_url TINYINT UNSIGNED DEFAULT 0,
                     news_channel_id BIGINT UNSIGNED DEFAULT NULL,
                     news_webhook_url TEXT DEFAULT NULL,
                     notification_channel_id BIGINT UNSIGNED DEFAULT NULL,
@@ -53,6 +56,19 @@ class Start:
                     )
                     """
                 )
+                # Create table for storing filtered agencies per guild
+                await cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS ll2_agencies_filter (
+                    guild_id BIGINT UNSIGNED,
+                    agency_id SMALLINT UNSIGNED,
+                    PRIMARY KEY (guild_id, agency_id),
+                    FOREIGN KEY (guild_id) REFERENCES enabled_guilds(guild_id)
+                        ON DELETE CASCADE,
+                    FOREIGN KEY (agency_id) REFERENCES ll2_agencies(agency_id)
+                    )
+                    """
+                )
                 # Create table for storing LL2 events their details
                 await cur.execute(
                     """
@@ -71,6 +87,15 @@ class Start:
                     )
                     """
                 )
+                # Create table for storing news sites
+                await cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS news_sites (
+                    news_site_id SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    news_site_name TEXT
+                    )
+                    """
+                )
                 # Create table for storing filtered news sites per guild
                 await cur.execute(
                     """
@@ -81,15 +106,6 @@ class Start:
                     FOREIGN KEY (guild_id) REFERENCES enabled_guilds(guild_id)
                         ON DELETE CASCADE,
                     FOREIGN KEY (news_site_id) REFERENCES news_sites(news_site_id)
-                    )
-                    """
-                )
-                # Create table for storing news sites
-                await cur.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS news_sites (
-                    news_site_id SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                    news_site_name TEXT
                     )
                     """
                 )

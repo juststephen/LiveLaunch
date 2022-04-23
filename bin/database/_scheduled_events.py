@@ -153,41 +153,86 @@ class ScheduledEvents:
                 await cur.execute(
                     """
                     SELECT
-                        eg.guild_id,
+                        se.guild_id,
                         se.scheduled_event_id,
                         0 as create_remove
                     FROM
-                        enabled_guilds AS eg
-                    JOIN
-                        scheduled_events AS se
-                        ON se.guild_id = eg.guild_id
-                    JOIN
+                        scheduled_events as se
+                    LEFT JOIN
                         (
                             SELECT
-                                le.ll2_id,
-                                ROW_NUMBER() OVER
-                                (
-                                    ORDER BY
-                                        le.`start`
-                                        ASC
-                                ) row_nr
+                                le.guild_id,
+                                le.ll2_id
                             FROM
-                                ll2_events AS le
-                            WHERE
-                                le.`end` > NOW()
-                                AND
                                 (
-                                    le.`status` IS NULL
-                                    OR
-                                    le.`status` NOT IN (3, 4, 7)
-                                )
+                                    SELECT
+                                        eg.guild_id,
+                                        eg.scheduled_events,
+                                        le.ll2_id,
+                                        le.`start`,
+                                        le.ll2_id REGEXP '^[0-9]+$' AS `type`,
+                                        ROW_NUMBER() OVER
+                                        (
+                                            PARTITION BY
+                                                eg.guild_id
+                                            ORDER BY
+                                                le.`start`
+                                                ASC
+                                        ) row_nr
+                                    FROM
+                                        ll2_events AS le
+                                    JOIN
+                                        enabled_guilds AS eg
+                                    LEFT JOIN
+                                        ll2_agencies_filter as laf
+                                        ON laf.guild_id = eg.guild_id
+                                        AND laf.agency_id = le.agency_id
+                                    WHERE
+                                        le.`end` > NOW()
+                                        AND
+                                        (
+                                            le.`status` IS NULL
+                                            OR
+                                            le.`status` NOT IN (3, 4, 7)
+                                        )
+                                    GROUP BY
+                                        eg.guild_id,
+                                        laf.agency_id,
+                                        le.ll2_id,
+                                        le.url,
+                                        eg.scheduled_events,
+                                        eg.se_launch,
+                                        eg.se_event,
+                                        eg.se_no_url
+                                    HAVING
+                                        NOT (
+                                            eg.se_no_url AND le.url IS NULL
+                                        )
+                                        AND
+                                            laf.agency_id IS NULL
+                                        AND
+                                        (
+                                            (
+                                                `type` AND
+                                                eg.se_event
+                                            ) OR (
+                                                NOT `type` AND
+                                                eg.se_launch
+                                            )
+                                        )
+                                ) AS le
+                            GROUP BY
+                                le.guild_id,
+                                le.ll2_id,
+                                le.row_nr,
+                                le.scheduled_events
+                            HAVING
+                                le.row_nr <= le.scheduled_events
                         ) AS le
-                        ON
-                        (
-                            le.ll2_id = se.ll2_id
-                            AND
-                            le.row_nr > eg.scheduled_events
-                        )
+                        ON le.guild_id = se.guild_id
+                        AND le.ll2_id = se.ll2_id
+                    WHERE
+                        le.guild_id IS NULL
                     """
                 )
                 async for row in cur:
@@ -213,24 +258,33 @@ class ScheduledEvents:
                 await cur.execute(
                     """
                     SELECT
-                        eg.guild_id,
+                        le.guild_id,
                         le.ll2_id,
                         1 as create_remove
                     FROM
-                        enabled_guilds AS eg
-                    JOIN
                         (
                             SELECT
+                                eg.guild_id,
+                                eg.scheduled_events,
                                 le.ll2_id,
                                 le.`start`,
+                                le.ll2_id REGEXP '^[0-9]+$' AS `type`,
                                 ROW_NUMBER() OVER
                                 (
+                                    PARTITION BY
+                                        eg.guild_id
                                     ORDER BY
                                         le.`start`
                                         ASC
                                 ) row_nr
                             FROM
                                 ll2_events AS le
+                            JOIN
+                                enabled_guilds AS eg
+                            LEFT JOIN
+                                ll2_agencies_filter as laf
+                                ON laf.guild_id = eg.guild_id
+                                AND laf.agency_id = le.agency_id
                             WHERE
                                 le.`end` > NOW()
                                 AND
@@ -239,25 +293,48 @@ class ScheduledEvents:
                                     OR
                                     le.`status` NOT IN (3, 4, 7)
                                 )
+                            GROUP BY
+                                eg.guild_id,
+                                laf.agency_id,
+                                le.ll2_id,
+                                le.url,
+                                eg.scheduled_events,
+                                eg.se_launch,
+                                eg.se_event,
+                                eg.se_no_url
+                            HAVING
+                                NOT (
+                                    eg.se_no_url AND le.url IS NULL
+                                )
+                                AND
+                                    laf.agency_id IS NULL
+                                AND
+                                (
+                                    (
+                                        `type` AND
+                                        eg.se_event
+                                    ) OR (
+                                        NOT `type` AND
+                                        eg.se_launch
+                                    )
+                                )
                         ) AS le
+                    LEFT JOIN
+                        scheduled_events AS se
+                        ON se.guild_id = le.guild_id
+                        AND se.ll2_id = le.ll2_id
                     WHERE
                         le.`start` > DATE_ADD(NOW(), INTERVAL 2 MINUTE)
                     GROUP BY
-                        eg.guild_id,
+                        le.guild_id,
                         le.ll2_id,
                         le.row_nr,
-                        eg.scheduled_events
+                        le.scheduled_events,
+                        se.scheduled_event_id
                     HAVING
-                        le.ll2_id NOT IN (
-                            SELECT
-                                se.ll2_id
-                            FROM
-                                scheduled_events AS se
-                            WHERE
-                                se.guild_id = eg.guild_id
-                        )
+                        se.scheduled_event_id IS NULL
                         AND
-                        le.row_nr <= eg.scheduled_events
+                        le.row_nr <= le.scheduled_events
                     """
                 )
                 async for row in cur:

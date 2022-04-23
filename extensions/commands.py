@@ -458,6 +458,45 @@ class LiveLaunchCommand(commands.Cog):
             inline=False
         )
 
+        # Scheduled event settings
+        features = ''
+        for key, name in zip(
+            (
+                'se_launch',
+                'se_event',
+                'se_no_url',
+            ),
+            (
+                'Launch events',
+                'Other events',
+                'Hide events without a live stream'
+            )
+        ):
+            if settings[key]:
+                features += '\n:white_check_mark:  ' + name
+            else:
+                features += '\n:x:  ' + name
+        # Add features to embed
+        embed.add_field(
+            name='Events',
+            value=features,
+            inline=False
+        )
+
+        # List agency filters
+        filters_guild = await self.bot.lldb.ll2_agencies_filter_list(
+            guild_id=guild_id
+        )
+        # Add enabled filters
+        if filters_guild:
+            embed.add_field(
+                name='Enabled agency filters',
+                value='```' +
+                    '\n'.join(j for i, j in filters_guild) +
+                    '```',
+                inline=False
+            )
+
         # List news filters
         filters_guild = await self.bot.lldb.news_filter_list(
             guild_id=guild_id

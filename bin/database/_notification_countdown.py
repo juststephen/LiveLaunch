@@ -227,6 +227,10 @@ class NotificationCountdown:
                         ll2_agencies AS la
                         ON la.agency_id = le.agency_id
                     LEFT JOIN
+                        ll2_agencies_filter as laf
+                        ON laf.guild_id = eg.guild_id
+                        AND laf.agency_id = le.agency_id
+                    LEFT JOIN
                         scheduled_events AS se
                         ON se.guild_id = eg.guild_id AND
                             eg.notification_scheduled_event AND
@@ -239,6 +243,7 @@ class NotificationCountdown:
                         eg.guild_id,
                         nc.minutes,
                         le.ll2_id,
+                        laf.agency_id,
                         eg.notification_event,
                         eg.notification_launch,
                         se.scheduled_event_id
@@ -250,6 +255,8 @@ class NotificationCountdown:
                             )
                             AND
                             DATE_ADD(NOW(), INTERVAL nc.minutes MINUTE)
+                        AND
+                            laf.agency_id IS NULL
                         AND
                         (
                             (

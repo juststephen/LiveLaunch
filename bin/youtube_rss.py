@@ -41,23 +41,27 @@ class YouTubeRSS:
                 self.channels = f['channels']
                 self.keywords = f['keywords']
                 self.ignore = f['ignore']
+                self.agency_ids = f['agency_ids']
             except:
                 self.channels = ['UCSUu1lih2RifWkKtDOJdsBA']
                 self.keywords = {'UCSUu1lih2RifWkKtDOJdsBA': ['live']}
                 self.ignore = {'UCSUu1lih2RifWkKtDOJdsBA': ['nsf live', 'nasaspaceflight live']}
+                self.agency_ids = {}
         else:
             with open(self.ytfile, 'w', encoding='utf-8') as f:
                 json.dump(
                     {
                         'channels': ['UCSUu1lih2RifWkKtDOJdsBA'],
                         'keywords': {"UCSUu1lih2RifWkKtDOJdsBA": ["live"]},
-                        'ignore': {'UCSUu1lih2RifWkKtDOJdsBA': ['nsf live', 'nasaspaceflight live']}
+                        'ignore': {'UCSUu1lih2RifWkKtDOJdsBA': ['nsf live', 'nasaspaceflight live']},
+                        'agency_ids': {}
                     },
                     f, indent=2
                 )
             self.channels = ['UCSUu1lih2RifWkKtDOJdsBA']
             self.keywords = {'UCSUu1lih2RifWkKtDOJdsBA': ['live']}
             self.ignore = {'UCSUu1lih2RifWkKtDOJdsBA': ['nsf live', 'nasaspaceflight live']}
+            self.agency_ids = {}
 
     async def _requestRSS(self, channel: str) -> BeautifulSoup:
         """

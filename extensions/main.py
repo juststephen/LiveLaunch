@@ -487,7 +487,7 @@ class LiveLaunch(commands.Cog):
             description=f'**Status:** {ll2.status_names[status]}\n{url}',
             timestamp=data['start'],
             title=data['name'],
-            url=base_url % ll2_id
+            url=base_url % data['slug']
         )
         # Set thumbnail
         if data['image_url']:
@@ -578,7 +578,7 @@ class LiveLaunch(commands.Cog):
                     and data.get('status') not in self.ll2.launch_status_end
 
                 # Check for updates to the event
-                check = {key: data[key] for key in self.ll2.data_keys if data.get(key) != cached[key]}
+                check = {key: data.get(key) for key in self.ll2.data_keys if data.get(key) != cached[key]}
 
                 # Update agency data
                 if (agency_id := check.get('agency_id')):

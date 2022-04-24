@@ -83,6 +83,7 @@ class Start:
                     start DATETIME DEFAULT NULL,
                     end DATETIME DEFAULT NULL,
                     webcast_live TINYINT DEFAULT 0,
+                    slug TEXT DEFAULT NULL,
                     FOREIGN KEY (agency_id) REFERENCES ll2_agencies(agency_id)
                     )
                     """

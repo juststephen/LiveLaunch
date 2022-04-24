@@ -16,6 +16,7 @@ class LL2Events:
         image_url: str,
         start: datetime,
         end: datetime,
+        slug: str,
         agency_id: int = None,
         status: int = None,
         webcast_live: bool = False,
@@ -41,6 +42,8 @@ class LL2Events:
             Event start datetime object.
         end : datetime
             Event end datetime object.
+        slug : str
+            Slug of the event.
         agency_id : int, default: None
             LL2 agency ID.
         status : int, default: None
@@ -54,7 +57,7 @@ class LL2Events:
                 await cur.execute(
                     """
                     INSERT INTO ll2_events
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
                         ll2_id,
@@ -65,7 +68,8 @@ class LL2Events:
                         image_url,
                         start,
                         end,
-                        webcast_live
+                        webcast_live,
+                        slug
                     )
                 )
 
@@ -122,7 +126,8 @@ class LL2Events:
             image_url : str,
             start : datetime,
             end : datetime,
-            webcast_live : bool
+            webcast_live : bool,
+            slug : str
         ]
             Yields row with of an LL2
             event with the relevant data.
@@ -174,7 +179,8 @@ class LL2Events:
             image_url : str,
             start : datetime,
             end : datetime,
-            webcast_live : bool
+            webcast_live : bool,
+            slug : str
         ] or None
             Returns a row with the ll2_event's data
             if it exists, otherwise None.

@@ -354,7 +354,7 @@ class LiveLaunchNotifications(commands.Cog):
                     (f'**Status:** {ll2.status_names[status]}\n{url}' if status else url),
                 timestamp=notification['start'],
                 title=notification['name'],
-                url=base_url % notification['ll2_id']
+                url=base_url % notification['slug']
             )
             # Add a thumbnail when scheduled events aren't enabled
             if (notification['scheduled_event_id'] is None

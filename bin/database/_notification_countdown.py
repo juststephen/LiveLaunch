@@ -172,8 +172,11 @@ class NotificationCountdown:
             guild_id : int,
             notification_webhook_url : str,
             minutes : int,
-            ll2_id : int,
             name : str,
+            slug : str,
+            status : int,
+            agency : str,
+            logo_url : str,
             url : str,
             image_url : str,
             start : datetime,
@@ -205,8 +208,8 @@ class NotificationCountdown:
                         eg.guild_id,
                         eg.notification_webhook_url,
                         nc.minutes,
-                        le.ll2_id,
                         le.name,
+                        le.slug,
                         le.status,
                         la.name AS agency,
                         la.logo_url,
@@ -277,7 +280,7 @@ class NotificationCountdown:
 
                 async for row in cur:
                     # New `.last_get` for next call
-                    self.last_get = row['now']
+                    self.last_get = row.pop('now')
                     # Convert timezone unaware datetime into UTC datetime
                     row['start'] = row['start'].replace(tzinfo=timezone.utc)
                     yield row

@@ -14,8 +14,8 @@ class LaunchLibrary2:
     no_stream = 'No stream yet'
 
     # Space Launch Now
-    sln_event_url = 'https://spacelaunchnow.me/event/%s'
-    sln_launch_url = 'https://spacelaunchnow.me/launch/%s'
+    sln_event_url = 'https://spacelaunchnow.me/event/%s/'
+    sln_launch_url = 'https://spacelaunchnow.me/launch/%s/'
 
     # Status colours for embeds
     status_colours = {
@@ -155,6 +155,7 @@ class LaunchLibrary2:
                 'start': net,
                 'end': net + self.event_duration['default'],
                 'webcast_live': entry['webcast_live'],
+                'slug': entry['slug'],
                 'agency_id': entry['launch_service_provider']['id'],
                 'agency_name': entry['launch_service_provider']['name'],
                 'status': entry['status']['id']
@@ -213,7 +214,8 @@ class LaunchLibrary2:
                 'image_url': image_url,
                 'start': net,
                 'end': net + self.event_duration[event_type],
-                'webcast_live': entry['webcast_live']
+                'webcast_live': entry['webcast_live'],
+                'slug': entry['slug']
             }
 
         # Returning

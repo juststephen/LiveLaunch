@@ -39,10 +39,16 @@ class Start:
                     notification_webhook_url TEXT DEFAULT NULL,
                     notification_launch TINYINT UNSIGNED DEFAULT 0,
                     notification_event TINYINT UNSIGNED DEFAULT 0,
+                    notification_t0_change TINYINT UNSIGNED DEFAULT 0,
+                    notification_tbd TINYINT UNSIGNED DEFAULT 0,
+                    notification_tbc TINYINT UNSIGNED DEFAULT 0,
+                    notification_go TINYINT UNSIGNED DEFAULT 0,
                     notification_liftoff TINYINT UNSIGNED DEFAULT 0,
                     notification_hold TINYINT UNSIGNED DEFAULT 0,
                     notification_end_status TINYINT UNSIGNED DEFAULT 0,
-                    notification_scheduled_event TINYINT UNSIGNED DEFAULT 0
+                    notification_scheduled_event TINYINT UNSIGNED DEFAULT 0,
+                    notification_button_g4l TINYINT UNSIGNED DEFAULT 1,
+                    notification_button_sln TINYINT UNSIGNED DEFAULT 1
                     )
                     """
                 )

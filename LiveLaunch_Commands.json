@@ -195,7 +195,7 @@
                         {
                             "name":"events",
                             "type":3,
-                            "description":"Enable/disable event countdown notifications",
+                            "description":"Enable/disable event notifications",
                             "choices":[
                                 {
                                     "name":"Enable",
@@ -210,7 +210,22 @@
                         {
                             "name":"launches",
                             "type":3,
-                            "description":"Enable/disable launch countdown notifications",
+                            "description":"Enable/disable launch notifications (ignores status settings)",
+                            "choices":[
+                                {
+                                    "name":"Enable",
+                                    "value":"True"
+                                },
+                                {
+                                    "name":"Disable",
+                                    "value":"False"
+                                }
+                            ]
+                        },
+                        {
+                            "name":"t0_changes",
+                            "type":3,
+                            "description":"Enable/disable notifications for when T-0 changes",
                             "choices":[
                                 {
                                     "name":"Enable",
@@ -226,6 +241,36 @@
                             "name":"include_scheduled_events",
                             "type":3,
                             "description":"Include/exclude Discord scheduled events in the notification",
+                            "choices":[
+                                {
+                                    "name":"Include",
+                                    "value":"True"
+                                },
+                                {
+                                    "name":"Exclude",
+                                    "value":"False"
+                                }
+                            ]
+                        },
+                        {
+                            "name":"button_g4l",
+                            "type":3,
+                            "description":"Include/exclude a button to Go4Liftoff in the notification",
+                            "choices":[
+                                {
+                                    "name":"Include",
+                                    "value":"True"
+                                },
+                                {
+                                    "name":"Exclude",
+                                    "value":"False"
+                                }
+                            ]
+                        },
+                        {
+                            "name":"button_sln",
+                            "type":3,
+                            "description":"Include/exclude a button to Space Launch Now in the notification",
                             "choices":[
                                 {
                                     "name":"Include",
@@ -333,6 +378,51 @@
                             "name":"liftoff",
                             "type":3,
                             "description":"Enable/disable liftoff notifications",
+                            "choices":[
+                                {
+                                    "name":"Enable",
+                                    "value":"True"
+                                },
+                                {
+                                    "name":"Disable",
+                                    "value":"False"
+                                }
+                            ]
+                        },
+                        {
+                            "name":"go",
+                            "type":3,
+                            "description":"Enable/disable go for launch notifications",
+                            "choices":[
+                                {
+                                    "name":"Enable",
+                                    "value":"True"
+                                },
+                                {
+                                    "name":"Disable",
+                                    "value":"False"
+                                }
+                            ]
+                        },
+                        {
+                            "name":"tbc",
+                            "type":3,
+                            "description":"Enable/disable to be confirmed notifications",
+                            "choices":[
+                                {
+                                    "name":"Enable",
+                                    "value":"True"
+                                },
+                                {
+                                    "name":"Disable",
+                                    "value":"False"
+                                }
+                            ]
+                        },
+                        {
+                            "name":"tbd",
+                            "type":3,
+                            "description":"Enable/disable to be determined notifications",
                             "choices":[
                                 {
                                     "name":"Enable",

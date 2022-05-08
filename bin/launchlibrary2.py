@@ -1,10 +1,7 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from dateutil.parser import isoparse
 
-try:
-    from bin import ll2_get
-except:
-    from aget import ll2_get
+from bin import ll2_get
 
 class LaunchLibrary2:
     """
@@ -13,7 +10,15 @@ class LaunchLibrary2:
     # Replacement text for when there is no stream
     no_stream = 'No stream yet'
 
+    # Go4Liftoff
+    g4l_name = 'Go4Liftoff'
+    g4l_emoji = '<:Go4Liftoff:970384895593562192>'
+    g4l_event_url = 'https://go4liftoff.com/event/id/%s'
+    g4l_launch_url = 'https://go4liftoff.com/launch/id/%s'
+
     # Space Launch Now
+    sln_name = 'Space Launch Now'
+    sln_emoji = '<:SpaceLaunchNow:970384894985379960>'
     sln_event_url = 'https://spacelaunchnow.me/event/%s/'
     sln_launch_url = 'https://spacelaunchnow.me/launch/%s/'
 
@@ -62,8 +67,6 @@ class LaunchLibrary2:
         self.dt1 = timedelta(hours=-1)
         # End launch status tags
         self.launch_status_end = (3, 4, 7)
-        # Notification status tags
-        self.notification_status = (3, 4, 5, 6, 7)
         # Event duration (i.e. long EVAs)
         self.event_duration = {
             'EVA': timedelta(hours=6),

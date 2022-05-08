@@ -8,10 +8,16 @@ class NotificationSettings:
         *,
         launch: bool = None,
         event: bool = None,
+        t0_change: bool = None,
+        tbd: bool = None,
+        tbc: bool = None,
+        go: bool = None,
         liftoff: bool = None,
         hold: bool = None,
         end_status: bool = None,
-        scheduled_event: bool = None
+        scheduled_event: bool = None,
+        button_g4l: bool = None,
+        button_sln: bool = None
     ) -> None:
         """
         Modify the notification
@@ -27,6 +33,18 @@ class NotificationSettings:
         event : bool, default: None
             Enable/disable event
             notifications.
+        t0_change : bool, default: None
+            Enable/disable notifications
+            for when start changes.
+        tbd : bool, default: None
+            Enable/disable tbd
+            notifications.
+        tbc : bool, default: None
+            Enable/disable tbc
+            notifications.
+        go : bool, default: None
+            Enable/disable go
+            notifications.
         liftoff : bool, default: None
             Enable/disable launch
             liftoff notifications.
@@ -40,6 +58,12 @@ class NotificationSettings:
             Include/exclude Discord
             scheduled events in the
             notification when available.
+        button_g4l : bool, default: None
+            Include/exclude a button
+            to Go4Liftoff in notifications.
+        button_sln : bool, default: None
+            Include/exclude a button
+            to Space Launch Now in notifications.
         """
         cols, args = [], []
         # Update launch if given
@@ -50,6 +74,22 @@ class NotificationSettings:
         if event is not None:
             cols.append('notification_event=%s')
             args.append(event)
+        # Update t0_change if given
+        if t0_change is not None:
+            cols.append('notification_t0_change=%s')
+            args.append(t0_change)
+        # Update tbd if given
+        if tbd is not None:
+            cols.append('notification_tbd=%s')
+            args.append(tbd)
+        # Update tbc if given
+        if tbc is not None:
+            cols.append('notification_tbc=%s')
+            args.append(tbc)
+        # Update go if given
+        if go is not None:
+            cols.append('notification_go=%s')
+            args.append(go)
         # Update liftoff if given
         if liftoff is not None:
             cols.append('notification_liftoff=%s')
@@ -66,6 +106,13 @@ class NotificationSettings:
         if scheduled_event is not None:
             cols.append('notification_scheduled_event=%s')
             args.append(scheduled_event)
+        # Update button_g4l if given
+        if button_g4l is not None:
+            cols.append('notification_button_g4l=%s')
+            args.append(button_g4l)
+        if button_sln is not None:
+            cols.append('notification_button_sln=%s')
+            args.append(button_sln)
         # Add guild ID to the arguments
         args.append(guild_id)
 

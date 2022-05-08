@@ -18,6 +18,6 @@ Even Discord events can be included within the countdown notifications.
 - Create events with a maximum of 50 using the events option.
 - Send YouTube livestreams of launches and events to a channel using the messages option.
 - Send Space related news articles and filter them by their respective news site.
-- Receive notifications for countdowns and/or launch status changes (liftoff, hold, success/failure/partial failure).
+- Receive notifications for countdowns, T-0 changes and/or launch status changes.
 
 LiveLaunch can be enabled and disabled using slash commands.

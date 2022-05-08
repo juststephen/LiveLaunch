@@ -42,7 +42,7 @@ class LL2Agencies:
 
         Parameters
         ----------
-        ll2_id : int
+        ll2_id : str
             Launch Library 2 ID.
 
         Returns

@@ -37,7 +37,10 @@ class LiveLaunchNotifications(commands.Cog):
         events: str = None,
         everything: str = None,
         launches: str = None,
-        include_scheduled_events: str = None
+        t0_changes: str = None,
+        include_scheduled_events: str = None,
+        button_g4l: str = None,
+        button_sln: str = None,
     ) -> None:
         """
         General notification settings.
@@ -52,10 +55,19 @@ class LiveLaunchNotifications(commands.Cog):
         launches : bool, default: None
             Enable/disable launch
             notifications.
+        t0_changes : bool, default: None
+            Enable/disable notifications
+            for when start changes.
         include_scheduled_events : bool, default: None
             Include/exclude Discord
             scheduled events in the
             notification when available.
+        button_g4l : bool, default: None
+            Include/exclude a button
+            to Go4Liftoff in notifications.
+        button_sln : bool, default: None
+            Include/exclude a button
+            to Space Launch Now in notifications.
         """
         # Guild ID
         guild_id = ctx.guild.id
@@ -75,10 +87,16 @@ class LiveLaunchNotifications(commands.Cog):
             settings = {
                 'launch': everything,
                 'event': everything,
+                't0_change': everything,
+                'tbd': everything,
+                'tbc': everything,
+                'go': everything,
                 'liftoff': everything,
                 'hold': everything,
                 'end_status': everything,
-                'scheduled_event': everything
+                'scheduled_event': everything,
+                'button_g4l': everything,
+                'button_sln': everything
             }
         else:
             message = 'selected general'
@@ -87,8 +105,14 @@ class LiveLaunchNotifications(commands.Cog):
                 settings['event'] = events == 'True'
             if launches is not None:
                 settings['launch'] = launches == 'True'
+            if t0_changes is not None:
+                settings['t0_change'] = t0_changes == 'True'
             if include_scheduled_events is not None:
                 settings['scheduled_event'] = include_scheduled_events == 'True'
+            if button_g4l is not None:
+                settings['button_g4l'] = button_g4l == 'True'
+            if button_sln is not None:
+                settings['button_sln'] = button_sln == 'True'
 
         # Update database
         if settings:
@@ -251,7 +275,10 @@ class LiveLaunchNotifications(commands.Cog):
         ctx,
         end_status: str = None,
         hold: str = None,
-        liftoff: str = None
+        liftoff: str = None,
+        go: str = None,
+        tbc: str = None,
+        tbd: str = None
     ) -> None:
         """
         Enable/disable notifications
@@ -267,6 +294,15 @@ class LiveLaunchNotifications(commands.Cog):
             hold notifications.
         liftoff : str, default: None
             Enable/disable liftoff
+            notifications.
+        go : str, default: None
+            Enable/disable go
+            notifications.
+        tbc : str, default: None
+            Enable/disable tbc
+            notifications.
+        tbd : str, default: None
+            Enable/disable tbd
             notifications.
         """
         # Guild ID
@@ -288,6 +324,12 @@ class LiveLaunchNotifications(commands.Cog):
             settings['hold'] = hold == 'True'
         if liftoff is not None:
             settings['liftoff'] = liftoff == 'True'
+        if go is not None:
+            settings['go'] = go == 'True'
+        if tbc is not None:
+            settings['tbc'] = tbc == 'True'
+        if tbd is not None:
+            settings['tbd'] = tbd == 'True'
 
         # Update database
         if settings:
@@ -334,18 +376,48 @@ class LiveLaunchNotifications(commands.Cog):
 
             # Only enable video URL when available
             if (url := notification['url']):
+                title_url = {'url': url}
                 url = f'[Stream]({url})'
             else:
+                title_url = {}
                 url = ll2.no_stream
 
-            # Select the correct SLN base URL
+            # Select the correct G4L and SLN base URL
             if notification['type']:
-                base_url = ll2.sln_event_url
+                g4l_url = ll2.g4l_event_url
+                sln_url = ll2.sln_event_url
             else:
-                base_url = ll2.sln_launch_url
+                g4l_url = ll2.g4l_launch_url
+                sln_url = ll2.sln_launch_url
 
             # Message dict
             message = {}
+
+            # G4L and SLN buttons for the event
+            buttons = []
+            # Add SLN button
+            if notification['button_sln']:
+                buttons.append(
+                    Button(
+                        label=ll2.sln_name,
+                        style=discord.ButtonStyle.link,
+                        emoji=ll2.sln_emoji,
+                        url=sln_url % notification['slug']
+                    )
+                )
+            # Add G4L button
+            if notification['button_g4l']:
+                buttons.append(
+                    Button(
+                        label=ll2.g4l_name,
+                        style=discord.ButtonStyle.link,
+                        emoji=ll2.g4l_emoji,
+                        url=g4l_url % notification['ll2_id']
+                    )
+                )
+            # Add to the message
+            if buttons:
+                message['components'] = MessageComponents.add_buttons_with_rows(*buttons)
 
             # Creating embed
             embed = discord.Embed(
@@ -354,12 +426,10 @@ class LiveLaunchNotifications(commands.Cog):
                     (f'**Status:** {ll2.status_names[status]}\n{url}' if status else url),
                 timestamp=notification['start'],
                 title=notification['name'],
-                url=base_url % notification['slug']
+                **title_url
             )
-            # Add a thumbnail when scheduled events aren't enabled
-            if (notification['scheduled_event_id'] is None
-                    and notification['image_url']):
-                # Set image
+            # Set thumbnail
+            if notification['image_url']:
                 embed.set_thumbnail(
                     url=notification['image_url']
                 )
@@ -372,7 +442,7 @@ class LiveLaunchNotifications(commands.Cog):
             # Scheduled event
             if notification['scheduled_event_id']:
                 message['content'] = self.se_url % (
-                    notification['guild_id'],
+                    guild_id,
                     notification['scheduled_event_id']
                 )
 

@@ -511,24 +511,24 @@ class LiveLaunchCommand(commands.Cog):
                 inline=False
             )
 
-        # Add notification settings
+        # Add general notification settings
         features = ''
         for key, name in zip(
             (
                 'notification_event',
                 'notification_launch',
+                'notification_t0_change',
                 'notification_scheduled_event',
-                'notification_end_status',
-                'notification_hold',
-                'notification_liftoff'
+                'notification_button_g4l',
+                'notification_button_sln'
             ),
             (
                 'Events',
                 'Launches',
+                'T-0 changes',
                 'Include Discord scheduled events',
-                'Launch end status',
-                'Launch hold',
-                'Launch liftoff'
+                'Include a button to Go4Liftoff',
+                'Include a button to Space Launch Now'
             )
         ):
             if settings[key]:
@@ -537,7 +537,38 @@ class LiveLaunchCommand(commands.Cog):
                 features += '\n:x:  ' + name
         # Add features to embed
         embed.add_field(
-            name='Notifications',
+            name='Notifications: general',
+            value=features,
+            inline=False
+        )
+
+        # Add status notification settings
+        features = ''
+        for key, name in zip(
+            (
+                'notification_end_status',
+                'notification_hold',
+                'notification_liftoff',
+                'notification_go',
+                'notification_tbc',
+                'notification_tbd'
+            ),
+            (
+                'Launch end status',
+                'Launch hold',
+                'Launch liftoff',
+                'Go for launch',
+                'Launch to be confirmed',
+                'Launch to be determined'
+            )
+        ):
+            if settings[key]:
+                features += '\n:white_check_mark:  ' + name
+            else:
+                features += '\n:x:  ' + name
+        # Add features to embed
+        embed.add_field(
+            name='Notifications: launch status',
             value=features,
             inline=False
         )

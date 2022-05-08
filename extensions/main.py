@@ -2,6 +2,7 @@ import aiohttp
 from datetime import datetime, timedelta, timezone
 import discord
 from discord.ext import commands, tasks
+from discord.ui import Button, MessageComponents
 from discord.utils import _bytes_to_base64_data
 from itertools import compress
 import logging
@@ -10,6 +11,7 @@ import re
 from bin import (
     LaunchLibrary2 as ll2,
     NASATV,
+    NotificationCheck,
     YouTubeAPI,
     YouTubeRSS,
     YouTubeStripVideoID
@@ -22,6 +24,8 @@ class LiveLaunch(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         #### Settings ####
+        # Scheduled event base url
+        self.se_url = 'https://discord.com/events/%s/%s'
         # datetime accuracy
         self.timedelta_1m = timedelta(minutes=1)
         self.timedelta_1h = timedelta(hours=1)
@@ -31,6 +35,8 @@ class LiveLaunch(commands.Cog):
         self.nasa_id = 'UCLA_DiR1FfKNvjuUpBHmylQ'
         self.nasa_name = 'NASA'
         self.nasatv = NASATV()
+        # Notification check object
+        self.notification_check = NotificationCheck()
         # YouTube API
         self.ytapi = YouTubeAPI()
         # YouTube RSS
@@ -447,47 +453,160 @@ class LiveLaunch(commands.Cog):
         # Return overall success status
         return status
 
-    async def send_status_notification(
+    async def send_notification(
         self,
+        notification_type : int,
+        *,
         ll2_id: str,
-        data: dict[str, bool and datetime and int and str]
+        data: dict[str, bool and datetime and int and str],
+        cached_start: datetime = None
     ) -> None:
         """
-        Send a status change notification when called,
-        uses the provided data to create the notification
-        embed and sends it to all guilds that enabled the
-        status type within their settings.
+        Send a notification when called, uses the
+        provided data to create the notification
+        embed and sends it to all guilds that enabled
+        the type within their settings.
 
         Parameters
         ----------
+        notification_type : int
+            0 : Status notifications only.
+            1 : T-0 change notifications only.
+            2 : Both notification types.
         ll2_id : str
             Launch Library 2 ID.
         data : dict[
             str, bool and datetime and int and str
         ]
             Data of the event.
+        cached_start : datetime, default: None
+            Previous start datetime.
         """
-        status = data['status']
+        async def send(
+            embed: discord.Embed,
+            buttons: MessageComponents,
+            kwargs: dict[str, bool or int and str]
+        ) -> None:
+            """
+            Send notifications depending on the type.
+
+            Parameters
+            ----------
+            embed : discord.Embed
+                Embed object to send.
+            buttons : dict[str, MessageComponents]
+                Buttons to external sites:
+                    ` both `: Both G4L and SLN buttons.
+                    ` g4l `: G4L button only.
+                    ` sln `: SLN button only.
+            kwargs : dict[str, bool or int and str]
+                Iteration kwargs.
+            """
+            # Iterate over guilds that enabled the notification type
+            async for notification in self.bot.lldb.notification_iter(**kwargs):
+                guild_id = notification['guild_id']
+                scheduled_event_id = notification['scheduled_event_id']
+
+                # Scheduled event
+                message = {}
+                if scheduled_event_id:
+                    message['content'] = self.se_url % (
+                        guild_id,
+                        scheduled_event_id
+                    )
+                # Add correct buttons
+                if notification['button_g4l'] and notification['button_sln']:
+                    message['components'] = buttons['both']
+                elif notification['button_g4l']:
+                    message['components'] = buttons['g4l']
+                elif notification['button_sln']:
+                    message['components'] = buttons['sln']
+
+                try:
+                    # Creating session
+                    async with aiohttp.ClientSession() as session:
+                        # Creating webhook
+                        webhook = discord.Webhook.from_url(
+                            notification['notification_webhook_url'],
+                            session=session
+                        )
+
+                        # Sending notification
+                        await webhook.send(
+                            **message,
+                            embed=embed,
+                            username=agency,
+                            avatar_url=logo_url
+                        )
+
+                # Remove channel and url from the db when either is removed or deleted
+                except discord.errors.NotFound:
+                    await self.bot.lldb.enabled_guilds_edit(
+                        guild_id,
+                        notification_channel_id=None,
+                        notification_webhook_url=None
+                    )
+                    logging.warning(f'Guild ID: {guild_id}\tRemoved notification webhook, not found.')
+                # When the bot fails (edge case)
+                except Exception as e:
+                    logging.warning(f'Guild ID: {guild_id}\tError during notification webhook sending: {e}, {type(e)}')
+                    print(f'Guild ID: {guild_id}\tError during notification webhook sending: {e}, {type(e)}')
+
+        # Kwargs dict and get status
+        kwargs = {'ll2_id': ll2_id}
+        status = data.get('status')
 
         # Only enable video URL when available
         if (url := data['url']):
+            title_url = {'url': url}
             url = f'[Stream]({url})'
         else:
+            title_url = {}
             url = ll2.no_stream
 
-        # Select the correct SLN base URL
+        # Select the correct G4L and SLN base URL
         if self.type_check.match(ll2_id):
-            base_url = ll2.sln_event_url
+            g4l_url = ll2.g4l_event_url
+            sln_url = ll2.sln_event_url
+            kwargs['event'] = True
         else:
-            base_url = ll2.sln_launch_url
+            g4l_url = ll2.g4l_launch_url
+            sln_url = ll2.sln_launch_url
+            kwargs['launch'] = True
+
+        # G4L and SLN buttons for the event
+        buttons = {}
+        button_g4l = Button(
+            label=ll2.g4l_name,
+            style=discord.ButtonStyle.link,
+            emoji=ll2.g4l_emoji,
+            url=g4l_url % ll2_id
+        )
+        button_sln = Button(
+            label=ll2.sln_name,
+            style=discord.ButtonStyle.link,
+            emoji=ll2.sln_emoji,
+            url=sln_url % data['slug']
+        )
+        # Both buttons
+        buttons['both'] = MessageComponents.add_buttons_with_rows(button_sln, button_g4l)
+        # Only G4L button
+        buttons['g4l'] = MessageComponents.add_buttons_with_rows(button_g4l)
+        # Only SLN button
+        buttons['sln'] = MessageComponents.add_buttons_with_rows(button_sln)
+
+        # Get the agency's name and logo
+        if (agency := await self.bot.lldb.ll2_agencies_get(ll2_id)):
+            agency, logo_url = agency
+        else:
+            agency, logo_url = None, None
 
         # Creating embed
         embed = discord.Embed(
-            color=ll2.status_colours.get(data['status'], 0xFFFF00),
-            description=f'**Status:** {ll2.status_names[status]}\n{url}',
+            color=ll2.status_colours.get(status, 0xFFFF00),
             timestamp=data['start'],
             title=data['name'],
-            url=base_url % data['slug']
+            **title_url
         )
         # Set thumbnail
         if data['image_url']:
@@ -499,42 +618,51 @@ class LiveLaunch(commands.Cog):
             text='LiveLaunch Notifications'
         )
 
-        # Get the agency's name and logo
-        if (agency := await self.bot.lldb.ll2_agencies_get(ll2_id)):
-            agency, logo_url = agency
-        else:
-            agency, logo_url = None, None
+        # Status change
+        if notification_type != 1:
+            # Reference or shallow copy
+            status_embed = embed.copy() if notification_type == 2 else embed
+            # Set description
+            status_embed.description = f'**New status:** {ll2.status_names[status]}\n{url}'
 
-        # Iterate over guilds that enabled the status for notifications
-        async for guild_id, webhook_url in self.bot.lldb.notification_status_iter(status):
-            try:
-                # Creating session
-                async with aiohttp.ClientSession() as session:
-                    # Creating webhook
-                    webhook = discord.Webhook.from_url(
-                        webhook_url,
-                        session=session
-                    )
+            # Send notifications
+            if notification_type == 0:
+                await send(status_embed, buttons, {'ll2_id': ll2_id, 'status': status})
+            else:
+                # Add status to the kwargs
+                kwargs['status'] = status
 
-                    # Sending notification
-                    await webhook.send(
-                        embed=embed,
-                        username=agency,
-                        avatar_url=logo_url
-                    )
+        # T-0 change
+        if notification_type != 0:
+            # Reference or shallow copy
+            t0_embed = embed.copy() if notification_type == 2 else embed
+            # Set description
+            t0_embed.description = f'**T-0** changed from <t:{int(cached_start.timestamp())}:F>' \
+                f" to <t:{int(data['start'].timestamp())}:F>\n" + \
+                (f'**Status:** {ll2.status_names[status]}\n{url}' if status else url)
 
-            # Remove channel and url from the db when either is removed or deleted
-            except discord.errors.NotFound:
-                await self.bot.lldb.enabled_guilds_edit(
-                    guild_id,
-                    notification_channel_id=None,
-                    notification_webhook_url=None
-                )
-                logging.warning(f'Guild ID: {guild_id}\tRemoved notification webhook, not found.')
-            # When the bot fails (edge case)
-            except Exception as e:
-                logging.warning(f'Guild ID: {guild_id}\tError during notification webhook sending: {e}, {type(e)}')
-                print(f'Guild ID: {guild_id}\tError during notification webhook sending: {e}, {type(e)}')
+            # Send notifications
+            if notification_type == 1:
+                await send(t0_embed, buttons, kwargs)
+
+        # Both T-0 change and status change
+        if notification_type == 2:
+            # Set description
+            embed.description = f'**T-0** changed from <t:{int(cached_start.timestamp())}:F>' \
+                f" to <t:{int(data['start'].timestamp())}:F>\n" + \
+                (f'**New status:** {ll2.status_names[status]}\n{url}' if status else url)
+
+            # Send to servers with both T-0 and status change
+            await send(embed, buttons, kwargs)
+
+            # Send to servers with status change, but not T-0 change
+            kwargs['no_t0'] = True
+            await send(status_embed, buttons, kwargs)
+
+            # Send to servers with T-0 change, but not status change
+            kwargs.pop('no_t0')
+            kwargs['no_status'] = True
+            await send(t0_embed, buttons, kwargs)
 
     @tasks.loop(hours=1)
     async def update_variables(self):
@@ -573,8 +701,11 @@ class LiveLaunch(commands.Cog):
             # Check if the event still exists
             if data := upcoming.get(ll2_id):
 
+                # Now datetime for checks
+                now = datetime.now(timezone.utc)
+
                 # Scheduled event check
-                scheduled_event_check = data['end'] > datetime.now(timezone.utc) \
+                scheduled_event_check = data['end'] > now \
                     and data.get('status') not in self.ll2.launch_status_end
 
                 # Check for updates to the event
@@ -595,18 +726,38 @@ class LiveLaunch(commands.Cog):
                     # Done
                     check.pop('agency_id')
 
-                # Send status change notifications
-                if ((status := check.get('status'))
-                        and status in self.ll2.notification_status):
+                # Get current and possible new status
+                old_status = cached.get('status')
+                new_status = check.get('status', old_status)
+                # Get current start time
+                cached_start = cached['start']
+                # Get the notifications types for these statuses
+                notification_type = self.notification_check(
+                    old_status=old_status,
+                    new_status=new_status,
+                    old_start=cached_start,
+                    new_start=check.get('start')
+                )
+
+                # Check for notifications
+                if notification_type is not None:
+                    # Status only or both (0, 2)
+                    if notification_type != 1:
+                        # Update events table
+                        await self.bot.lldb.ll2_events_edit(
+                            ll2_id,
+                            status=new_status
+                        )
+                        # Done
+                        check.pop('status')
+
                     # Send notifications
-                    await self.send_status_notification(ll2_id, data)
-                    # Update events table
-                    await self.bot.lldb.ll2_events_edit(
-                        ll2_id,
-                        status=status
+                    await self.send_notification(
+                        notification_type,
+                        ll2_id=ll2_id,
+                        data=data,
+                        cached_start=cached_start
                     )
-                    # Done
-                    check.pop('status')
 
                 # Check for scheduled event relevance
                 if scheduled_event_check:

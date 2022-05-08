@@ -38,6 +38,11 @@ class LiveLaunchHelp(commands.Cog):
             name='Disable',
             value='Use `/disable` to disable either `notifications`, `news`, `messages`, `events`, or `all`'
         )
+        # Settings list
+        embed.add_field(
+            name='Settings list',
+            value='Use `/settings_list` to display all settings.'
+        )
         # Event settings
         embed.add_field(
             name='Event Settings',
@@ -69,14 +74,16 @@ class LiveLaunchHelp(commands.Cog):
         )
         embed.add_field(
             name='Notifications General',
-            value='Use `/notifications general` to enable/disable `launches`, `events` '
-                'and include/exclude Discord scheduled events in the countdown notifications.'
+            value='Use `/notifications general` to enable/disable `events`, `launches`, `t0_changes`, '
+                'include/exclude Discord scheduled events in the countdown notifications and '
+                'include/exlucde buttons to Go4Liftoff and Space Launch Now using `button_g4l` and `button_sln`.'
                 '\n`everything` is used to enable all general and launch status settings.'
         )
         embed.add_field(
             name='Notifications Launch Status',
             value='Use `/notifications launch_status` to enable/disable notifications '
-                'for launch status changes. These are `end_status`, `hold` and `liftoff`.'
+                'for launch status changes. These are `end_status`, `hold`, `liftoff`, '
+                '`go`, `tbc` and `tbd`.'
         )
 
         # Send embed

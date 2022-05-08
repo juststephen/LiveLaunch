@@ -5,8 +5,8 @@ from ._ll2_events import LL2Events
 from ._news_sites import News
 from ._news_sites_filter import NewsFilter
 from ._notification_countdown import NotificationCountdown
+from ._notification_iter import NotificationIter
 from ._notification_settings import NotificationSettings
-from ._notification_status import NotificationStatus
 from ._scheduled_events import ScheduledEvents
 from ._scheduled_events_settings import ScheduledEventsSettings
 from ._sent_media import SentMedia
@@ -20,8 +20,8 @@ class Database(
     News,
     NewsFilter,
     NotificationCountdown,
+    NotificationIter,
     NotificationSettings,
-    NotificationStatus,
     ScheduledEvents,
     ScheduledEventsSettings,
     SentMedia,

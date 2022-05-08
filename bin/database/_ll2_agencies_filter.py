@@ -5,7 +5,6 @@ class LL2AgenciesFilter(Filter):
     LL2 Agencies Filter table methods.
     """
     def __init__(self) -> None:
-        print('agencies')
         self._agency_filter_table = FilterTable(
             data_table='ll2_agencies',
             filter_table='ll2_agencies_filter',

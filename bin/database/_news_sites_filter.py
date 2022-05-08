@@ -5,7 +5,6 @@ class NewsFilter(Filter):
     News sites filter table methods.
     """
     def __init__(self) -> None:
-        print('news')
         self._news_filter_table = FilterTable(
             data_table='news_sites',
             filter_table='news_filter',

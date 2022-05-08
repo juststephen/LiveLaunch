@@ -171,7 +171,10 @@ class NotificationCountdown:
         notifications : dict[
             guild_id : int,
             notification_webhook_url : str,
+            button_g4l : bool,
+            button_sln : bool,
             minutes : int,
+            ll2_id : str,
             name : str,
             slug : str,
             status : int,
@@ -207,7 +210,10 @@ class NotificationCountdown:
                     SELECT
                         eg.guild_id,
                         eg.notification_webhook_url,
+                        eg.notification_button_g4l AS button_g4l,
+                        eg.notification_button_sln AS button_sln,
                         nc.minutes,
+                        le.ll2_id,
                         le.name,
                         le.slug,
                         le.status,
@@ -235,9 +241,9 @@ class NotificationCountdown:
                         AND laf.agency_id = le.agency_id
                     LEFT JOIN
                         scheduled_events AS se
-                        ON se.guild_id = eg.guild_id AND
-                            eg.notification_scheduled_event AND
-                            se.ll2_id = le.ll2_id
+                        ON se.guild_id = eg.guild_id
+                        AND eg.notification_scheduled_event
+                        AND se.ll2_id = le.ll2_id
                     WHERE
                         le.status != 5
                         OR
@@ -283,4 +289,7 @@ class NotificationCountdown:
                     self.last_get = row.pop('now')
                     # Convert timezone unaware datetime into UTC datetime
                     row['start'] = row['start'].replace(tzinfo=timezone.utc)
+                    # Convert button settings to bools
+                    row['button_g4l'] = bool(row['button_g4l'])
+                    row['button_sln'] = bool(row['button_sln'])
                     yield row

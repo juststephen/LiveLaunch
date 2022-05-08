@@ -3,6 +3,7 @@ from .database import *
 from .launchlibrary2 import *
 from .minutes import *
 from .nasatv import *
+from .notification_check import *
 from .snapi import *
 from .youtube_api import *
 from .youtube_rss import *

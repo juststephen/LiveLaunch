@@ -261,7 +261,7 @@ class LiveLaunch(commands.Cog):
             payload['entity_metadata'] = {'location': url}
         if image is not None:
             payload['image'] = _bytes_to_base64_data(image)
-        if start is not None:
+        if start is not None and not webcast_live:
             payload['scheduled_start_time'] = start.isoformat()
         if end is not None:
             payload['scheduled_end_time'] = end.isoformat()
@@ -484,7 +484,7 @@ class LiveLaunch(commands.Cog):
         """
         async def send(
             embed: discord.Embed,
-            buttons: MessageComponents,
+            buttons: dict[str, MessageComponents],
             kwargs: dict[str, bool or int and str]
         ) -> None:
             """

@@ -18,6 +18,8 @@ class NotificationCheck:
     2 : Both notification types.
     """
     def __init__(self) -> None:
+        # 1 minute difference minimum for T-0 change notifications
+        self.timedelta_1m = timedelta(minutes=1)
         # 4 week cutoff for T-0 change notifications
         self.timedelta_4w = timedelta(weeks=4)
         # Dictionary containing statuses
@@ -65,8 +67,9 @@ class NotificationCheck:
         if new_start:
             # Current UTC time
             now = datetime.now(timezone.utc)
-            # Only handle events within 4 weeks
-            start_check = now < old_start < now + self.timedelta_4w
+            # Only handle events within 4 weeks and more than a minute apart
+            start_check = now < old_start < now + self.timedelta_4w \
+                and abs(new_start - old_start) >= self.timedelta_1m
         else:
             start_check = False
 

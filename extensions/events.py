@@ -62,6 +62,25 @@ class LiveLaunchEvents(commands.Cog):
             ephemeral=True
         )
 
+    @event_settings.error
+    async def command_error(self, ctx, error) -> None:
+        """
+        Method that handles erroneous interactions with the commands.
+        """
+        if isinstance(error, commands.errors.MissingPermissions):
+            if ctx.prefix == '/':
+                await ctx.send('This command is only for administrators.', ephemeral=True)
+        elif isinstance(error, commands.errors.NoPrivateMessage):
+            await ctx.send('This command is only for guild channels.')
+        elif isinstance(error, commands.errors.CommandOnCooldown):
+            await ctx.send(
+                f'This command is on cooldown for {error.retry_after:.0f} more seconds.',
+                ephemeral=True
+            )
+        else:
+            logging.warning(f'Command: {ctx.command}\nError: {error}')
+            print(f'Command: {ctx.command}\nError: {error}')
+
 
 def setup(client):
     client.add_cog(LiveLaunchEvents(client))

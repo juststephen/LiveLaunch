@@ -38,6 +38,9 @@ class LiveLaunchNews(commands.Cog):
             # Add the news site to the db if needed
             await self.bot.lldb.news_sites_add(article['newsSite'])
 
+            # Get the news site logo
+            article['logo_url'] = await self.bot.lldb.news_sites_get_logo(article['newsSite'])
+
             # Create embed object
             embed = discord.Embed(
                 color=0x00E8FF,
@@ -84,7 +87,8 @@ class LiveLaunchNews(commands.Cog):
                     for article in compress(new_news, filters):
                         await webhook.send(
                             embed=article['embed'],
-                            username=article['newsSite']
+                            username=article['newsSite'],
+                            avatar_url=article['logo_url']
                         )
 
             # Remove channel and url from the db when either is removed or deleted

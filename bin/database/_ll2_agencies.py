@@ -70,4 +70,4 @@ class LL2Agencies:
                     """,
                     (ll2_id,)
                 )
-        return await cur.fetchone()
+                return await cur.fetchone()

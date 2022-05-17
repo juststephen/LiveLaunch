@@ -101,7 +101,8 @@ class Start:
                     """
                     CREATE TABLE IF NOT EXISTS news_sites (
                     news_site_id SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                    news_site_name TEXT
+                    news_site_name TEXT,
+                    logo_url TEXT DEFAULT NULL
                     )
                     """
                 )

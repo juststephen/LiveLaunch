@@ -171,6 +171,7 @@ class NotificationCountdown:
         notifications : dict[
             guild_id : int,
             notification_webhook_url : str,
+            button_fc : bool,
             button_g4l : bool,
             button_sln : bool,
             minutes : int,
@@ -210,6 +211,7 @@ class NotificationCountdown:
                     SELECT
                         eg.guild_id,
                         eg.notification_webhook_url,
+                        le.flightclub AND eg.notification_button_fc AS button_fc,
                         eg.notification_button_g4l AS button_g4l,
                         eg.notification_button_sln AS button_sln,
                         nc.minutes,
@@ -290,6 +292,7 @@ class NotificationCountdown:
                     # Convert timezone unaware datetime into UTC datetime
                     row['start'] = row['start'].replace(tzinfo=timezone.utc)
                     # Convert button settings to bools
+                    row['button_fc'] = bool(row['button_fc'])
                     row['button_g4l'] = bool(row['button_g4l'])
                     row['button_sln'] = bool(row['button_sln'])
                     yield row

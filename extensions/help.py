@@ -76,7 +76,8 @@ class LiveLaunchHelp(commands.Cog):
             name='Notifications General',
             value='Use `/notifications general` to enable/disable `events`, `launches`, `t0_changes`, '
                 'include/exclude Discord scheduled events in the countdown notifications and '
-                'include/exlucde buttons to Go4Liftoff and Space Launch Now using `button_g4l` and `button_sln`.'
+                'include/exlucde buttons to Flight Club, Go4Liftoff and Space Launch Now '
+                'using `button_fc`, `button_g4l` and `button_sln`.'
                 '\n`everything` is used to enable all general and launch status settings.'
         )
         embed.add_field(

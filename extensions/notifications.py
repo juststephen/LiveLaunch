@@ -39,6 +39,7 @@ class LiveLaunchNotifications(commands.Cog):
         launches: str = None,
         t0_changes: str = None,
         include_scheduled_events: str = None,
+        button_fc: str = None,
         button_g4l: str = None,
         button_sln: str = None,
     ) -> None:
@@ -62,6 +63,9 @@ class LiveLaunchNotifications(commands.Cog):
             Include/exclude Discord
             scheduled events in the
             notification when available.
+        button_fc : bool, default: None
+            Include/exclude a button
+            to Flight Club in notifications.
         button_g4l : bool, default: None
             Include/exclude a button
             to Go4Liftoff in notifications.
@@ -95,6 +99,7 @@ class LiveLaunchNotifications(commands.Cog):
                 'hold': everything,
                 'end_status': everything,
                 'scheduled_event': everything,
+                'button_fc': everything,
                 'button_g4l': everything,
                 'button_sln': everything
             }
@@ -109,6 +114,8 @@ class LiveLaunchNotifications(commands.Cog):
                 settings['t0_change'] = t0_changes == 'True'
             if include_scheduled_events is not None:
                 settings['scheduled_event'] = include_scheduled_events == 'True'
+            if button_fc is not None:
+                settings['button_fc'] = button_fc == 'True'
             if button_g4l is not None:
                 settings['button_g4l'] = button_g4l == 'True'
             if button_sln is not None:
@@ -393,7 +400,7 @@ class LiveLaunchNotifications(commands.Cog):
             # Message dict
             message = {}
 
-            # G4L and SLN buttons for the event
+            # FC, G4L and SLN buttons for the event
             buttons = []
             # Add SLN button
             if notification['button_sln']:
@@ -413,6 +420,16 @@ class LiveLaunchNotifications(commands.Cog):
                         style=discord.ButtonStyle.link,
                         emoji=ll2.g4l_emoji,
                         url=g4l_url % notification['ll2_id']
+                    )
+                )
+            # Add FC button
+            if notification['button_fc']:
+                buttons.append(
+                    Button(
+                        label=ll2.fc_name,
+                        style=discord.ButtonStyle.link,
+                        emoji=ll2.fc_emoji,
+                        url=ll2.fc_url % notification['ll2_id']
                     )
                 )
             # Add to the message

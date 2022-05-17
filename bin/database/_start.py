@@ -47,6 +47,7 @@ class Start:
                     notification_hold TINYINT UNSIGNED DEFAULT 0,
                     notification_end_status TINYINT UNSIGNED DEFAULT 0,
                     notification_scheduled_event TINYINT UNSIGNED DEFAULT 0,
+                    notification_button_fc TINYINT UNSIGNED DEFAULT 1,
                     notification_button_g4l TINYINT UNSIGNED DEFAULT 1,
                     notification_button_sln TINYINT UNSIGNED DEFAULT 1
                     )
@@ -90,6 +91,7 @@ class Start:
                     end DATETIME DEFAULT NULL,
                     webcast_live TINYINT DEFAULT 0,
                     slug TEXT DEFAULT NULL,
+                    flightclub TINYINT UNSIGNED DEFAULT 0,
                     FOREIGN KEY (agency_id) REFERENCES ll2_agencies(agency_id)
                     )
                     """

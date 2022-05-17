@@ -519,6 +519,7 @@ class LiveLaunchCommand(commands.Cog):
                 'notification_launch',
                 'notification_t0_change',
                 'notification_scheduled_event',
+                'notification_button_fc',
                 'notification_button_g4l',
                 'notification_button_sln'
             ),
@@ -527,6 +528,7 @@ class LiveLaunchCommand(commands.Cog):
                 'Launches',
                 'T-0 changes',
                 'Include Discord scheduled events',
+                'Include a button to Flight Club',
                 'Include a button to Go4Liftoff',
                 'Include a button to Space Launch Now'
             )

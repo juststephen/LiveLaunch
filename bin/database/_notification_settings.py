@@ -16,6 +16,7 @@ class NotificationSettings:
         hold: bool = None,
         end_status: bool = None,
         scheduled_event: bool = None,
+        button_fc: bool = None,
         button_g4l: bool = None,
         button_sln: bool = None
     ) -> None:
@@ -58,6 +59,9 @@ class NotificationSettings:
             Include/exclude Discord
             scheduled events in the
             notification when available.
+        button_fc : bool, default: None
+            Include/exclude a button
+            to Flight Club in notifications.
         button_g4l : bool, default: None
             Include/exclude a button
             to Go4Liftoff in notifications.
@@ -106,6 +110,10 @@ class NotificationSettings:
         if scheduled_event is not None:
             cols.append('notification_scheduled_event=%s')
             args.append(scheduled_event)
+        # Update button_fc if given
+        if button_fc is not None:
+            cols.append('notification_button_fc=%s')
+            args.append(button_fc)
         # Update button_g4l if given
         if button_g4l is not None:
             cols.append('notification_button_g4l=%s')

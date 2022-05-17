@@ -10,6 +10,11 @@ class LaunchLibrary2:
     # Replacement text for when there is no stream
     no_stream = 'No stream yet'
 
+    # Flight Club
+    fc_name = 'Flight Club'
+    fc_emoji = '<:FlightClub:972885637436964946>'
+    fc_url = 'https://flightclub.io/result?llId=%s'
+
     # Go4Liftoff
     g4l_name = 'Go4Liftoff'
     g4l_emoji = '<:Go4Liftoff:970384895593562192>'
@@ -57,7 +62,8 @@ class LaunchLibrary2:
             'start',
             'end',
             'webcast_live',
-            'agency_id'
+            'agency_id',
+            'flightclub'
         )
         # Max amount of events
         self.max_events = 64
@@ -161,7 +167,8 @@ class LaunchLibrary2:
                 'slug': entry['slug'],
                 'agency_id': entry['launch_service_provider']['id'],
                 'agency_name': entry['launch_service_provider']['name'],
-                'status': entry['status']['id']
+                'status': entry['status']['id'],
+                'flightclub': bool(entry['flightclub_url'])
             }
 
         # Returning
@@ -218,7 +225,8 @@ class LaunchLibrary2:
                 'start': net,
                 'end': net + self.event_duration[event_type],
                 'webcast_live': entry['webcast_live'],
-                'slug': entry['slug']
+                'slug': entry['slug'],
+                'flightclub': False
             }
 
         # Returning

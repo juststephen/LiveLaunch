@@ -20,6 +20,7 @@ class LL2Events:
         agency_id: int = None,
         status: int = None,
         webcast_live: bool = False,
+        flightclub: bool = False,
         **kwargs
     ) -> None:
         """
@@ -50,6 +51,8 @@ class LL2Events:
             Status ID.
         webcast_live : bool, default: False
             Event is live or not.
+        flightclub : bool, default: False
+            Event has a Flight Club page.
         **kwargs
         """
         with await self.pool as con:
@@ -57,7 +60,7 @@ class LL2Events:
                 await cur.execute(
                     """
                     INSERT INTO ll2_events
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
                         ll2_id,
@@ -69,7 +72,8 @@ class LL2Events:
                         start,
                         end,
                         webcast_live,
-                        slug
+                        slug,
+                        flightclub
                     )
                 )
 
@@ -127,7 +131,8 @@ class LL2Events:
             start : datetime,
             end : datetime,
             webcast_live : bool,
-            slug : str
+            slug : str,
+            flightclub: bool
         ]
             Yields row with of an LL2
             event with the relevant data.
@@ -152,7 +157,9 @@ class LL2Events:
                     # Convert timezone unaware datetimes into UTC datetimes
                     row['start'] = row['start'].replace(tzinfo=timezone.utc)
                     row['end'] = row['end'].replace(tzinfo=timezone.utc)
+                    # Convert booleans
                     row['webcast_live'] = bool(row['webcast_live'])
+                    row['flightclub'] = bool(row['flightclub'])
                     yield row
 
     async def ll2_events_get(
@@ -180,7 +187,8 @@ class LL2Events:
             start : datetime,
             end : datetime,
             webcast_live : bool,
-            slug : str
+            slug : str,
+            flightclub: bool
         ] or None
             Returns a row with the ll2_event's data
             if it exists, otherwise None.
@@ -200,7 +208,9 @@ class LL2Events:
             # Convert timezone unaware datetimes into UTC datetimes
             row['start'] = row['start'].replace(tzinfo=timezone.utc)
             row['end'] = row['end'].replace(tzinfo=timezone.utc)
+            # Convert booleans
             row['webcast_live'] = bool(row['webcast_live'])
+            row['flightclub'] = bool(row['flightclub'])
         return row
 
     async def ll2_events_edit(
@@ -215,6 +225,7 @@ class LL2Events:
         start: datetime = None,
         end: datetime = None,
         webcast_live: bool = None,
+        flightclub: bool = None,
         **kwargs
     ) -> None:
         """
@@ -243,6 +254,8 @@ class LL2Events:
             Event end datetime object.
         webcast_live : bool, default: None
             Event is live or not.
+        flightclub : bool, default: None
+            Event has a Flight Club page.
         **kwargs
         """
         cols, args = [], []
@@ -274,6 +287,9 @@ class LL2Events:
         if webcast_live is not None:
             cols.append('webcast_live=%s')
             args.append(webcast_live)
+        if flightclub is not None:
+            cols.append('flightclub=%s')
+            args.append(flightclub)
         # Add ll2_id to the arguments
         args.append(ll2_id)
         # Update

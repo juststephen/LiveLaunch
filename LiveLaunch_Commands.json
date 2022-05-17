@@ -253,6 +253,21 @@
                             ]
                         },
                         {
+                            "name":"button_fc",
+                            "type":3,
+                            "description":"Include/exclude a button to Flight Club in the notification",
+                            "choices":[
+                                {
+                                    "name":"Include",
+                                    "value":"True"
+                                },
+                                {
+                                    "name":"Exclude",
+                                    "value":"False"
+                                }
+                            ]
+                        },
+                        {
                             "name":"button_g4l",
                             "type":3,
                             "description":"Include/exclude a button to Go4Liftoff in the notification",

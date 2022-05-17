@@ -45,6 +45,7 @@ class NotificationIter:
         notifications : dict[
             guild_id : int,
             webhook_url : str,
+            button_fc : bool,
             button_g4l : bool,
             button_sln : bool,
             scheduled_event_id : int
@@ -100,6 +101,7 @@ class NotificationIter:
                     SELECT
                         eg.guild_id,
                         eg.notification_webhook_url,
+                        le.flightclub AND eg.notification_button_fc AS button_fc,
                         eg.notification_button_g4l AS button_g4l,
                         eg.notification_button_sln AS button_sln,
                         se.scheduled_event_id
@@ -128,6 +130,7 @@ class NotificationIter:
                 )
                 async for row in cur:
                     # Convert button settings to bools
+                    row['button_fc'] = bool(row['button_fc'])
                     row['button_g4l'] = bool(row['button_g4l'])
                     row['button_sln'] = bool(row['button_sln'])
                     yield row

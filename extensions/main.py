@@ -6,6 +6,7 @@ from discord.ui import Button, MessageComponents
 from discord.utils import _bytes_to_base64_data
 from itertools import compress
 import logging
+from operator import itemgetter
 import re
 
 from bin import (
@@ -47,6 +48,12 @@ class LiveLaunch(commands.Cog):
         self.yt_base_url = 'https://www.youtube.com/watch?v='
         # Regex check for type checking
         self.type_check = re.compile('^[0-9]+$')
+        # Itemgetter object for getting notification button settings
+        self.button_settings = itemgetter(
+            'button_sln',
+            'button_g4l',
+            'button_fc'
+        )
         #### Start service ####
         # Start loops
         self.update_variables.start()
@@ -494,11 +501,11 @@ class LiveLaunch(commands.Cog):
             ----------
             embed : discord.Embed
                 Embed object to send.
-            buttons : dict[str, MessageComponents]
+            buttons : dict[str, Button]
                 Buttons to external sites:
-                    ` both `: Both G4L and SLN buttons.
-                    ` g4l `: G4L button only.
-                    ` sln `: SLN button only.
+                    ` fc `: FC button.
+                    ` g4l `: G4L button.
+                    ` sln `: SLN button.
             kwargs : dict[str, bool or int and str]
                 Iteration kwargs.
             """
@@ -514,13 +521,12 @@ class LiveLaunch(commands.Cog):
                         guild_id,
                         scheduled_event_id
                     )
+
                 # Add correct buttons
-                if notification['button_g4l'] and notification['button_sln']:
-                    message['components'] = buttons['both']
-                elif notification['button_g4l']:
-                    message['components'] = buttons['g4l']
-                elif notification['button_sln']:
-                    message['components'] = buttons['sln']
+                if any(button_settings := self.button_settings(notification)):
+                    message['components'] = MessageComponents.add_buttons_with_rows(
+                        *compress(buttons, button_settings)
+                    )
 
                 try:
                     # Creating session
@@ -574,26 +580,35 @@ class LiveLaunch(commands.Cog):
             sln_url = ll2.sln_launch_url
             kwargs['launch'] = True
 
-        # G4L and SLN buttons for the event
-        buttons = {}
-        button_g4l = Button(
-            label=ll2.g4l_name,
-            style=discord.ButtonStyle.link,
-            emoji=ll2.g4l_emoji,
-            url=g4l_url % ll2_id
+        # FC, G4L and SLN buttons for the event
+        buttons = []
+        # Add SLN button
+        buttons.append(
+            Button(
+                label=ll2.sln_name,
+                style=discord.ButtonStyle.link,
+                emoji=ll2.sln_emoji,
+                url=sln_url % data['slug']
+            )
         )
-        button_sln = Button(
-            label=ll2.sln_name,
-            style=discord.ButtonStyle.link,
-            emoji=ll2.sln_emoji,
-            url=sln_url % data['slug']
+        # Add G4L button
+        buttons.append(
+            Button(
+                label=ll2.g4l_name,
+                style=discord.ButtonStyle.link,
+                emoji=ll2.g4l_emoji,
+                url=g4l_url % ll2_id
+            )
         )
-        # Both buttons
-        buttons['both'] = MessageComponents.add_buttons_with_rows(button_sln, button_g4l)
-        # Only G4L button
-        buttons['g4l'] = MessageComponents.add_buttons_with_rows(button_g4l)
-        # Only SLN button
-        buttons['sln'] = MessageComponents.add_buttons_with_rows(button_sln)
+        # Add FC button
+        buttons.append(
+            Button(
+                label=ll2.fc_name,
+                style=discord.ButtonStyle.link,
+                emoji=ll2.fc_emoji,
+                url=ll2.fc_url % ll2_id
+            )
+        )
 
         # Get the agency's name and logo
         if (agency := await self.bot.lldb.ll2_agencies_get(ll2_id)):
@@ -725,6 +740,16 @@ class LiveLaunch(commands.Cog):
                     )
                     # Done
                     check.pop('agency_id')
+
+                # Update flightclub boolean
+                if (flightclub := check.get('flightclub')):
+                    # Update events table
+                    await self.bot.lldb.ll2_events_edit(
+                        ll2_id,
+                        flightclub=flightclub
+                    )
+                    # Done
+                    check.pop('flightclub')
 
                 # Get current and possible new status
                 old_status = cached.get('status')

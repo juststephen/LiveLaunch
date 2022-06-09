@@ -2,6 +2,7 @@ from ._enabled_guilds import EnabledGuilds
 from ._ll2_agencies import LL2Agencies
 from ._ll2_agencies_filter import LL2AgenciesFilter
 from ._ll2_events import LL2Events
+from ._ll2_events_next import LL2EventsNext
 from ._news_sites import News
 from ._news_sites_filter import NewsFilter
 from ._notification_countdown import NotificationCountdown
@@ -17,6 +18,7 @@ class Database(
     LL2Agencies,
     LL2AgenciesFilter,
     LL2Events,
+    LL2EventsNext,
     News,
     NewsFilter,
     NotificationCountdown,

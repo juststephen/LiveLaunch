@@ -438,7 +438,7 @@ class LiveLaunchNotifications(commands.Cog):
 
             # Creating embed
             embed = discord.Embed(
-                color=ll2.status_colours.get(notification['status'], 0xFFFF00),
+                color=ll2.status_colours.get(status, 0xFFFF00),
                 description=f"**T-{convert_minutes(notification['minutes'])}**\n" +
                     (f'**Status:** {ll2.status_names[status]}\n{url}' if status else url),
                 timestamp=notification['start'],

@@ -259,13 +259,12 @@ class NotificationCountdown:
                         eg.notification_launch,
                         se.scheduled_event_id
                     HAVING
-                        le.start BETWEEN
-                            DATE_ADD(
+                            le.start >= DATE_ADD(
                                 STR_TO_DATE(%s, '%%Y-%%m-%%d %%H:%%i:%%s'),
                                 INTERVAL nc.minutes MINUTE
                             )
-                            AND
-                            DATE_ADD(NOW(), INTERVAL nc.minutes MINUTE)
+                        AND
+                            le.start < DATE_ADD(NOW(), INTERVAL nc.minutes MINUTE)
                         AND
                             laf.agency_id IS NULL
                         AND

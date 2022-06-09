@@ -504,6 +504,34 @@
                     ]
                 }
             ]
+        },
+        {
+            "name":"nextevent",
+            "description":"Show upcoming events",
+            "type":1,
+            "options":[
+                {
+                    "name":"amount",
+                    "type":4,
+                    "description":"Amount of events [1-10]",
+                    "min_value":1,
+                    "max_value":10
+                }
+            ]
+        },
+        {
+            "name":"nextlaunch",
+            "description":"Show upcoming launches",
+            "type":1,
+            "options":[
+                {
+                    "name":"amount",
+                    "type":4,
+                    "description":"Amount of launches [1-10]",
+                    "min_value":1,
+                    "max_value":10
+                }
+            ]
         }
     ]
 }

@@ -32,6 +32,7 @@ class LiveLaunch(commands.Cog):
         self.timedelta_1h = timedelta(hours=1)
         # Launch Library 2
         self.ll2 = ll2()
+        self.bot.ll2 = self.ll2
         # NASA
         self.nasa_id = 'UCLA_DiR1FfKNvjuUpBHmylQ'
         self.nasa_name = 'NASA'

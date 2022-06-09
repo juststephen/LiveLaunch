@@ -1,3 +1,5 @@
+import aiomysql
+
 class NotificationSettings:
     """
     Access notification settings.
@@ -135,3 +137,49 @@ class NotificationSettings:
                     """,
                     args
                 )
+
+    async def notification_settings_buttons_get(
+        self,
+        guild_id: int,
+        ll2_id: str,
+    ) -> dict[str, bool]:
+        """
+        Get the button settings for
+        the requested guild.
+
+        Parameters
+        ----------
+        guild_id : int
+            Discord guild ID.
+        ll2_id : str
+            Launch Library 2 ID.
+
+        Returns
+        -------
+        button_settings : dict[
+            button_fc : bool,
+            button_g4l : bool,
+            button_sln : bool
+        ]
+            Button settings
+            for the guild.
+        """
+        with await self.pool as con:
+            async with con.cursor(aiomysql.DictCursor) as cur:
+                await cur.execute(
+                    f"""
+                    SELECT
+                        le.flightclub AND eg.notification_button_fc AS button_fc,
+                        eg.notification_button_g4l AS button_g4l,
+                        eg.notification_button_sln AS button_sln
+                    FROM
+                        enabled_guilds as eg
+                    JOIN
+                        ll2_events as le
+                        ON le.ll2_id = %s
+                    WHERE
+                        eg.guild_id = %s
+                    """,
+                    (ll2_id, guild_id)
+                )
+                return await cur.fetchone()

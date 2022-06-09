@@ -64,6 +64,51 @@ class ScheduledEvents:
                     (scheduled_event_id,)
                 )
 
+    async def scheduled_events_get(
+        self,
+        guild_id: int,
+        ll2_id: str
+    ) -> int:
+        """
+        Get the scheduled event ID of an LL2 event
+        in a Guild if enabled in settings.
+
+        Parameters
+        ----------
+        guild_id : int
+            Discord guild ID.
+        ll2_id : str
+            Launch Library 2 ID.
+
+        Returns
+        -------
+        scheduled_event_id : int
+            Discord scheduled event ID.
+        """
+        with await self.pool as con:
+            async with con.cursor() as cur:
+                await cur.execute(
+                    """
+                    SELECT
+                        se.scheduled_event_id
+                    FROM
+                        enabled_guilds AS eg
+                    JOIN
+                        scheduled_events AS se
+                        ON se.guild_id = eg.guild_id
+                    WHERE
+                        eg.guild_id = %s
+                        AND
+                        eg.notification_scheduled_event
+                        AND
+                        se.ll2_id = %s
+                    """,
+                    (guild_id, ll2_id)
+                )
+                result = await cur.fetchone()
+                if result:
+                    return result[0]
+
     async def scheduled_events_guild_id_iter(
         self,
         guild_id: int

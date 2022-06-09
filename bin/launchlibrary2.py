@@ -163,6 +163,7 @@ class LaunchLibrary2:
                 'image_url': image_url,
                 'start': net,
                 'end': net + self.event_duration['default'],
+                'location': entry['pad']['location']['name'],
                 'webcast_live': entry['webcast_live'],
                 'slug': entry['slug'],
                 'agency_id': entry['launch_service_provider']['id'],
@@ -224,6 +225,7 @@ class LaunchLibrary2:
                 'image_url': image_url,
                 'start': net,
                 'end': net + self.event_duration[event_type],
+                'location': entry['location'],
                 'webcast_live': entry['webcast_live'],
                 'slug': entry['slug'],
                 'flightclub': False
@@ -259,6 +261,9 @@ class LaunchLibrary2:
         upcoming = dict(
             sorted(upcoming.items(), key=lambda item: item[1]['start'])[:self.max_events]
         )
+
+        # Update cache
+        self.cache = upcoming
 
         # Returning
         return upcoming

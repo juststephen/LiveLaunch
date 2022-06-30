@@ -890,7 +890,9 @@ class LiveLaunch(commands.Cog):
                     if not await self.bot.lldb.sent_media_exists(yt_vid_id=yt_vid_id):
 
                         # Get YouTube channel
-                        channel = self.ytapi.get_channel_from_video(yt_vid_id)
+                        if (channel := self.ytapi.get_channel_from_video(yt_vid_id)) is None:
+                            # Can't find the channel, continue
+                            continue
                         # Get YouTube channel name and avatar
                         thumb, title = self.ytapi.get_channel_thumbtitle(channel)
 

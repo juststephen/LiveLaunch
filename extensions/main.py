@@ -778,6 +778,12 @@ class LiveLaunch(commands.Cog):
                 # Removal of existing scheduled events
                 else:
                     await self.scheduled_events_remove(ll2_id)
+                    # Update cache if needed
+                    if check:
+                        await self.bot.lldb.ll2_events_edit(
+                            ll2_id,
+                            **check
+                        )
 
             # Cached event no longer exists
             else:

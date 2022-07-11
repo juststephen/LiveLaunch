@@ -366,3 +366,72 @@ class EnabledGuilds:
                         eg.notification_webhook_url IS NULL
                     """
                 )
+
+    async def enabled_guilds_unused_notification_iter(self) -> tuple[int, str]:
+        """
+        Get all Guilds with unused
+        notification webhooks.
+
+        Yields
+        ------
+        tuple[
+            guild_id : int,
+            notification_webhook_url : str
+        ]
+            Yields the Guild ID and
+            notification webhook URL.
+        """
+        with await self.pool as con:
+            async with con.cursor() as cur:
+                await cur.execute(
+                    """
+                    SELECT
+                        eg.guild_id,
+                        eg.notification_webhook_url
+                    FROM
+                        enabled_guilds AS eg
+                    WHERE
+                        eg.notification_channel_id IS NOT NULL
+                        AND
+                        eg.notification_webhook_url IS NOT NULL
+                        AND NOT
+                        (
+                            (
+                                (
+                                    eg.notification_launch
+                                    OR
+                                    eg.notification_event
+                                )
+                                AND
+                                (
+                                    eg.notification_t0_change
+                                    OR
+                                    (
+                                        SELECT
+                                            COUNT(*) > 0
+                                        FROM
+                                            notification_countdown AS nc
+                                        WHERE
+                                            nc.guild_id = eg.guild_id
+                                    )
+                                )
+                            )
+                            OR
+                            (
+                                eg.notification_tbd
+                                OR
+                                eg.notification_tbc
+                                OR
+                                eg.notification_go
+                                OR
+                                eg.notification_liftoff
+                                OR
+                                eg.notification_hold
+                                OR
+                                eg.notification_end_status
+                            )
+                        )
+                    """
+                )
+                async for row in cur:
+                    yield row

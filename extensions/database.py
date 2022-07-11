@@ -1,3 +1,5 @@
+import aiohttp
+from discord import Webhook
 from discord.ext import commands, tasks
 
 from bin import Database
@@ -27,8 +29,31 @@ class LiveLaunchDB(commands.Cog):
         """
         if not self.bot.lldb.started:
             await self.bot.lldb.start()
-        # Clean
+
+        # Clean sent media
         await self.bot.lldb.sent_media_clean()
+
+        # Clean guilds with an unused notifications webhook
+        async for guild_id, webhook_url in self.bot.lldb.enabled_guilds_unused_notification_iter():
+
+            # Create webhook connection for deletion
+            async with aiohttp.ClientSession() as session:
+                webhook = Webhook.from_url(
+                    webhook_url,
+                    session=session
+                )
+                # Delete webhook
+                try:
+                    await webhook.delete()
+                except:
+                    pass
+
+            # Update the guild settings
+            await self.bot.lldb.enabled_guilds_edit(
+                guild_id,
+                notification_channel_id=None,
+                notification_webhook_url=None
+            )
 
 
 def setup(client):

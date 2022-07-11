@@ -132,7 +132,7 @@ class LL2Events:
             end : datetime,
             webcast_live : bool,
             slug : str,
-            flightclub: bool
+            flightclub : bool
         ]
             Yields row with of an LL2
             event with the relevant data.
@@ -188,7 +188,7 @@ class LL2Events:
             end : datetime,
             webcast_live : bool,
             slug : str,
-            flightclub: bool
+            flightclub : bool
         ] or None
             Returns a row with the ll2_event's data
             if it exists, otherwise None.

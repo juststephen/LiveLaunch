@@ -312,7 +312,8 @@ class LiveLaunch(commands.Cog):
         if (image_url := check.get('image_url')):
             async with aiohttp.ClientSession() as session:
                 async with session.get(image_url) as resp:
-                    if resp.status == 200:
+                    # Check status and size (Discord maximum)
+                    if resp.status == 200 and resp.content_length <= 10240000:
                         check['image'] = await resp.read()
 
         # Iterate over scheduled events corresponding to the ll2_id
@@ -822,7 +823,8 @@ class LiveLaunch(commands.Cog):
                         and (image_url := upcoming[row['ll2_id']].get('image_url'))):
                     async with aiohttp.ClientSession() as session:
                         async with session.get(image_url) as resp:
-                            if resp.status == 200:
+                            # Check status and size (Discord maximum)
+                            if resp.status == 200 and resp.content_length <= 10240000:
                                 upcoming[row['ll2_id']]['image'] = await resp.read()
 
                 reset_settings = False

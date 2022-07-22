@@ -1,6 +1,7 @@
 import aiohttp
 from discord import Webhook
 from discord.ext import commands, tasks
+import logging
 
 from bin import Database
 
@@ -54,6 +55,9 @@ class LiveLaunchDB(commands.Cog):
                 notification_channel_id=None,
                 notification_webhook_url=None
             )
+
+            # Logging deletion of unused notification webhook
+            logging.warning(f'Guild ID: {guild_id}\tRemoved notification webhook, unused.')
 
 
 def setup(client):

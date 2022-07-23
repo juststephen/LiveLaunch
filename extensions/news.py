@@ -55,7 +55,7 @@ class LiveLaunchNews(commands.Cog):
             )
             # Set footer
             embed.set_footer(
-                text='LiveLaunch News, Powered by SNAPI'
+                text='LiveLaunch News, powered by SNAPI'
             )
             # Add to news dict
             article['embed'] = embed

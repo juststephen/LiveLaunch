@@ -130,7 +130,7 @@ class LiveLaunchNext(commands.Cog):
             )
         # Set footer
         embed.set_footer(
-            text='LiveLaunch'
+            text='LiveLaunch, powered by LL2'
         )
 
         return embed
@@ -172,7 +172,7 @@ class LiveLaunchNext(commands.Cog):
         )
         # Set footer
         embed.set_footer(
-            text='LiveLaunch'
+            text='LiveLaunch, powered by LL2'
         )
 
         # Add fields

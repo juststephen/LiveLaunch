@@ -613,7 +613,7 @@ class LiveLaunch(commands.Cog):
             )
         # Set footer
         embed.set_footer(
-            text='LiveLaunch Notifications'
+            text='LiveLaunch Notifications, powered by LL2'
         )
 
         # Status change

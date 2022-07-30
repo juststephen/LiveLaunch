@@ -38,10 +38,7 @@ class LiveLaunchNotifications(commands.Cog):
         everything: str = None,
         launches: str = None,
         t0_changes: str = None,
-        include_scheduled_events: str = None,
-        button_fc: str = None,
-        button_g4l: str = None,
-        button_sln: str = None,
+        include_scheduled_events: str = None
     ) -> None:
         """
         General notification settings.
@@ -63,15 +60,6 @@ class LiveLaunchNotifications(commands.Cog):
             Include/exclude Discord
             scheduled events in the
             notification when available.
-        button_fc : bool, default: None
-            Include/exclude a button
-            to Flight Club in notifications.
-        button_g4l : bool, default: None
-            Include/exclude a button
-            to Go4Liftoff in notifications.
-        button_sln : bool, default: None
-            Include/exclude a button
-            to Space Launch Now in notifications.
         """
         # Guild ID
         guild_id = ctx.guild.id
@@ -98,10 +86,7 @@ class LiveLaunchNotifications(commands.Cog):
                 'liftoff': everything,
                 'hold': everything,
                 'end_status': everything,
-                'scheduled_event': everything,
-                'button_fc': everything,
-                'button_g4l': everything,
-                'button_sln': everything
+                'scheduled_event': everything
             }
         else:
             message = 'selected general'
@@ -114,12 +99,6 @@ class LiveLaunchNotifications(commands.Cog):
                 settings['t0_change'] = t0_changes == 'True'
             if include_scheduled_events is not None:
                 settings['scheduled_event'] = include_scheduled_events == 'True'
-            if button_fc is not None:
-                settings['button_fc'] = button_fc == 'True'
-            if button_g4l is not None:
-                settings['button_g4l'] = button_g4l == 'True'
-            if button_sln is not None:
-                settings['button_sln'] = button_sln == 'True'
 
         # Update database
         if settings:

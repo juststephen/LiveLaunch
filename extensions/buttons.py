@@ -1,9 +1,9 @@
 from discord.ext import commands
 import logging
 
-class LiveLaunchEvents(commands.Cog):
+class LiveLaunchButtons(commands.Cog):
     """
-    Discord.py cog for event commands.
+    Discord.py cog for the button setting command.
     """
     def __init__(self, bot):
         self.bot = bot
@@ -12,27 +12,27 @@ class LiveLaunchEvents(commands.Cog):
     @commands.has_guild_permissions(administrator=True)
     @commands.cooldown(1, 8)
     @commands.defer(ephemeral=True)
-    async def event_settings(
+    async def button_settings(
         self,
         ctx,
-        launches: str = None,
-        events: str = None,
-        no_url: str = None,
+        button_fc: str = None,
+        button_g4l: str = None,
+        button_sln: str = None,
     ) -> None:
         """
-        General notification settings.
+        Button settings.
 
         Parameters
         ----------
-        events : bool, default: None
-            Enable/disable other
-            scheduled events.
-        launches : bool, default: None
-            Enable/disable launch
-            scheduled events.
-        no_url : bool, default: None
-            Hide scheduled events
-            without live stream URLs.
+        button_fc : bool, default: None
+            Include/exclude a button
+            to Flight Club in notifications.
+        button_g4l : bool, default: None
+            Include/exclude a button
+            to Go4Liftoff in notifications.
+        button_sln : bool, default: None
+            Include/exclude a button
+            to Space Launch Now in notifications.
         """
         # Guild ID
         guild_id = ctx.guild.id
@@ -45,25 +45,26 @@ class LiveLaunchEvents(commands.Cog):
             )
             return
 
+        # Select desired button settings
         settings = {}
-        if events is not None:
-            settings['event'] = events == 'True'
-        if launches is not None:
-            settings['launch'] = launches == 'True'
-        if no_url is not None:
-            settings['no_url'] = no_url == 'True'
+        if button_fc is not None:
+            settings['button_fc'] = button_fc == 'True'
+        if button_g4l is not None:
+            settings['button_g4l'] = button_g4l == 'True'
+        if button_sln is not None:
+            settings['button_sln'] = button_sln == 'True'
 
         # Update database
         if settings:
-            await self.bot.lldb.scheduled_events_settings_edit(guild_id, **settings)
+            await self.bot.lldb.button_settings_edit(guild_id, **settings)
 
         # Send reply
         await ctx.send(
-            f'Changed event settings.',
+            f'Changed button settings.',
             ephemeral=True
         )
 
-    @event_settings.error
+    @button_settings.error
     async def command_error(self, ctx, error) -> None:
         """
         Method that handles erroneous interactions with the commands.
@@ -84,4 +85,4 @@ class LiveLaunchEvents(commands.Cog):
 
 
 def setup(client):
-    client.add_cog(LiveLaunchEvents(client))
+    client.add_cog(LiveLaunchButtons(client))

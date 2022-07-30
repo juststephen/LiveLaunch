@@ -1,3 +1,4 @@
+from ._button_settings import ButtonSettings
 from ._enabled_guilds import EnabledGuilds
 from ._ll2_agencies import LL2Agencies
 from ._ll2_agencies_filter import LL2AgenciesFilter
@@ -14,6 +15,7 @@ from ._sent_media import SentMedia
 from ._start import Start
 
 class Database(
+    ButtonSettings,
     EnabledGuilds,
     LL2Agencies,
     LL2AgenciesFilter,

@@ -483,6 +483,32 @@ class LiveLaunchCommand(commands.Cog):
             inline=False
         )
 
+        # Button settings
+        features = ''
+        for key, name in zip(
+            (
+                'notification_button_sln',
+                'notification_button_g4l',
+                'notification_button_fc'
+            ),
+            (
+                'Include a button to Space Launch Now',
+                'Include a button to Go4Liftoff',
+                'Include a button to Flight Club'
+
+            )
+        ):
+            if settings[key]:
+                features += '\n:white_check_mark:  ' + name
+            else:
+                features += '\n:x:  ' + name
+        # Add features to embed
+        embed.add_field(
+            name='Buttons',
+            value=features,
+            inline=False
+        )
+
         # List agency filters
         filters_guild = await self.bot.lldb.ll2_agencies_filter_list(
             guild_id=guild_id
@@ -518,19 +544,13 @@ class LiveLaunchCommand(commands.Cog):
                 'notification_event',
                 'notification_launch',
                 'notification_t0_change',
-                'notification_scheduled_event',
-                'notification_button_fc',
-                'notification_button_g4l',
-                'notification_button_sln'
+                'notification_scheduled_event'
             ),
             (
                 'Events',
                 'Launches',
                 'T-0 changes',
-                'Include Discord scheduled events',
-                'Include a button to Flight Club',
-                'Include a button to Go4Liftoff',
-                'Include a button to Space Launch Now'
+                'Include Discord scheduled events'
             )
         ):
             if settings[key]:

@@ -260,7 +260,7 @@ class LiveLaunchNext(commands.Cog):
 
             # Request button settings
             if guild_id is not None:
-                button_settings = await self.bot.lldb.notification_settings_buttons_get(
+                button_settings = await self.bot.lldb.button_settings_get(
                     guild_id,
                     ll2_id
                 )

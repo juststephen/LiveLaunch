@@ -251,51 +251,6 @@
                                     "value":"False"
                                 }
                             ]
-                        },
-                        {
-                            "name":"button_fc",
-                            "type":3,
-                            "description":"Include/exclude a button to Flight Club in the notification",
-                            "choices":[
-                                {
-                                    "name":"Include",
-                                    "value":"True"
-                                },
-                                {
-                                    "name":"Exclude",
-                                    "value":"False"
-                                }
-                            ]
-                        },
-                        {
-                            "name":"button_g4l",
-                            "type":3,
-                            "description":"Include/exclude a button to Go4Liftoff in the notification",
-                            "choices":[
-                                {
-                                    "name":"Include",
-                                    "value":"True"
-                                },
-                                {
-                                    "name":"Exclude",
-                                    "value":"False"
-                                }
-                            ]
-                        },
-                        {
-                            "name":"button_sln",
-                            "type":3,
-                            "description":"Include/exclude a button to Space Launch Now in the notification",
-                            "choices":[
-                                {
-                                    "name":"Include",
-                                    "value":"True"
-                                },
-                                {
-                                    "name":"Exclude",
-                                    "value":"False"
-                                }
-                            ]
                         }
                     ]
                 },
@@ -456,7 +411,7 @@
         {
             "name":"event_settings",
             "type":1,
-            "description":"Event settings",
+            "description":"Event settings, only for administrators",
             "options":[
                 {
                     "name":"events",
@@ -530,6 +485,58 @@
                     "description":"Amount of launches [1-10]",
                     "min_value":1,
                     "max_value":10
+                }
+            ]
+        },
+        {
+            "name":"button_settings",
+            "description":"Button settings, only for administrators",
+            "type":1,
+            "options":[
+                {
+                    "name":"button_fc",
+                    "type":3,
+                    "description":"Include/exclude a button to Flight Club",
+                    "choices":[
+                        {
+                            "name":"Include",
+                            "value":"True"
+                        },
+                        {
+                            "name":"Exclude",
+                            "value":"False"
+                        }
+                    ]
+                },
+                {
+                    "name":"button_g4l",
+                    "type":3,
+                    "description":"Include/exclude a button to Go4Liftoff",
+                    "choices":[
+                        {
+                            "name":"Include",
+                            "value":"True"
+                        },
+                        {
+                            "name":"Exclude",
+                            "value":"False"
+                        }
+                    ]
+                },
+                {
+                    "name":"button_sln",
+                    "type":3,
+                    "description":"Include/exclude a button to Space Launch Now",
+                    "choices":[
+                        {
+                            "name":"Include",
+                            "value":"True"
+                        },
+                        {
+                            "name":"Exclude",
+                            "value":"False"
+                        }
+                    ]
                 }
             ]
         }

@@ -219,7 +219,7 @@ class LL2Events:
         agency_id: int = None,
         name: str = None,
         status: int = None,
-        description: str = None,
+        description: str = MISSING,
         url: str = MISSING,
         image_url: str = MISSING,
         start: datetime = None,
@@ -242,7 +242,7 @@ class LL2Events:
             Name of the event.
         status : int, default: None
             Status ID.
-        description : str, default: None
+        description : str, default: MISSING
             Event description.
         url : str, default: MISSING
             Event live stream URL.
@@ -269,7 +269,7 @@ class LL2Events:
         if status is not None:
             cols.append('status=%s')
             args.append(status)
-        if description is not None:
+        if description is not MISSING:
             cols.append('description=%s')
             args.append(description)
         if url is not MISSING:

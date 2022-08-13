@@ -348,12 +348,26 @@ class LiveLaunch(commands.Cog):
                         del modify['start']
                         # Start event if it hasn't yet
                         if cached['start'] > now:
-                            modify['webcast_live'] = True
+                            # If `end` moved forward past the old `start`
+                            if check['end'] < cached['start']:
+                                # Remove `webcast_live` if it exists
+                                modify.pop('webcast_live', None)
+                                # Set `start` to now
+                                modify['start'] = now
+                            else:
+                                modify['webcast_live'] = True
 
                     # If `start` moved forward while the event is live
                     elif cached['webcast_live'] or cached['start'] < now:
                         # Remove `start` value from the modify dict, event is already live
                         del modify['start']
+
+                    # If `end` moved forward past the old `start` and `webcast_live` is now True
+                    elif check['end'] < cached['start'] and check.get('webcast_live'):
+                        # Remove `webcast_live`
+                        del modify['webcast_live']
+                        # Set `start` to now
+                        modify['start'] = now
 
                 # Insert a replacement string when there is no stream URL
                 if check.get('url', False) is None:
@@ -370,10 +384,25 @@ class LiveLaunch(commands.Cog):
                     # When missing access or already removed event
                     remove_event = True
                 except Exception as e:
-                    str_e = str(e)
                     # Wrong permissions
-                    if '50013' in str_e:
+                    if 50013 == e.code:
                         remove_event = True
+
+                    # Users manually started event, ignoring `start`
+                    elif (50035 == e.code
+                            and 'Cannot update start time of non-scheduled event.' in e.text):
+                        # Remove `start` from the modify dictionary
+                        del modify['start']
+                        # Attempt to update again
+                        try:
+                            await self.modify_scheduled_event(
+                                guild_id,
+                                scheduled_event_id,
+                                **modify
+                            )
+                        except:
+                            remove_event = True
+
                     else:
                         failed = True
                         logging.warning(
@@ -381,6 +410,7 @@ class LiveLaunch(commands.Cog):
                             f'Modify failure: {e} {type(e)}'
                         )
                         print('Modify failure:', e, type(e))
+
                 if remove_event:
                     # Remove scheduled event from the database
                     await self.bot.lldb.scheduled_events_remove(
@@ -426,7 +456,7 @@ class LiveLaunch(commands.Cog):
                 pass
             except Exception as e:
                 # Wrong permissions
-                if not '50013' in str(e):
+                if 50013 != e.code:
                     success = False
                     status = False
                     logging.warning(
@@ -839,7 +869,7 @@ class LiveLaunch(commands.Cog):
                     reset_settings = True
                 except Exception as e:
                     # Wrong permissions
-                    if '50013' in str(e):
+                    if 50013 == e.code:
                         reset_settings = True
                     else:
                         logging.warning(f'Creation failure in iter: {e} {type(e)}')
@@ -873,7 +903,7 @@ class LiveLaunch(commands.Cog):
                     pass
                 except Exception as e:
                     # Wrong permissions
-                    if not '50013' in str(e):
+                    if 50013 != e.code:
                         removed = False
                         logging.warning(f'Removal failure in iter: {e} {type(e)}')
                         print('Removal failure in iter:', e, type(e))

@@ -182,18 +182,23 @@ class LiveLaunchCommand(commands.Cog):
             if events:
                 new_settings['scheduled_events'] = events
 
-            # Existing entry, edit row
-            await self.bot.lldb.enabled_guilds_edit(
-                **new_settings
-            )
+            # Existing entry, edit row if anything new is enabled
+            if len(new_settings) > 1:
+                await self.bot.lldb.enabled_guilds_edit(
+                    **new_settings
+                )
 
-            # Base message
-            message = 'Features updated'
-            # Add notification info if needed
-            if notifications:
-                message += '\n**For notifications:**\ndon\'t forget ' \
-                    'to run the `/notifications` commands to ' \
-                    'finish setting up notifications.'
+                # Base message
+                message = 'Features updated'
+                # Add notification info if needed
+                if notifications:
+                    message += '\n**For notifications:**\ndon\'t forget ' \
+                        'to run the `/notifications` commands to ' \
+                        'finish setting up notifications.'
+            # Nothing new nabled
+            else:
+                message = 'No new features enabled, please select at least one.'
+
             # Notify user
             await ctx.send(
                 message,
@@ -237,21 +242,24 @@ class LiveLaunchCommand(commands.Cog):
             # Amount of Discord scheduled events if requested
             if events:
                 settings['scheduled_events'] = events
+
+            # Add to the database if anything is enabled
+            if len(settings) > 1:
+                await self.bot.lldb.enabled_guilds_add(
+                    **settings
+                )
+
+                # Base message
+                message = 'Requested features are now enabled'
+                # Add notification info if needed
+                if notifications:
+                    message += '\n**For notifications:**\ndon\'t forget ' \
+                        'to run the `/notifications` commands to ' \
+                        'finish setting up notifications.'
+            # Nothing enabled
             else:
-                settings['scheduled_events'] = 0
+                message = 'No features enabled, please select at least one.'
 
-            # Add to the database
-            await self.bot.lldb.enabled_guilds_add(
-                **settings
-            )
-
-            # Base message
-            message = 'Requested features are now enabled'
-            # Add notification info if needed
-            if notifications:
-                message += '\n**For notifications:**\ndon\'t forget ' \
-                    'to run the `/notifications` commands to ' \
-                    'finish setting up notifications.'
             # Notify user
             await ctx.send(
                 message,

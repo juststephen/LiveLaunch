@@ -10,7 +10,6 @@ class LiveLaunchAgenciesFilter(commands.Cog):
         self.bot = bot
 
     @commands.group()
-    @commands.defer(ephemeral=True)
     async def agencyfilter(self, ctx) -> None:
         """
         List, add and remove filters for agencies.
@@ -18,6 +17,7 @@ class LiveLaunchAgenciesFilter(commands.Cog):
         pass
 
     @agencyfilter.command(name='list')
+    @commands.defer(ephemeral=True)
     @commands.has_guild_permissions(administrator=True)
     @commands.cooldown(1, 8)
     async def agencyfilter_list(self, ctx) -> None:
@@ -59,12 +59,10 @@ class LiveLaunchAgenciesFilter(commands.Cog):
             )
 
         # Send list
-        await ctx.send(
-            embed=embed,
-            ephemeral=True
-        )
+        await ctx.send(embed=embed)
 
     @agencyfilter.command(name='add')
+    @commands.defer(ephemeral=True)
     @commands.has_guild_permissions(administrator=True)
     @commands.cooldown(1, 8)
     async def agencyfilter_add(self, ctx, agency: str) -> None:
@@ -83,8 +81,7 @@ class LiveLaunchAgenciesFilter(commands.Cog):
         # Check if guild has settings
         if not await self.bot.lldb.enabled_guilds_check(guild_id):
             await ctx.send(
-                'This guild has nothing enabled, can\'t add filters.',
-                ephemeral=True
+                'This guild has nothing enabled, can\'t add filters.'
             )
             return
 
@@ -119,13 +116,11 @@ class LiveLaunchAgenciesFilter(commands.Cog):
         failed = list(map(str, failed))
         if not failed:
             await ctx.send(
-                f"Added agency filter(s): `{', '.join(agencies)}`.",
-                ephemeral=True
+                f"Added agency filter(s): `{', '.join(agencies)}`."
             )
         elif len(failed) == len(agencies):
             await ctx.send(
-                f"Agency filter(s) `{', '.join(failed)}` doesn\'t/don\'t exist.",
-                ephemeral=True
+                f"Agency filter(s) `{', '.join(failed)}` doesn\'t/don\'t exist."
             )
         else:
             # Check failed / success
@@ -133,11 +128,11 @@ class LiveLaunchAgenciesFilter(commands.Cog):
             # Send
             await ctx.send(
                 f"Added agency filter(s): `{', '.join(successes)}`, "
-                f"couldn\'t add agency filter(s): `{', '.join(failed)}`.",
-                ephemeral=True
+                f"couldn\'t add agency filter(s): `{', '.join(failed)}`."
             )
 
     @agencyfilter.command(name='remove')
+    @commands.defer(ephemeral=True)
     @commands.has_guild_permissions(administrator=True)
     @commands.cooldown(1, 8)
     async def agencyfilter_remove(self, ctx, agency: str) -> None:
@@ -156,8 +151,7 @@ class LiveLaunchAgenciesFilter(commands.Cog):
         # Check if guild has settings
         if not await self.bot.lldb.enabled_guilds_check(guild_id):
             await ctx.send(
-                'This guild has nothing enabled, can\'t remove filters.',
-                ephemeral=True
+                'This guild has nothing enabled, can\'t remove filters.'
             )
             return
 
@@ -192,13 +186,11 @@ class LiveLaunchAgenciesFilter(commands.Cog):
         failed = list(map(str, failed))
         if not failed:
             await ctx.send(
-                f"Removed agency filter(s): `{', '.join(agencies)}`.",
-                ephemeral=True
+                f"Removed agency filter(s): `{', '.join(agencies)}`."
             )
         elif len(failed) == len(agencies):
             await ctx.send(
-                f"Agency filter(s) `{', '.join(failed)}` doesn\'t/don\'t exist.",
-                ephemeral=True
+                f"Agency filter(s) `{', '.join(failed)}` doesn\'t/don\'t exist."
             )
         else:
             # Check failed / success
@@ -206,8 +198,7 @@ class LiveLaunchAgenciesFilter(commands.Cog):
             # Send
             await ctx.send(
                 f"Removed agency filter(s): `{', '.join(successes)}`, "
-                f"couldn\'t remove agency filter(s): `{', '.join(failed)}`.",
-                ephemeral=True
+                f"couldn\'t remove agency filter(s): `{', '.join(failed)}`."
             )
 
     @agencyfilter.error
@@ -220,13 +211,12 @@ class LiveLaunchAgenciesFilter(commands.Cog):
         """
         if isinstance(error, commands.errors.MissingPermissions):
             if ctx.prefix == '/':
-                await ctx.send('This command is only for administrators.', ephemeral=True)
+                await ctx.send('This command is only for administrators.')
         elif isinstance(error, commands.errors.NoPrivateMessage):
             await ctx.send('This command is only for guild channels.')
         elif isinstance(error, commands.errors.CommandOnCooldown):
             await ctx.send(
-                f'This command is on cooldown for {error.retry_after:.0f} more seconds.',
-                ephemeral=True
+                f'This command is on cooldown for {error.retry_after:.0f} more seconds.'
             )
         else:
             logging.warning(f'Command: {ctx.command}\nError: {error}')

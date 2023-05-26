@@ -2,6 +2,8 @@ import discord
 from discord.ext import commands
 import logging
 
+from bin import combine_strings
+
 class LiveLaunchAgenciesFilter(commands.Cog):
     """
     Discord.py cog for the agencies filter commands.
@@ -43,20 +45,28 @@ class LiveLaunchAgenciesFilter(commands.Cog):
         )
         # Add available filters
         if (filters_available := [i for i in filters_all if i not in filters_guild]):
-            embed.add_field(
-                name='Available',
-                value='```' +
-                    '\n'.join(f'{i}) {j}' for i, j in filters_available) +
-                    '```'
-            )
+            # Format individual filters
+            filters_text = [f'{i}) {j}\n' for i, j in filters_available]
+            # Combine them
+            filters_text = combine_strings(filters_text)
+            # Insert into the embed
+            for i, j in enumerate(filters_text):
+                embed.add_field(
+                    name='Available' + (' (continued)' if i else ''),
+                    value=f'```{j}```'
+                )
         # Add enabled filters
         if filters_guild:
-            embed.add_field(
-                name='Enabled',
-                value='```' +
-                    '\n'.join(f'{i}) {j}' for i, j in filters_guild) +
-                    '```'
-            )
+            # Format individual filters
+            filters_text = [f'{i}) {j}\n' for i, j in filters_guild]
+            # Combine them
+            filters_text = combine_strings(filters_text)
+            # Insert into the embed
+            for i, j in enumerate(filters_text):
+                embed.add_field(
+                    name='Enabled' + (' (continued)' if i else ''),
+                    value=f'```{j}```'
+                )
 
         # Send list
         await ctx.send(embed=embed)

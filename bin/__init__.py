@@ -5,6 +5,7 @@ from .minutes import *
 from .nasatv import *
 from .notification_check import *
 from .snapi import *
+from .strings import *
 from .youtube_api import *
 from .youtube_rss import *
 from .youtube_id import *

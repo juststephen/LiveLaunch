@@ -10,7 +10,7 @@ from discord.ext import commands
 from itertools import compress
 import logging
 
-from bin import convert_minutes
+from bin import combine_strings, convert_minutes
 
 class LiveLaunchCommand(commands.Cog):
     """
@@ -523,13 +523,17 @@ class LiveLaunchCommand(commands.Cog):
         )
         # Add enabled filters
         if filters_guild:
-            embed.add_field(
-                name='Enabled agency filters',
-                value='```' +
-                    '\n'.join(j for i, j in filters_guild) +
-                    '```',
-                inline=False
-            )
+            # Format individual filters
+            filters_text = [f'{i}) {j}\n' for i, j in filters_guild]
+            # Combine them
+            filters_text = combine_strings(filters_text)
+            # Insert into the embed
+            for i, j in enumerate(filters_text):
+                embed.add_field(
+                    name='Enabled agency filters' + (' (continued)' if i else ''),
+                    value=f'```{j}```',
+                    inline=False
+                )
 
         # List news filters
         filters_guild = await self.bot.lldb.news_filter_list(
@@ -537,13 +541,16 @@ class LiveLaunchCommand(commands.Cog):
         )
         # Add enabled filters
         if filters_guild:
-            embed.add_field(
-                name='Enabled news filters',
-                value='```' +
-                    '\n'.join(j for i, j in filters_guild) +
-                    '```',
-                inline=False
-            )
+            # Format individual filters
+            filters_text = [f'{i}) {j}\n' for i, j in filters_guild]
+            # Combine them
+            filters_text = combine_strings(filters_text)
+            # Insert into the embed
+            for i, j in enumerate(filters_text):
+                embed.add_field(
+                    name='Enabled news filters' + (' (continued)' if i else ''),
+                    value=f'```{j}```'
+                )
 
         # Add general notification settings
         features = ''

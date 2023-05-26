@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from dateutil.parser import isoparse
+import os
 
 from bin import ll2_get
 
@@ -49,6 +50,23 @@ class LaunchLibrary2:
         6: 'Launch in Flight',
         7: 'Launch was a Partial Failure',
         8: 'To Be Confirmed',
+    }
+
+    net_precision_formats = {
+        2: '[NET %H:00 UTC] ', # Hour
+        3: '[AM (local)] ', # Morning
+        4: '[PM (local)] ', # Afternoon
+        5: '[NET %B %#d] ' if os.name == 'nt' else '[NET %B %-d] ', # Day (Windows or Linux)
+        6: '[NET Week %#W] ' if os.name == 'nt' else '[NET Week %-W]', # Week (Windows or Linux)
+        7: '[NET %B] ', # Month
+        8: '[Q1 %Y] ', # Q1
+        9: '[Q2 %Y] ', # Q2
+        10: '[Q3 %Y] ', # Q3
+        11: '[Q4 %Y] ', # Q4
+        12: '[H1 %Y] ', # H1
+        13: '[H2 %Y] ', # H2
+        14: '[TBD %Y] ', # Year
+        15: '[FY %Y] ', # Fiscal year
     }
 
     def __init__(self):
@@ -130,8 +148,15 @@ class LaunchLibrary2:
             # Start datetime of the entry
             net = isoparse(entry['net'])
 
-            # Name with potential [TBD] (To Be Determined) prefix
-            name = entry['name'] if entry['status']['id'] != 2 else '[TBD] ' + entry['name']
+            # Name formatting
+            if (net_precision := entry['net_precision']):
+                # Name with NET precision
+                name = net.strftime(
+                    self.net_precision_formats.get(net_precision['id'], '')
+                ) + entry['name']
+            else:
+                # Name with potential [TBD] (To Be Determined) prefix
+                name = entry['name'] if entry['status']['id'] != 2 else '[TBD] ' + entry['name']
 
             # Check for videos
             picked_video = None
@@ -198,6 +223,15 @@ class LaunchLibrary2:
             # Start datetime of the entry
             net = isoparse(entry['date'])
 
+            # Name formatting
+            if (net_precision := entry['date_precision']):
+                # Name with NET precision
+                name = net.strftime(
+                    self.net_precision_formats.get(net_precision['id'], '')
+                ) + entry['name']
+            else:
+                name = '[TBD] ' + entry['name']
+
             # Default duration if event type is not known
             event_type = entry['type']['name']
             if not event_type in self.event_duration:
@@ -219,7 +253,7 @@ class LaunchLibrary2:
 
             # Adding event to events list
             events[str(entry['id'])] = {
-                'name': entry['name'],
+                'name': name,
                 'description': description,
                 'url': picked_video,
                 'image_url': image_url,

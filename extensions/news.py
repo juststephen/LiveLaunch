@@ -36,22 +36,22 @@ class LiveLaunchNews(commands.Cog):
             await self.bot.lldb.sent_media_add(snapi_id=article['id'])
 
             # Add the news site to the db if needed
-            await self.bot.lldb.news_sites_add(article['newsSite'])
+            await self.bot.lldb.news_sites_add(article['news_site'])
 
             # Get the news site logo
-            article['logo_url'] = await self.bot.lldb.news_sites_get_logo(article['newsSite'])
+            article['logo_url'] = await self.bot.lldb.news_sites_get_logo(article['news_site'])
 
             # Create embed object
             embed = discord.Embed(
                 color=0x00E8FF,
                 description=article['summary'],
-                timestamp=article['publishedAt'],
+                timestamp=article['published_at'],
                 title=article['title'],
                 url=article['url']
             )
             # Set image
             embed.set_image(
-                url=article['imageUrl']
+                url=article['image_url']
             )
             # Set footer
             embed.set_footer(
@@ -71,7 +71,7 @@ class LiveLaunchNews(commands.Cog):
         async for guild_id, webhook_url in self.bot.lldb.enabled_guilds_news_iter():
             # Continue when a guild doesn't want any articles
             if not any(
-                filters := [await self.bot.lldb.news_filter_check(guild_id, i['newsSite']) for i in new_news]
+                filters := [await self.bot.lldb.news_filter_check(guild_id, i['news_site']) for i in new_news]
             ):
                 continue
             try:
@@ -87,7 +87,7 @@ class LiveLaunchNews(commands.Cog):
                     for article in compress(new_news, filters):
                         await webhook.send(
                             embed=article['embed'],
-                            username=article['newsSite'],
+                            username=article['news_site'],
                             avatar_url=article['logo_url']
                         )
 

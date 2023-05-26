@@ -18,15 +18,15 @@ class SpaceflightNewsAPI:
             'id',
             'title',
             'url',
-            'imageUrl',
-            'newsSite',
+            'image_url',
+            'news_site',
             'summary',
-            'publishedAt'
+            'published_at'
         )
         # Object to filter dictionaries
         self.get_items = itemgetter(*self.data_keys)
         # SNAPI
-        self.snapi_url = 'https://api.spaceflightnewsapi.net/v3/articles'
+        self.snapi_url = 'https://api.spaceflightnewsapi.net/v4/articles/'
 
     async def __call__(self) -> list[dict[str, datetime and str]]:
         """
@@ -38,14 +38,14 @@ class SpaceflightNewsAPI:
         news = await get(self.snapi_url, json=True)
 
         # Retun empty list when failed
-        if not news:
+        if not news['results']:
             return []
 
         # Iterate over articles to filter and convert
         filtered_news = []
-        for article in news:
-            # Convert `publishedAt`'s to datetime
-            article['publishedAt'] = isoparse(article['publishedAt'])
+        for article in news['results']:
+            # Convert `published_at`'s to datetime
+            article['published_at'] = isoparse(article['published_at'])
 
             # Filter news so it only contains `.data_keys` keys
             filtered_news.append(

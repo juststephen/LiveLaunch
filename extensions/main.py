@@ -274,7 +274,8 @@ class LiveLaunch(commands.Cog):
         if end is not None:
             payload['scheduled_end_time'] = end.isoformat()
         if webcast_live:
-            payload['status'] = 2
+            now = datetime.now(timezone.utc) + self.timedelta_1m
+            payload['scheduled_start_time'] = now.isoformat()
         # Modify
         return self.bot.http.modify_guild_scheduled_event(
             guild_id,
@@ -339,23 +340,22 @@ class LiveLaunch(commands.Cog):
 
                 # Seperate dict for updating Discord & database for next if statement
                 modify = check.copy()
+                # Current datetime to do some checks for `start` and `webcast_live`
+                now = datetime.now(timezone.utc) + self.timedelta_1m
+
+                # Ignore `webcast_live` when it becomes True when the event is already live
+                if check.get('webcast_live') and cached['start'] < now:
+                    del modify['webcast_live']
 
                 if (start := check.get('start')):
 
                     # If `start` changed to a datetime in the past
-                    if start < (now := datetime.now(timezone.utc) + self.timedelta_1m):
+                    if start < now:
                         # Remove `start` value from the modify dict, can't update
                         del modify['start']
                         # Start event if it hasn't yet
                         if cached['start'] > now:
-                            # If `end` moved forward past the old `start`
-                            if check['end'] < cached['start']:
-                                # Remove `webcast_live` if it exists
-                                modify.pop('webcast_live', None)
-                                # Set `start` to now
-                                modify['start'] = now
-                            else:
-                                modify['webcast_live'] = True
+                            modify['webcast_live'] = True
 
                     # If `start` moved forward while the event is live
                     elif cached['webcast_live'] or cached['start'] < now:
@@ -382,13 +382,6 @@ class LiveLaunch(commands.Cog):
                         # Remove `start` value from the modify dict, event is already live
                         del modify['start']
 
-                    # If `end` moved forward past the old `start` and `webcast_live` is now True
-                    elif check['end'] < cached['start'] and check.get('webcast_live'):
-                        # Remove `webcast_live`
-                        del modify['webcast_live']
-                        # Set `start` to now
-                        modify['start'] = now
-
                 # Insert a replacement string when there is no stream URL
                 if check.get('url', False) is None:
                     modify['url'] = ll2.no_stream
@@ -408,11 +401,14 @@ class LiveLaunch(commands.Cog):
                     if getattr(e, 'code', None) == 50013:
                         remove_event = True
 
-                    # Users manually started event, ignoring `start`
+                    # Users manually started event, ignoring `start` and `webcast_live`
                     elif (getattr(e, 'code', None) == 50035
                             and 'Cannot update start time of non-scheduled event.' in e.text):
-                        # Remove `start` from the modify dictionary
-                        del modify['start']
+
+                        # Remove `start` and `webcast_live` from the modify dictionary
+                        modify.pop('start', None)
+                        modify.pop('webcast_live', None)
+
                         # Attempt to update again
                         try:
                             await self.modify_scheduled_event(

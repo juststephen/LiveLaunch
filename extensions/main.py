@@ -405,11 +405,11 @@ class LiveLaunch(commands.Cog):
                     remove_event = True
                 except Exception as e:
                     # Wrong permissions
-                    if 50013 == e.code:
+                    if getattr(e, 'code', None) == 50013:
                         remove_event = True
 
                     # Users manually started event, ignoring `start`
-                    elif (50035 == e.code
+                    elif (getattr(e, 'code', None) == 50035
                             and 'Cannot update start time of non-scheduled event.' in e.text):
                         # Remove `start` from the modify dictionary
                         del modify['start']
@@ -476,7 +476,7 @@ class LiveLaunch(commands.Cog):
                 pass
             except Exception as e:
                 # Wrong permissions
-                if 50013 != e.code:
+                if getattr(e, 'code', None) != 50013:
                     success = False
                     status = False
                     logging.warning(
@@ -889,7 +889,7 @@ class LiveLaunch(commands.Cog):
                     reset_settings = True
                 except Exception as e:
                     # Wrong permissions
-                    if 50013 == e.code:
+                    if getattr(e, 'code', None) == 50013:
                         reset_settings = True
                     else:
                         logging.warning(f'Creation failure in iter: {e} {type(e)}')
@@ -923,7 +923,7 @@ class LiveLaunch(commands.Cog):
                     pass
                 except Exception as e:
                     # Wrong permissions
-                    if 50013 != e.code:
+                    if getattr(e, 'code', None) != 50013:
                         removed = False
                         logging.warning(f'Removal failure in iter: {e} {type(e)}')
                         print('Removal failure in iter:', e, type(e))

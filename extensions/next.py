@@ -1,7 +1,9 @@
 from datetime import datetime
 import discord
+from discord import app_commands, Interaction
+from discord.app_commands import AppCommandError, Range
 from discord.ext import commands
-from discord.ui import Button, MessageComponents
+from discord.ui import Button, View
 import logging
 import re
 
@@ -11,7 +13,7 @@ class LiveLaunchNext(commands.Cog):
     """
     Discord.py cog for the next launch and event commands.
     """
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
         # Regex check for type checking
         self.type_check = re.compile('^[0-9]+$')
@@ -23,7 +25,7 @@ class LiveLaunchNext(commands.Cog):
         button_settings: dict[str, bool],
         ll2_id: str,
         slug: str
-    ) -> MessageComponents:
+    ) -> View:
         """
         Create buttons if required.
 
@@ -38,7 +40,7 @@ class LiveLaunchNext(commands.Cog):
 
         Returns
         -------
-        buttons : MessageComponents
+        buttons : View
             Created buttons.
         """
         # Select the correct G4L and SLN base URL
@@ -82,9 +84,13 @@ class LiveLaunchNext(commands.Cog):
                 )
             )
 
-        # Return
+        # Create buttons if they exist
         if buttons:
-            return MessageComponents.add_buttons_with_rows(*buttons)
+            view = View()
+            for i in buttons:
+                view.add_item(i)
+            # Return
+            return view
 
     def create_single_embed(
         self,
@@ -198,7 +204,7 @@ class LiveLaunchNext(commands.Cog):
 
     async def next(
         self,
-        ctx,
+        interaction: Interaction,
         amount: int,
         events: bool = False,
         launches: bool = False
@@ -216,18 +222,18 @@ class LiveLaunchNext(commands.Cog):
             Select launches only.
         """
         # Check if the command was issued in a DM
-        dm = isinstance(ctx.interaction.user, discord.user.User)
+        dm = isinstance(interaction.channel, discord.abc.PrivateChannel)
 
         # Defer
-        await ctx.interaction.response.defer(ephemeral=dm)
+        await interaction.response.defer(ephemeral=dm, thinking=True)
 
         # Check if the cache exists, only happens at startup
-        if not hasattr(self.bot.ll2, 'cache'):
-            await ctx.send('The bot is starting up, please retry later.')
+        if not hasattr(self.bot, 'll2') or not hasattr(self.bot.ll2, 'cache'):
+            await interaction.followup.send('The bot is starting up, please retry later.')
             return
 
         # Guild ID
-        guild_id = None if dm else ctx.guild.id
+        guild_id = None if dm else interaction.guild_id
 
         # Get events
         ll2_ids = await self.bot.lldb.ll2_events_next(
@@ -277,7 +283,7 @@ class LiveLaunchNext(commands.Cog):
 
             # Create buttons
             if (buttons := await self.create_buttons(button_settings, ll2_id, items[ll2_id]['slug'])):
-                message['components'] = buttons
+                message['view'] = buttons
 
         # Amount > 1
         else:
@@ -289,53 +295,61 @@ class LiveLaunchNext(commands.Cog):
             )
 
         # Reply
-        await ctx.send(**message)
+        await interaction.followup.send(**message)
 
-    @commands.command()
-    @commands.cooldown(1, 8, commands.BucketType.guild)
-    async def nextevent(self, ctx, amount: int = 1) -> None:
+    @app_commands.command()
+    @app_commands.checks.cooldown(1, 8)
+    async def nextevent(
+        self,
+        interaction: Interaction,
+        amount: Range[int, 1, 10] = 1
+    ) -> None:
         """
-        Show upcoming events
-        in a Discord message.
-
-        Parameters
-        ----------
-        amount : int, default: 1
-            Amount of upcoming events
-            to display in the message.
-        """
-        await self.next(ctx, amount, events=True)
-
-    @commands.command()
-    @commands.cooldown(1, 8, commands.BucketType.guild)
-    async def nextlaunch(self, ctx, amount: int = 1) -> None:
-        """
-        Show upcoming launches
-        in a Discord message.
+        Show upcoming events.
 
         Parameters
         ----------
-        amount : int, default: 1
-            Amount of upcoming launches
-            to display in the message.
+        amount : Range[int, 1, 10], default: 1
+            Amount of events [1-10].
         """
-        await self.next(ctx, amount, launches=True)
+        await self.next(interaction, amount, events=True)
+
+    @app_commands.command()
+    @app_commands.checks.cooldown(1, 8)
+    async def nextlaunch(
+        self,
+        interaction: Interaction,
+        amount: Range[int, 1, 10] = 1
+    ) -> None:
+        """
+        Show upcoming launches.
+
+        Parameters
+        ----------
+        amount : Range[int, 1, 10], default: 1
+            Amount of events [1-10].
+        """
+        await self.next(interaction, amount, launches=True)
 
     @nextevent.error
     @nextlaunch.error
-    async def command_error(self, ctx, error) -> None:
+    async def command_error(
+        self,
+        interaction: Interaction,
+        error: AppCommandError
+    ) -> None:
         """
         Method that handles erroneous interactions with the commands.
         """
-        if isinstance(error, commands.errors.CommandOnCooldown):
-            await ctx.send(
+        if isinstance(error, app_commands.errors.CommandOnCooldown):
+            await interaction.response.send_message(
                 f'This command is on cooldown for {error.retry_after:.0f} more seconds.',
                 ephemeral=True
             )
         else:
-            logging.warning(f'Command: {ctx.command}\nError: {error}')
-            print(f'Command: {ctx.command}\nError: {error}')
+            logging.warning(f'Command: {interaction.command}\nError: {error}')
+            print(f'Command: {interaction.command}\nError: {error}')
 
 
-def setup(client):
-    client.add_cog(LiveLaunchNext(client))
+async def setup(bot: commands.Bot):
+    await bot.add_cog(LiveLaunchNext(bot))

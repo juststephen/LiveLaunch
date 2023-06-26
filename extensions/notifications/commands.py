@@ -1,81 +1,83 @@
 import aiohttp
 import discord
-from discord.ext import commands, tasks
-from discord.ui import Button, MessageComponents, ActionRow
+from discord import app_commands, Interaction
+from discord.app_commands import AppCommandError, Range
+from discord.ext import commands
 import logging
 
 from bin import (
     convert_minutes,
+    enums,
     LaunchLibrary2 as ll2
 )
 
-class LiveLaunchNotifications(commands.Cog):
+@app_commands.guild_only()
+class LiveLaunchNotificationsCommands(
+    commands.GroupCog,
+    group_name='notifications',
+    group_description='Notification settings, only for administrators.'
+):
     """
-    Discord.py cog for sending notifications.
+    Discord.py cog for notifications setting commands.
     """
-    def __init__(self, bot):
+    # Subgroup countdown command
+    countdown = app_commands.Group(
+        name='countdown',
+        description='Countdown notification settings'
+    )
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
-        # Scheduled event base url
-        self.se_url = 'https://discord.com/events/%s/%s'
-        # Start loops
-        self.countdown_notifications.start()
 
-    @commands.group()
-    @commands.defer(ephemeral=True)
-    async def notifications(self, ctx) -> None:
-        """
-        Main notification settings group.
-        """
-        pass
-
-    @notifications.command()
-    @commands.has_guild_permissions(administrator=True)
-    @commands.cooldown(1, 8)
+    @app_commands.command()
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.checks.cooldown(1, 8)
     async def general(
         self,
-        ctx,
-        events: str = None,
-        everything: str = None,
-        launches: str = None,
-        t0_changes: str = None,
-        include_scheduled_events: str = None
+        interaction: Interaction,
+        everything: enums.EnableDisable = None,
+        events: enums.EnableDisable = None,
+        launches: enums.EnableDisable = None,
+        t0_changes: enums.EnableDisable = None,
+        include_scheduled_events: enums.IncludeExclude = None
     ) -> None:
         """
         General notification settings.
 
         Parameters
         ----------
-        events : bool, default: None
+        everything : enums.EnableDisable, default: None
+            Enable/disable all notification
+            settings except for countdowns.
+        events : enums.EnableDisable, default: None
             Enable/disable event
             notifications.
-        everything : bool, default: None
-            Enable/disable everything.
-        launches : bool, default: None
-            Enable/disable launch
-            notifications.
-        t0_changes : bool, default: None
+        launches : enums.EnableDisable, default: None
+            Enable/disable launch notifications
+            (ignores status settings).
+        t0_changes : enums.EnableDisable, default: None
             Enable/disable notifications
-            for when start changes.
-        include_scheduled_events : bool, default: None
+            for when T-0 changes.
+        include_scheduled_events : enums.IncludeExclude, default: None
             Include/exclude Discord
             scheduled events in the
-            notification when available.
+            notification.
         """
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
         # Guild ID
-        guild_id = ctx.guild.id
+        guild_id = interaction.guild_id
 
         # Check if anything is enabled
         if not await self.bot.lldb.enabled_guilds_check(guild_id):
-            await ctx.send(
-                'Cannot update settings, nothing is enabled within this guild.',
-                ephemeral=True
+            await interaction.followup.send(
+                'Cannot update settings, nothing is enabled within this guild.'
             )
             return
 
         # Select desired settings
         if everything is not None:
             message = 'all'
-            everything = everything == 'True'
+            everything = everything is enums.EnableDisable.Enable
             settings = {
                 'launch': everything,
                 'event': everything,
@@ -92,46 +94,42 @@ class LiveLaunchNotifications(commands.Cog):
             message = 'selected general'
             settings = {}
             if events is not None:
-                settings['event'] = events == 'True'
+                settings['event'] = events is enums.EnableDisable.Enable
             if launches is not None:
-                settings['launch'] = launches == 'True'
+                settings['launch'] = launches is enums.EnableDisable.Enable
             if t0_changes is not None:
-                settings['t0_change'] = t0_changes == 'True'
+                settings['t0_change'] = t0_changes is enums.EnableDisable.Enable
             if include_scheduled_events is not None:
-                settings['scheduled_event'] = include_scheduled_events == 'True'
+                settings['scheduled_event'] = include_scheduled_events is enums.IncludeExclude.Include
 
         # Update database
         if settings:
             await self.bot.lldb.notification_settings_edit(guild_id, **settings)
 
         # Send reply
-        await ctx.send(
-            f'Changed {message} notification settings.',
-            ephemeral=True
+        await interaction.followup.send(
+            f'Changed {message} notification settings.'
         )
 
-    @notifications.group()
-    async def countdown(self, ctx) -> None:
-        """
-        Group for the countdown setting commands.
-        """
-        pass
-
     @countdown.command(name='list')
-    @commands.has_guild_permissions(administrator=True)
-    @commands.cooldown(1, 8)
-    async def countdown_list(self, ctx) -> None:
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.checks.cooldown(1, 8)
+    async def countdown_list(
+        self,
+        interaction: Interaction
+    ) -> None:
         """
-        List countdown time settings.
+        List countdown notifications.
         """
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
         # Fetch settings
-        settings = await self.bot.lldb.notification_countdown_list(ctx.guild.id)
+        settings = await self.bot.lldb.notification_countdown_list(interaction.guild_id)
 
         # When there are none
         if not settings:
-            await ctx.send(
-                'No countdown notification settings created yet.',
-                ephemeral=True
+            await interaction.followup.send(
+                'No countdown notification settings created yet.'
             )
             return
 
@@ -151,46 +149,46 @@ class LiveLaunchNotifications(commands.Cog):
         )
 
         # Send embed
-        await ctx.send(embed=embed, ephemeral=True)
+        await interaction.followup.send(embed=embed)
 
     @countdown.command(name='add')
-    @commands.has_guild_permissions(administrator=True)
-    @commands.cooldown(1, 4)
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.checks.cooldown(1, 8)
     async def countdown_add(
         self,
-        ctx,
-        days: int = None,
-        hours: int = None,
-        minutes: int = None
+        interaction: Interaction,
+        days: Range[int, 1, 31] = None,
+        hours: Range[int, 1, 24] = None,
+        minutes: Range[int, 1, 60] = None
     ) -> None:
         """
-        Add a countdown time setting.
+        Add a countdown notification.
 
         Parameters
         ----------
-        days : int, default: None
-            Amount of days.
-        hours : int, default: None
-            Amount of hours.
-        minutes : int, default: None
-            Amount of minutes.
+        days : Range[int, 1, 31], default: None
+            Amount of days [1-31].
+        hours : Range[int, 1, 31], default: None
+            Amount of hours [1-24].
+        minutes : Range[int, 1, 31], default: None
+            Amount of minutes [1-60].
         """
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
         # Guild ID
-        guild_id = ctx.guild.id
+        guild_id = interaction.guild_id
 
         # Check if anything is enabled
         if not await self.bot.lldb.enabled_guilds_check(guild_id):
-            await ctx.send(
-                'Cannot update settings, nothing is enabled within this guild.',
-                ephemeral=True
+            await interaction.followup.send(
+                'Cannot update settings, nothing is enabled within this guild.'
             )
             return
 
         # Maximum check
         if await self.bot.lldb.notification_countdown_check(guild_id):
-            await ctx.send(
-                'Maximum amount (64) of countdowns already active.',
-                ephemeral=True
+            await interaction.followup.send(
+                'Maximum amount (64) of countdowns already active.'
             )
             return
 
@@ -202,129 +200,124 @@ class LiveLaunchNotifications(commands.Cog):
 
         # Update database when more than 0
         if minutes:
-            await self.bot.lldb.notification_countdown_add(ctx.guild.id, minutes)
+            await self.bot.lldb.notification_countdown_add(interaction.guild_id, minutes)
             # Send reply
-            await ctx.send(
-                'Added countdown setting.',
-                ephemeral=True
+            await interaction.followup.send(
+                'Added countdown setting.'
             )
         else:
             # Send reply
-            await ctx.send(
-                'Countdown times have a minimum of 1 minute.',
-                ephemeral=True
+            await interaction.followup.send(
+                'Countdown times have a minimum of 1 minute.'
             )
 
     @countdown.command(name='remove')
-    @commands.has_guild_permissions(administrator=True)
-    @commands.cooldown(1, 8)
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.checks.cooldown(1, 8)
+    @app_commands.describe(index='Index [1-64].')
     async def countdown_remove(
         self,
-        ctx,
-        index: int
+        interaction: Interaction,
+        index: Range[int, 1, 64]
     ) -> None:
         """
-        Remove a countdown time setting.
+        Remove a countdown notification by index, use list to see these
 
         Parameters
         ----------
-        index : int
+        index : Range[int, 1, 31]
             Index of the time
             when sorting minutes
             by ascending.
         """
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
         # Guild ID
-        guild_id = ctx.guild.id
+        guild_id = interaction.guild_id
 
         # Check if anything is enabled
         if not await self.bot.lldb.enabled_guilds_check(guild_id):
-            await ctx.send(
-                'Cannot update settings, nothing is enabled within this guild.',
-                ephemeral=True
+            await interaction.followup.send(
+                'Cannot update settings, nothing is enabled within this guild.'
             )
             return
 
         # Update database
-        await self.bot.lldb.notification_countdown_remove(ctx.guild.id, index)
+        await self.bot.lldb.notification_countdown_remove(interaction.guild_id, index)
         # Send reply
+        await interaction.followup.send('Removed countdown setting.')
 
-        await ctx.send(
-            'Removed countdown setting.',
-            ephemeral=True
-        )
-
-    @notifications.command()
-    @commands.has_guild_permissions(administrator=True)
-    @commands.cooldown(1, 8)
+    @app_commands.command()
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.checks.cooldown(1, 8)
     async def launch_status(
         self,
-        ctx,
-        end_status: str = None,
-        hold: str = None,
-        liftoff: str = None,
-        go: str = None,
-        tbc: str = None,
-        tbd: str = None
+        interaction: Interaction,
+        end_status: enums.EnableDisable = None,
+        hold: enums.EnableDisable = None,
+        liftoff: enums.EnableDisable = None,
+        go: enums.EnableDisable = None,
+        tbc: enums.EnableDisable = None,
+        tbd: enums.EnableDisable = None
     ) -> None:
         """
-        Enable/disable notifications
-        related to launch status changes.
+        Launch status notification settings.
 
         Parameters
         ----------
-        end_status: str, default: None
+        end_status: enums.EnableDisable, default: None
             Enable/disable final
             status notifications.
-        hold : str, default: None
-            Enable/disable launch
+        hold : enums.EnableDisable, default: None
+            Enable/disable
             hold notifications.
-        liftoff : str, default: None
+        liftoff : enums.EnableDisable, default: None
             Enable/disable liftoff
             notifications.
-        go : str, default: None
-            Enable/disable go
-            notifications.
-        tbc : str, default: None
-            Enable/disable tbc
-            notifications.
-        tbd : str, default: None
-            Enable/disable tbd
-            notifications.
+        go : enums.EnableDisable, default: None
+            Enable/disable go for
+            launch notifications.
+        tbc : enums.EnableDisable, default: None
+            Enable/disable to be
+            confirmed notifications.
+        tbd : enums.EnableDisable, default: None
+            Enable/disable to be
+            determined notifications.
         """
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
         # Guild ID
-        guild_id = ctx.guild.id
+        guild_id = interaction.guild_id
 
         # Check if anything is enabled
         if not await self.bot.lldb.enabled_guilds_check(guild_id):
-            await ctx.send(
-                'Cannot update settings, nothing is enabled within this guild.',
-                ephemeral=True
+            await interaction.followup.send(
+                'Cannot update settings, nothing is enabled within this guild.'
             )
             return
 
         # Select desired settings
         settings = {}
         if end_status is not None:
-            settings['end_status'] = end_status == 'True'
+            settings['end_status'] = end_status is enums.EnableDisable.Enable
         if hold is not None:
-            settings['hold'] = hold == 'True'
+            settings['hold'] = hold is enums.EnableDisable.Enable
         if liftoff is not None:
-            settings['liftoff'] = liftoff == 'True'
+            settings['liftoff'] = liftoff is enums.EnableDisable.Enable
         if go is not None:
-            settings['go'] = go == 'True'
+            settings['go'] = go is enums.EnableDisable.Enable
         if tbc is not None:
-            settings['tbc'] = tbc == 'True'
+            settings['tbc'] = tbc is enums.EnableDisable.Enable
         if tbd is not None:
-            settings['tbd'] = tbd == 'True'
+            settings['tbd'] = tbd is enums.EnableDisable.Enable
 
         # Update database
         if settings:
             await self.bot.lldb.notification_settings_edit(guild_id, **settings)
 
         # Send reply
-        await ctx.send(
-            f'Changed selected launch status notification settings.',
-            ephemeral=True
+        await interaction.followup.send(
+            'Changed selected launch status notification settings.'
         )
 
     @general.error
@@ -332,152 +325,28 @@ class LiveLaunchNotifications(commands.Cog):
     @countdown_add.error
     @countdown_remove.error
     @launch_status.error
-    async def command_error(self, ctx, error) -> None:
+    async def command_error(
+        self,
+        interaction: Interaction,
+        error: AppCommandError
+    ) -> None:
         """
         Method that handles erroneous interactions with the commands.
         """
-        if isinstance(error, commands.errors.MissingPermissions):
-            if ctx.prefix == '/':
-                await ctx.send('This command is only for administrators.', ephemeral=True)
-        elif isinstance(error, commands.errors.NoPrivateMessage):
-            await ctx.send('This command is only for guild channels.')
-        elif isinstance(error, commands.errors.CommandOnCooldown):
-            await ctx.send(
+        if isinstance(error, app_commands.errors.MissingPermissions):
+            await interaction.response.send_message(
+                'This command is only for administrators.',
+                ephemeral=True
+            )
+        elif isinstance(error, app_commands.errors.CommandOnCooldown):
+            await interaction.response.send_message(
                 f'This command is on cooldown for {error.retry_after:.0f} more seconds.',
                 ephemeral=True
             )
         else:
-            logging.warning(f'Command: {ctx.command}\nError: {error}')
-            print(f'Command: {ctx.command}\nError: {error}')
-
-    @tasks.loop(minutes=1)
-    async def countdown_notifications(self):
-        """
-        Discord task for sending
-        countdown notifications.
-        """
-        async for notification in self.bot.lldb.notification_countdown_iter():
-            guild_id = notification['guild_id']
-            status = notification['status']
-
-            # Only enable video URL when available
-            if (url := notification['url']):
-                title_url = {'url': url}
-                url = f'[Stream]({url})'
-            else:
-                title_url = {}
-                url = ll2.no_stream
-
-            # Select the correct G4L and SLN base URL
-            if notification['type']:
-                g4l_url = ll2.g4l_event_url
-                sln_url = ll2.sln_event_url
-            else:
-                g4l_url = ll2.g4l_launch_url
-                sln_url = ll2.sln_launch_url
-
-            # Message dict
-            message = {}
-
-            # FC, G4L and SLN buttons for the event
-            buttons = []
-            # Add SLN button
-            if notification['button_sln']:
-                buttons.append(
-                    Button(
-                        label=ll2.sln_name,
-                        style=discord.ButtonStyle.link,
-                        emoji=ll2.sln_emoji,
-                        url=sln_url % notification['slug']
-                    )
-                )
-            # Add G4L button
-            if notification['button_g4l']:
-                buttons.append(
-                    Button(
-                        label=ll2.g4l_name,
-                        style=discord.ButtonStyle.link,
-                        emoji=ll2.g4l_emoji,
-                        url=g4l_url % notification['ll2_id']
-                    )
-                )
-            # Add FC button
-            if notification['button_fc']:
-                buttons.append(
-                    Button(
-                        label=ll2.fc_name,
-                        style=discord.ButtonStyle.link,
-                        emoji=ll2.fc_emoji,
-                        url=ll2.fc_url % notification['ll2_id']
-                    )
-                )
-            # Add to the message
-            if buttons:
-                message['components'] = MessageComponents.add_buttons_with_rows(*buttons)
-
-            # Creating embed
-            embed = discord.Embed(
-                color=ll2.status_colours.get(status, 0xFFFF00),
-                description=f"**T-{convert_minutes(notification['minutes'])}**\n" +
-                    (f'**Status:** {ll2.status_names[status]}\n{url}' if status else url),
-                timestamp=notification['start'],
-                title=notification['name'],
-                **title_url
-            )
-            # Set thumbnail
-            if notification['image_url']:
-                embed.set_thumbnail(
-                    url=notification['image_url']
-                )
-            # Set footer
-            embed.set_footer(
-                text='LiveLaunch Notifications, powered by LL2'
-            )
-            message['embed'] = embed
-
-            # Scheduled event
-            if notification['scheduled_event_id']:
-                message['content'] = self.se_url % (
-                    guild_id,
-                    notification['scheduled_event_id']
-                )
-
-            try:
-                # Creating session
-                async with aiohttp.ClientSession() as session:
-                    # Creating webhook
-                    webhook = discord.Webhook.from_url(
-                        notification['notification_webhook_url'],
-                        session=session
-                    )
-
-                    # Sending notification
-                    await webhook.send(
-                        **message,
-                        username=notification['agency'],
-                        avatar_url=notification['logo_url']
-                    )
-
-            # Remove channel and url from the db when either is removed or deleted
-            except discord.errors.NotFound:
-                await self.bot.lldb.enabled_guilds_edit(
-                    guild_id,
-                    notification_channel_id=None,
-                    notification_webhook_url=None
-                )
-                logging.warning(f'Guild ID: {guild_id}\tRemoved notification webhook, not found.')
-            # When the bot fails (edge case)
-            except Exception as e:
-                logging.warning(f'Guild ID: {guild_id}\tError during notification webhook sending: {e}, {type(e)}')
-                print(f'Guild ID: {guild_id}\tError during notification webhook sending: {e}, {type(e)}')
-
-    @countdown_notifications.before_loop
-    async def before_loop(self):
-        """
-        Wait untill the database is loaded.
-        """
-        await self.bot.wait_until_ready()
+            logging.warning(f'Command: {interaction.command}\nError: {error}')
+            print(f'Command: {interaction.command}\nError: {error}')
 
 
-def setup(client):
-    client.add_cog(LiveLaunchNotifications(client))
+async def setup(bot: commands.Bot):
+    await bot.add_cog(LiveLaunchNotificationsCommands(bot))

@@ -6,11 +6,11 @@ import logging
 
 from bin import SpaceflightNewsAPI
 
-class LiveLaunchNews(commands.Cog):
+class LiveLaunchNewsTasks(commands.Cog):
     """
     Discord.py cog for reporting space news.
     """
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
         # Spaceflight News API
         self.snapi = SpaceflightNewsAPI()
@@ -112,5 +112,5 @@ class LiveLaunchNews(commands.Cog):
         await self.bot.wait_until_ready()
 
 
-def setup(client):
-    client.add_cog(LiveLaunchNews(client))
+async def setup(bot: commands.Bot):
+    await bot.add_cog(LiveLaunchNewsTasks(bot))

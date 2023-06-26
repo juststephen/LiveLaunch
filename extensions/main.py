@@ -2,7 +2,7 @@ import aiohttp
 from datetime import datetime, timedelta, timezone
 import discord
 from discord.ext import commands, tasks
-from discord.ui import Button, MessageComponents
+from discord.ui import Button, View
 from discord.utils import _bytes_to_base64_data
 from itertools import compress
 import logging
@@ -201,7 +201,7 @@ class LiveLaunch(commands.Cog):
         # Return creation coroutine
         return self.bot.http.create_guild_scheduled_event(
             guild_id,
-            {
+            **{
                 'name': name, 'privacy_level': 2,
                 'scheduled_start_time': start.isoformat(),
                 'scheduled_end_time': end.isoformat(),
@@ -277,10 +277,10 @@ class LiveLaunch(commands.Cog):
             now = datetime.now(timezone.utc) + self.timedelta_1m
             payload['scheduled_start_time'] = now.isoformat()
         # Modify
-        return self.bot.http.modify_guild_scheduled_event(
+        return self.bot.http.edit_scheduled_event(
             guild_id,
             scheduled_event_id,
-            payload
+            **payload
         )
 
     async def scheduled_events_update(
@@ -324,7 +324,7 @@ class LiveLaunch(commands.Cog):
             if check.get('webcast_live') is False:
                 try:
                     # Remove the scheduled event from Discord
-                    await self.bot.http.delete_guild_scheduled_event(
+                    await self.bot.http.delete_scheduled_event(
                         guild_id,
                         scheduled_event_id
                     )
@@ -364,7 +364,7 @@ class LiveLaunch(commands.Cog):
 
                             try:
                                 # Remove the scheduled event from Discord
-                                await self.bot.http.delete_guild_scheduled_event(
+                                await self.bot.http.delete_scheduled_event(
                                     guild_id,
                                     scheduled_event_id
                                 )
@@ -463,7 +463,7 @@ class LiveLaunch(commands.Cog):
             success = True
             try:
                 # Remove the scheduled event from Discord
-                await self.bot.http.delete_guild_scheduled_event(
+                await self.bot.http.delete_scheduled_event(
                     guild_id,
                     scheduled_event_id
                 )
@@ -520,7 +520,7 @@ class LiveLaunch(commands.Cog):
         """
         async def send(
             embed: discord.Embed,
-            buttons: dict[str, MessageComponents],
+            buttons: dict[str, Button],
             kwargs: dict[str, bool or int and str]
         ) -> None:
             """
@@ -553,16 +553,17 @@ class LiveLaunch(commands.Cog):
 
                 # Add correct buttons
                 if any(button_settings := self.button_settings(notification)):
-                    message['components'] = MessageComponents.add_buttons_with_rows(
-                        *compress(buttons, button_settings)
-                    )
+                    message['view'] = View()
+                    for i in compress(buttons, button_settings):
+                        message['view'].add_item(i)
 
                 try:
                     # Creating session
                     async with aiohttp.ClientSession() as session:
-                        # Creating webhook
+                        # Creating webhook with the client to be able to send buttons
                         webhook = discord.Webhook.from_url(
                             notification['notification_webhook_url'],
+                            client=self.bot,
                             session=session
                         )
 
@@ -910,7 +911,7 @@ class LiveLaunch(commands.Cog):
                 removed = True
                 try:
                     # Remove the scheduled event from Discord
-                    await self.bot.http.delete_guild_scheduled_event(
+                    await self.bot.http.delete_scheduled_event(
                         row['guild_id'],
                         row['scheduled_event_id']
                     )
@@ -1014,5 +1015,5 @@ class LiveLaunch(commands.Cog):
         await self.bot.wait_until_ready()
 
 
-def setup(client):
-    client.add_cog(LiveLaunch(client))
+async def setup(bot: commands.Bot):
+    await bot.add_cog(LiveLaunch(bot))

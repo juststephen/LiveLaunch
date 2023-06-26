@@ -1,33 +1,38 @@
 import discord
+from discord import app_commands, Interaction
+from discord.app_commands import AppCommandError
 from discord.ext import commands
 import logging
 
 from bin import combine_strings
 
-class LiveLaunchAgenciesFilter(commands.Cog):
+@app_commands.guild_only()
+class LiveLaunchAgenciesFilter(
+    commands.GroupCog,
+    group_name='agencyfilter',
+    group_description='List, add and remove filters '
+        'for agencies, only for administrators.'
+):
     """
     Discord.py cog for the agencies filter commands.
     """
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @commands.group()
-    async def agencyfilter(self, ctx) -> None:
-        """
-        List, add and remove filters for agencies.
-        """
-        pass
-
-    @agencyfilter.command(name='list')
-    @commands.defer(ephemeral=True)
-    @commands.has_guild_permissions(administrator=True)
-    @commands.cooldown(1, 8)
-    async def agencyfilter_list(self, ctx) -> None:
+    @app_commands.command(name='list')
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.checks.cooldown(1, 8)
+    async def agencyfilter_list(
+        self,
+        interaction: Interaction
+    ) -> None:
         """
         List filters for agencies.
         """
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
         # Guild ID
-        guild_id = ctx.guild.id
+        guild_id = interaction.guild_id
 
         # Get all available filters
         filters_all = await self.bot.lldb.ll2_agencies_filter_list()
@@ -69,28 +74,32 @@ class LiveLaunchAgenciesFilter(commands.Cog):
                 )
 
         # Send list
-        await ctx.send(embed=embed)
+        await interaction.followup.send(embed=embed)
 
-    @agencyfilter.command(name='add')
-    @commands.defer(ephemeral=True)
-    @commands.has_guild_permissions(administrator=True)
-    @commands.cooldown(1, 8)
-    async def agencyfilter_add(self, ctx, agency: str) -> None:
+    @app_commands.command(name='add')
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.checks.cooldown(1, 8)
+    async def agencyfilter_add(
+        self,
+        interaction: Interaction,
+        agency: str
+    ) -> None:
         """
-        Add a filter for agencies.
+        Add a filter for an agency, either one or comma-separated.
 
         Parameters
         ----------
         agency : str
-            Enable filter for
-            agencies.
+            Agency name or ID.
         """
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
         # Guild ID
-        guild_id = ctx.guild.id
+        guild_id = interaction.guild_id
 
         # Check if guild has settings
         if not await self.bot.lldb.enabled_guilds_check(guild_id):
-            await ctx.send(
+            await interaction.followup.send(
                 'This guild has nothing enabled, can\'t add filters.'
             )
             return
@@ -125,42 +134,46 @@ class LiveLaunchAgenciesFilter(commands.Cog):
         agencies = list(map(str, agencies))
         failed = list(map(str, failed))
         if not failed:
-            await ctx.send(
+            await interaction.followup.send(
                 f"Added agency filter(s): `{', '.join(agencies)}`."
             )
         elif len(failed) == len(agencies):
-            await ctx.send(
+            await interaction.followup.send(
                 f"Agency filter(s) `{', '.join(failed)}` doesn\'t/don\'t exist."
             )
         else:
             # Check failed / success
             successes = set(agencies) ^ set(failed)
             # Send
-            await ctx.send(
+            await interaction.followup.send(
                 f"Added agency filter(s): `{', '.join(successes)}`, "
                 f"couldn\'t add agency filter(s): `{', '.join(failed)}`."
             )
 
-    @agencyfilter.command(name='remove')
-    @commands.defer(ephemeral=True)
-    @commands.has_guild_permissions(administrator=True)
-    @commands.cooldown(1, 8)
-    async def agencyfilter_remove(self, ctx, agency: str) -> None:
+    @app_commands.command(name='remove')
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.checks.cooldown(1, 8)
+    async def agencyfilter_remove(
+        self,
+        interaction: Interaction,
+        agency: str
+    ) -> None:
         """
-        Remove a filter for agencies.
+        Remove a filter for an agency, either one or comma-separated.
 
         Parameters
         ----------
         agency : str
-            Enable filter for
-            agencies.
+            Agency name or ID.
         """
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
         # Guild ID
-        guild_id = ctx.guild.id
+        guild_id = interaction.guild_id
 
         # Check if guild has settings
         if not await self.bot.lldb.enabled_guilds_check(guild_id):
-            await ctx.send(
+            await interaction.followup.send(
                 'This guild has nothing enabled, can\'t remove filters.'
             )
             return
@@ -195,43 +208,47 @@ class LiveLaunchAgenciesFilter(commands.Cog):
         agencies = list(map(str, agencies))
         failed = list(map(str, failed))
         if not failed:
-            await ctx.send(
+            await interaction.followup.send(
                 f"Removed agency filter(s): `{', '.join(agencies)}`."
             )
         elif len(failed) == len(agencies):
-            await ctx.send(
+            await interaction.followup.send(
                 f"Agency filter(s) `{', '.join(failed)}` doesn\'t/don\'t exist."
             )
         else:
             # Check failed / success
             successes = set(agencies) ^ set(failed)
             # Send
-            await ctx.send(
+            await interaction.followup.send(
                 f"Removed agency filter(s): `{', '.join(successes)}`, "
                 f"couldn\'t remove agency filter(s): `{', '.join(failed)}`."
             )
 
-    @agencyfilter.error
     @agencyfilter_list.error
     @agencyfilter_add.error
     @agencyfilter_remove.error
-    async def command_error(self, ctx, error) -> None:
+    async def command_error(
+        self,
+        interaction: Interaction,
+        error: AppCommandError
+    ) -> None:
         """
         Method that handles erroneous interactions with the commands.
         """
-        if isinstance(error, commands.errors.MissingPermissions):
-            if ctx.prefix == '/':
-                await ctx.send('This command is only for administrators.')
-        elif isinstance(error, commands.errors.NoPrivateMessage):
-            await ctx.send('This command is only for guild channels.')
-        elif isinstance(error, commands.errors.CommandOnCooldown):
-            await ctx.send(
-                f'This command is on cooldown for {error.retry_after:.0f} more seconds.'
+        if isinstance(error, app_commands.errors.MissingPermissions):
+            await interaction.response.send_message(
+                'This command is only for administrators.',
+                ephemeral=True
+            )
+        elif isinstance(error, app_commands.errors.CommandOnCooldown):
+            await interaction.response.send_message(
+                f'This command is on cooldown for {error.retry_after:.0f} more seconds.',
+                ephemeral=True
             )
         else:
-            logging.warning(f'Command: {ctx.command}\nError: {error}')
-            print(f'Command: {ctx.command}\nError: {error}')
+            logging.warning(f'Command: {interaction.command}\nError: {error}')
+            print(f'Command: {interaction.command}\nError: {error}')
 
 
-def setup(client):
-    client.add_cog(LiveLaunchAgenciesFilter(client))
+async def setup(bot: commands.Bot):
+    await bot.add_cog(LiveLaunchAgenciesFilter(bot))

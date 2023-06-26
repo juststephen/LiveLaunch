@@ -38,7 +38,7 @@ class LiveLaunchBot(Bot):
         )
         # Extensions to load with database first as others depend on it
         self.initial_extensions  = [
-            'extension.database',
+            'extensions.database',
             *[
                 f"{'.'.join(file.parent.parts)}.{file.stem}"
                 for file in Path('extensions').glob('**/*.py') if

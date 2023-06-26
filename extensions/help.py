@@ -1,4 +1,5 @@
-from discord import Embed
+from discord import app_commands, Embed, Interaction
+from discord.app_commands import AppCommandError
 from discord.ext import commands
 import logging
 
@@ -6,15 +7,16 @@ class LiveLaunchHelp(commands.Cog):
     """
     Discord.py cog for supplying help for LiveLaunch.
     """
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @commands.command()
-    @commands.defer(ephemeral=True)
-    async def help(self, ctx):
+    @app_commands.command()
+    async def help(self, interaction: Interaction):
         """
-        Explanation of LiveLaunch
+        Explanation of LiveLaunch.
         """
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
         # Create embed
         embed = Embed(
             color=0x00FF00,
@@ -88,16 +90,20 @@ class LiveLaunchHelp(commands.Cog):
         )
 
         # Send embed
-        await ctx.send(embed=embed, ephemeral=True)
+        await interaction.followup.send(embed=embed)
 
     @help.error
-    async def help_error(self, ctx, error):
+    async def help_error(
+        self,
+        interaction: Interaction,
+        error: AppCommandError
+    ) -> None:
         """
         Method that handles erroneous interactions.
         """
-        logging.warning(f'Command: {ctx.command}\nError: {error}')
-        print(f'Command: {ctx.command}\nError: {error}')
+        logging.warning(f'Command: {interaction.command}\nError: {error}')
+        print(f'Command: {interaction.command}\nError: {error}')
 
 
-def setup(client):
-    client.add_cog(LiveLaunchHelp(client))
+async def setup(bot: commands.Bot):
+    await bot.add_cog(LiveLaunchHelp(bot))

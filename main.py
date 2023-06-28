@@ -1,25 +1,23 @@
-from discord import Game
+from discord import Game, Intents, VoiceClient
 from discord.ext.commands import Bot
 from dotenv import load_dotenv
-import json
 import logging
-from os import getenv, listdir
+from os import getenv
+from pathlib import Path
+import warnings
 
-logging.basicConfig(
+logger = logging.basicConfig(
     filename='LiveLaunch.log',
     format='%(asctime)s : %(name)s - %(levelname)s - %(message)s',
     level=logging.WARNING
 )
-
-# The command_prefix is here to prevent non application commands
-client = Bot(
-    command_prefix="""
-    01001001 00100000 01101100 01101001
-    01101011 01100101 00100000 01110100
-    01110010 01100001 01101001 01101110
-    01110011 00100001 00100001 00100001
-    """,
-    help_command=None
+# No Discord voice support required, turn warning off
+VoiceClient.warn_nacl = False
+# Turn off aiomysql table creation warnings
+warnings.filterwarnings(
+    'ignore',
+    message=".*Table '.*' already exists.*",
+    module='aiomysql'
 )
 
 load_dotenv() # Loading token
@@ -28,27 +26,48 @@ if not TOKEN:
     print('RIP, no TOKEN.')
     exit()
 
-@client.event # On startup
-async def on_ready():
-    # Create application commands if needed
-    if False:
-        with open('LiveLaunch_Commands.json', 'r', encoding='utf-8') as f:
-            commands = json.load(f)
-        response = await client.http.bulk_create_global_application_commands(
-            client.application_id, commands['commands']
+class LiveLaunchBot(Bot):
+    """
+    LiveLaunch Discord bot.
+    """
+    def __init__(self) -> None:
+        super().__init__(
+            command_prefix=(),
+            help_command=None,
+            intents=Intents.default()
         )
-        print(response)
+        # Extensions to load with database first as others depend on it
+        self.initial_extensions  = [
+            'extensions.database',
+            *[
+                f"{'.'.join(file.parent.parts)}.{file.stem}"
+                for file in Path('extensions').glob('**/*.py') if
+                file.suffix == '.py' and file.stem != 'database'
+            ]
+        ]
+
+    async def setup_hook(self) -> None:
+        """
+        Setting up the bot by loading extensions
+        and syncing application commands.
+        """
+        # Load extensions during setup
+        for extension in self.initial_extensions :
+            await self.load_extension(extension)
+            print(f'Loaded {extension}')
+
+        # Create application commands if needed
+        if False:
+            response = await self.tree.sync()
+            print(response)
+
+bot = LiveLaunchBot()
+
+@bot.event # On startup
+async def on_ready():
     # Set status
-    await client.change_presence(activity=Game(name='Kerbal Space Program'))
+    await bot.change_presence(activity=Game(name='Kerbal Space Program'))
     # Print amount of servers joined
-    print(f'{client.user} Connected to {len(client.guilds)} servers.')
+    print(f'{bot.user} Connected to {len(bot.guilds)} servers.')
 
-# Load cogs when run, with the database first
-extensions = ['extensions.database', \
-    *[f'extensions.{file[:-3]}' for file in listdir('./extensions') if \
-    file.endswith('.py') and not 'database' in file]]
-for extension in extensions:
-    client.load_extension(extension)
-    print(f'Loaded {extension}')
-
-client.run(TOKEN)
+bot.run(TOKEN, log_handler=logger)

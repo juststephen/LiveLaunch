@@ -14,7 +14,7 @@ class LiveLaunchDB(commands.Cog):
     The database can be accessed via
     the `.bot.lldb` variable.
     """
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.bot.lldb = Database()
         self.clean_database.start()
@@ -60,5 +60,5 @@ class LiveLaunchDB(commands.Cog):
             logging.warning(f'Guild ID: {guild_id}\tRemoved notification webhook, unused.')
 
 
-def setup(client):
-    client.add_cog(LiveLaunchDB(client))
+async def setup(bot: commands.Bot):
+    await bot.add_cog(LiveLaunchDB(bot))

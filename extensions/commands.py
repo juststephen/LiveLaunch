@@ -1,60 +1,64 @@
 import aiohttp
 from discord import (
+    app_commands,
+    ChannelType,
     Embed,
-    Permissions,
+    Interaction,
     TextChannel,
     Webhook
 )
+from discord.app_commands import AppCommandError, Range
 from discord.errors import Forbidden
 from discord.ext import commands
 from itertools import compress
 import logging
 
-from bin import combine_strings, convert_minutes
+from bin import combine_strings, convert_minutes, enums
 
 class LiveLaunchCommand(commands.Cog):
     """
     Discord.py cog for enabling/disabling LiveLaunch in a Discord channel.
     """
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
         # Settings
         self.webhook_avatar_path = 'LiveLaunch_Webhook_Avatar.png'
 
-    @commands.command()
-    @commands.has_guild_permissions(administrator=True)
-    @commands.bot_has_guild_permissions(
+    @app_commands.command()
+    @app_commands.guild_only()
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.checks.bot_has_permissions(
         manage_webhooks=True,
         manage_events=True,
         send_messages=True,
         embed_links=True
     )
-    @commands.cooldown(1, 16)
-    @commands.defer(ephemeral=True)
+    @app_commands.checks.cooldown(1, 16)
     async def enable(
         self,
-        ctx,
+        interaction: Interaction,
         notifications: TextChannel = None,
         news: TextChannel = None,
         messages: TextChannel = None,
-        events: int = None
+        events: Range[int, 1, 50] = None
     ) -> None:
         """
         Enable LiveLaunch features, only for administrators.
 
         Parameters
         ----------
-        notifications : discord.TextChannel, default: None
-            Discord channel to send
+        notifications : TextChannel, default: None
+            Channel to send
             notifications to.
-        news : discord.TextChannel, default: None
-            Discord channel to send news to.
-        messages : discord.TextChannel, default: None
-            Discord channel to send streams to.
-        events : int, default: None
-            Maximum amount of events to create if
-            given, between 1 and 50.
+        news : TextChannel, default: None
+            Channel to send news to.
+        messages : TextChannel, default: None
+            Channel to send streams to.
+        events : Range[int, 1, 50], default: None
+            Maximum amount of events to create [1-50].
         """
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
         async def create_webhook(channel: TextChannel, *, feature: str) -> None:
             """
             Create a webhook for the given channel.
@@ -77,21 +81,20 @@ class LiveLaunchCommand(commands.Cog):
                     avatar=webhook_avatar
                 )).url
             except Forbidden:
-                await ctx.send(
+                await interaction.followup.send(
                     'LiveLaunch requires the `Manage Webhooks`, '
                     '`Send Messages` and `Embed Links` permissions for '
                     'the `messages` feature in the specified channel.'
                 )
             except:
-                await ctx.send(
-                    f'Failed to enable the {feature} feature',
-                    ephemeral=True
+                await interaction.followup.send(
+                    f'Failed to enable the {feature} feature'
                 )
             else:
                 return url
 
         # Guild ID
-        guild_id = ctx.guild.id
+        guild_id = interaction.guild_id
 
         # Check if it is already enabled in the guild
         settings = await self.bot.lldb.enabled_guilds_get(guild_id)
@@ -200,10 +203,7 @@ class LiveLaunchCommand(commands.Cog):
                 message = 'No new features enabled, please select at least one.'
 
             # Notify user
-            await ctx.send(
-                message,
-                ephemeral=True
-            )
+            await interaction.followup.send(message)
 
         # New entry
         else:
@@ -261,44 +261,33 @@ class LiveLaunchCommand(commands.Cog):
                 message = 'No features enabled, please select at least one.'
 
             # Notify user
-            await ctx.send(
-                message,
-                ephemeral=True
-            )
+            await interaction.followup.send(message)
 
-    @commands.command()
-    @commands.has_guild_permissions(administrator=True)
-    @commands.cooldown(1, 16)
-    @commands.defer(ephemeral=True)
-    async def disable(self, ctx, features: str) -> None:
+    @app_commands.command()
+    @app_commands.guild_only()
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.checks.cooldown(1, 16)
+    async def disable(
+        self,
+        interaction: Interaction,
+        features: enums.Features
+    ) -> None:
         """
         Disable LiveLaunch features, only for administrators.
 
         Parameters
         ----------
-        features : str
-            Features to disable,
-            - options:
-                - ` notifications `:
-                    Disable notification sending.
-                - ` news `:
-                    Disable news sending.
-                - ` messages `:
-                    Disable stream sending.
-                - ` events `:
-                    Disable event creation.
-                - ` all `:
-                    Disable everything.
+        features : enums.Features
+            Features to disable.
         """
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
         # Guild ID
-        guild_id = ctx.guild.id
+        guild_id = interaction.guild_id
 
         # Check if anything is enabled
         if not (settings := await self.bot.lldb.enabled_guilds_get(guild_id)):
-            await ctx.send(
-                'No features are enabled',
-                ephemeral=True
-            )
+            await interaction.followup.send('No features are enabled')
             return
 
         new_settings = {'guild_id': guild_id}
@@ -306,9 +295,9 @@ class LiveLaunchCommand(commands.Cog):
         # Remove webhooks if needed
         for i, key in zip(
             (
-                'notifications',
-                'news',
-                'messages'
+                enums.Features.Notifications,
+                enums.Features.News,
+                enums.Features.Messages
             ),
             (
                 'notification_',
@@ -316,7 +305,7 @@ class LiveLaunchCommand(commands.Cog):
                 ''
             )
         ):
-            if features in (i, 'all') and settings[f'{key}webhook_url']:
+            if features in (i, enums.Features.All) and settings[f'{key}webhook_url']:
                 # Create webhook for deletion
                 async with aiohttp.ClientSession() as session:
                     webhook = Webhook.from_url(
@@ -333,7 +322,8 @@ class LiveLaunchCommand(commands.Cog):
                 new_settings[f'{key}webhook_url'] = None
 
         # Remove the events feature if needed
-        if features in ('events', 'all') and settings['scheduled_events']:
+        if (features in (enums.Features.Events, enums.Features.All)
+                and settings['scheduled_events']):
             new_settings['scheduled_events'] = 0
 
         # Remove row from the database
@@ -350,9 +340,8 @@ class LiveLaunchCommand(commands.Cog):
                 **new_settings
             )
             # Notify user
-            await ctx.send(
-                'All features are now disabled',
-                ephemeral=True
+            await interaction.followup.send(
+                'All features are now disabled'
             )
         # Update row, other feature stays enabled
         elif len(new_settings) > 1:
@@ -361,33 +350,39 @@ class LiveLaunchCommand(commands.Cog):
                 **new_settings
             )
             # Notify user
-            await ctx.send(
-                'Requested features are now disabled',
-                ephemeral=True
+            await interaction.followup.send(
+                'Requested features are now disabled'
             )
         else:
             # Notify user
-            await ctx.send(
-                'Requested feature is already disabled',
-                ephemeral=True
+            await interaction.followup.send(
+                'Requested feature is already disabled'
             )
 
-    @commands.command()
-    @commands.has_guild_permissions(administrator=True)
-    @commands.cooldown(1, 1024)
-    @commands.defer(ephemeral=True)
-    async def synchronize(self, ctx) -> None:
+    @app_commands.command()
+    @app_commands.guild_only()
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.checks.cooldown(1, 1024)
+    async def synchronize(
+        self,
+        interaction: Interaction
+    ) -> None:
         """
         Manually synchronize LiveLaunch events, only for administrators.
         """
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
         # Amount of unsynchronized scheduled events
         amount = 0
 
         # Guild ID
-        guild_id = ctx.guild.id
+        guild_id = interaction.guild_id
 
         # Get guild's Discord scheduled events
-        discord_events = await self.bot.http.list_guild_scheduled_events(guild_id)
+        discord_events = await self.bot.http.get_scheduled_events(
+            guild_id,
+            with_user_count=False
+        )
 
         # Get a list of the scheduled event IDs only made by the bot itself
         discord_events = [
@@ -407,29 +402,30 @@ class LiveLaunchCommand(commands.Cog):
                 )
 
         # Notify user
-        await ctx.send(
-            f"Synchronized, {amount} event{'s are' if amount != 1 else ' is'} missing.",
-            ephemeral=True
+        await interaction.followup.send(
+            f"Synchronized, {amount} event{'s are' if amount != 1 else ' is'} missing."
         )
 
-    @commands.command()
-    @commands.has_guild_permissions(administrator=True)
-    @commands.cooldown(1, 16)
-    @commands.defer(ephemeral=True)
-    async def settings_list(self, ctx) -> None:
+    @app_commands.command()
+    @app_commands.guild_only()
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.checks.cooldown(1, 16)
+    async def settings_list(
+        self,
+        interaction: Interaction
+    ) -> None:
         """
         List all LiveLaunch settings within
         this Guild, only for administrators.
         """
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
         # Guild ID
-        guild_id = ctx.guild.id
+        guild_id = interaction.guild_id
 
         # Check if anything is enabled
         if not (settings := await self.bot.lldb.enabled_guilds_get(guild_id)):
-            await ctx.send(
-                'No features are enabled',
-                ephemeral=True
-            )
+            await interaction.followup.send('No features are enabled')
             return
 
         # Create settings embed
@@ -611,7 +607,7 @@ class LiveLaunchCommand(commands.Cog):
         )
 
         # List countdown settings
-        countdown = await self.bot.lldb.notification_countdown_list(ctx.guild.id)
+        countdown = await self.bot.lldb.notification_countdown_list(interaction.guild_id)
         # Add countdown settings
         if countdown:
             embed.add_field(
@@ -623,38 +619,40 @@ class LiveLaunchCommand(commands.Cog):
             )
 
         # Notify user
-        await ctx.send(
-            embed=embed,
-            ephemeral=True
-        )
+        await interaction.followup.send(embed=embed)
 
     @enable.error
     @disable.error
     @synchronize.error
     @settings_list.error
-    async def command_error(self, ctx, error) -> None:
+    async def command_error(
+        self,
+        interaction: Interaction,
+        error: AppCommandError
+    ) -> None:
         """
         Method that handles erroneous interactions with the commands.
         """
-        if isinstance(error, commands.errors.MissingPermissions):
-            if ctx.prefix == '/':
-                await ctx.send('This command is only for administrators.', ephemeral=True)
-        elif isinstance(error, commands.errors.NoPrivateMessage):
-            await ctx.send('This command is only for guild channels.')
-        elif isinstance(error, commands.errors.CommandOnCooldown):
-            await ctx.send(
+        if isinstance(error, app_commands.errors.MissingPermissions):
+            await interaction.response.send_message(
+                'This command is only for administrators.',
+                ephemeral=True
+            )
+        elif isinstance(error, app_commands.errors.BotMissingPermissions):
+            await interaction.response.send_message(
+                'LiveLaunch requires the `Manage Webhooks`, `Manage Events`, '
+                '`Send Messages` and `Embed Links` permissions.',
+                ephemeral=True
+            )
+        elif isinstance(error, app_commands.errors.CommandOnCooldown):
+            await interaction.response.send_message(
                 f'This command is on cooldown for {error.retry_after:.0f} more seconds.',
                 ephemeral=True
             )
-        elif isinstance(error, commands.errors.BotMissingPermissions):
-            await ctx.send(
-                'LiveLaunch requires the `Manage Webhooks`, `Manage Events`, '
-                '`Send Messages` and `Embed Links` permissions.'
-            )
         else:
-            logging.warning(f'Command: {ctx.command}\nError: {error}')
-            print(f'Command: {ctx.command}\nError: {error}')
+            logging.warning(f'Command: {interaction.command}\nError: {error}')
+            print(f'Command: {interaction.command}\nError: {error}')
 
 
-def setup(client):
-    client.add_cog(LiveLaunchCommand(client))
+async def setup(bot: commands.Bot):
+    await bot.add_cog(LiveLaunchCommand(bot))

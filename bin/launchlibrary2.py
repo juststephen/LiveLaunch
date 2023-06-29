@@ -54,8 +54,8 @@ class LaunchLibrary2:
 
     net_precision_formats = {
         2: '[NET %H:00 UTC] ', # Hour
-        3: '[AM (local)] ', # Morning
-        4: '[PM (local)] ', # Afternoon
+        3: '[Morning (local)] ', # Morning
+        4: '[Afternoon (local)] ', # Afternoon
         5: '[NET %B %#d] ' if os.name == 'nt' else '[NET %B %-d] ', # Day (Windows or Linux)
         6: '[NET Week %#W] ' if os.name == 'nt' else '[NET Week %-W]', # Week (Windows or Linux)
         7: '[NET %B] ', # Month

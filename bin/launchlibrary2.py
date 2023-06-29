@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from dateutil.parser import isoparse
 import os
 
-from bin import ll2_get
+from bin import get
 
 class LaunchLibrary2:
     """
@@ -69,7 +69,9 @@ class LaunchLibrary2:
         15: '[FY %Y] ', # Fiscal year
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
+        # Authentication header
+        self.__ll2_auth_header = {'Authorization': f"Token {os.getenv('LL2_TOKEN')}"}
         # Keys in the returned data containing non ID data.
         self.data_keys = (
             'name',
@@ -118,7 +120,11 @@ class LaunchLibrary2:
         """
         # Request data from the LL2 API
         try:
-            result = await ll2_get(url)
+            result = await get(
+                url,
+                headers=self.__ll2_auth_header,
+                json=True
+            )
         except:
             return
         else:

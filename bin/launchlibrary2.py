@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from isodate import parse_duration
 import os
 
 from bin import get
@@ -242,6 +243,12 @@ class LaunchLibrary2:
             if not event_type in self.event_duration:
                 event_type = 'default'
 
+            # Duration timedelta using potential duration
+            if (duration := entry['duration']):
+                duration = parse_duration(duration)
+            else:
+                duration = self.event_duration[event_type]
+
             # Check for video
             picked_video = None
             if 'video_url' in entry and entry['video_url']:
@@ -263,7 +270,7 @@ class LaunchLibrary2:
                 'url': picked_video,
                 'image_url': image_url,
                 'start': net,
-                'end': net + self.event_duration[event_type],
+                'end': net + duration,
                 'location': entry['location'],
                 'webcast_live': entry['webcast_live'],
                 'slug': entry['slug'],

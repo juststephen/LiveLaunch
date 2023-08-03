@@ -3,6 +3,7 @@ aiomysql[rsa]==0.2.0
 beautifulsoup4==4.12.2
 discord.py==2.3.0
 google-api-python-client==2.90.0
+isodate==0.6.1
 lxml==4.9.2
 python-dotenv==1.0.0
 selenium==4.10.0

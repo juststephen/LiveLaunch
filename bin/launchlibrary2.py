@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from dateutil.parser import isoparse
 import os
 
 from bin import get
@@ -152,7 +151,7 @@ class LaunchLibrary2:
         # Go through data
         for entry in results:
             # Start datetime of the entry
-            net = isoparse(entry['net'])
+            net = datetime.fromisoformat(entry['net'])
 
             # Name formatting
             if (net_precision := entry['net_precision']):
@@ -227,7 +226,7 @@ class LaunchLibrary2:
         # Go through data
         for entry in results:
             # Start datetime of the entry
-            net = isoparse(entry['date'])
+            net = datetime.fromisoformat(entry['date'])
 
             # Name formatting
             if (net_precision := entry['date_precision']):

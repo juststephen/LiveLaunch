@@ -231,6 +231,7 @@ class EnabledGuilds:
             se_no_url : int,
             news_channel_id : int,
             news_webhook_url : str,
+            news_include_exclude : int,
             notification_channel_id : int,
             notification_webhook_url : str,
             notification_launch : int,

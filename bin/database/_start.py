@@ -35,6 +35,7 @@ class Start:
                     se_no_url TINYINT UNSIGNED DEFAULT 0,
                     news_channel_id BIGINT UNSIGNED DEFAULT NULL,
                     news_webhook_url TEXT DEFAULT NULL,
+                    news_include_exclude TINYINT UNSIGNED DEFAULT 0,
                     notification_channel_id BIGINT UNSIGNED DEFAULT NULL,
                     notification_webhook_url TEXT DEFAULT NULL,
                     notification_launch TINYINT UNSIGNED DEFAULT 0,

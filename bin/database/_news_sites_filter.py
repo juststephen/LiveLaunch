@@ -12,6 +12,65 @@ class NewsFilter(Filter):
             name_column='news_site_name'
         )
 
+    async def news_filter_set_include_exclude(
+        self,
+        guild_id: int,
+        include_or_exclude: bool
+    ) -> None:
+        """
+        Set the news filter to include/exclude.
+
+        Parameters
+        ----------
+        guild_id : int
+            Discord guild ID.
+        include_or_exclude : bool
+            Set the filter
+            to Include/Exclude.
+            `True` when included,
+            `False` when excluded.
+        """
+        with await self.pool as con:
+            async with con.cursor() as cur:
+                await cur.execute(
+                    """
+                    UPDATE enabled_guilds
+                    SET news_include_exclude=%s
+                    WHERE guild_id=%s
+                    """,
+                    (include_or_exclude, guild_id)
+                )
+
+    async def news_filter_get_include_exclude(
+        self,
+        guild_id: int
+    ) -> bool:
+        """
+        See if the news filter is set to include/exclude.
+
+        Parameters
+        ----------
+        guild_id : int
+            Discord guild ID.
+
+        Returns
+        -------
+        include_or_exclude : bool
+            `True` when included,
+            `False` when excluded.
+        """
+        with await self.pool as con:
+            async with con.cursor() as cur:
+                await cur.execute(
+                    """
+                    SELECT news_include_exclude
+                    FROM enabled_guilds
+                    WHERE guild_id=%s
+                    """,
+                    (guild_id,)
+                )
+                return (await cur.fetchone())[0] != 0
+
     async def news_filter_add(
         self,
         guild_id: int,

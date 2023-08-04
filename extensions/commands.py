@@ -537,6 +537,7 @@ class LiveLaunchCommand(commands.Cog):
         )
         # Add enabled filters
         if filters_guild:
+            include_exclude = 'include' if settings['news_include_exclude'] else 'exclude'
             # Format individual filters
             filters_text = [f'{i}) {j}\n' for i, j in filters_guild]
             # Combine them
@@ -544,7 +545,8 @@ class LiveLaunchCommand(commands.Cog):
             # Insert into the embed
             for i, j in enumerate(filters_text):
                 embed.add_field(
-                    name='Enabled news filters' + (' (continued)' if i else ''),
+                    name=f'Enabled ({include_exclude}) news '
+                        f"filters {'(continued)' if i else ''}",
                     value=f'```{j}```'
                 )
 

@@ -3,7 +3,7 @@ from discord.app_commands import AppCommandError
 from discord.ext import commands
 import logging
 
-from bin import combine_strings
+from bin import combine_strings, enums
 
 @app_commands.guild_only()
 class LiveLaunchNewsSitesFilter(
@@ -17,6 +17,47 @@ class LiveLaunchNewsSitesFilter(
     """
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+
+    @app_commands.command(name='include_exclude')
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.checks.cooldown(1, 8)
+    async def newsfilter_include_exclude(
+        self,
+        interaction: Interaction,
+        include_or_exclude: enums.IncludeExclude
+    ) -> None:
+        """
+        Set the list of filtered news sites to be
+        the only ones included or the ones excluded.
+
+        Parameters
+        ----------
+        events : enums.IncludeExclude
+            Set the filter
+            to Include/Exclude.
+        """
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
+        # Guild ID
+        guild_id = interaction.guild_id
+
+        # Check if guild has settings
+        if not await self.bot.lldb.enabled_guilds_check(guild_id):
+            await interaction.followup.send(
+                'This guild has nothing enabled, can\'t change setting.'
+            )
+            return
+
+        # Update the setting
+        await self.bot.lldb.news_filter_set_include_exclude(
+            guild_id,
+            include_or_exclude is enums.IncludeExclude.Include
+        )
+
+        # Send response
+        await interaction.followup.send(
+            f'Set news filter to {include_or_exclude.name.lower()} news sites.'
+        )
 
     @app_commands.command(name='list')
     @app_commands.checks.has_permissions(administrator=True)
@@ -41,10 +82,21 @@ class LiveLaunchNewsSitesFilter(
             guild_id=guild_id
         )
 
+        # Get the include/exclude setting for the guild if it exists
+        if filters_guild:
+            include_exclude = await self.bot.lldb.news_filter_get_include_exclude(guild_id)
+            include_exclude = 'include' if include_exclude else 'exclude'
+        # Exclude is default if the guild has no settings yet
+        else:
+            include_exclude = 'exclude'
+
         # Create list embed
         embed = Embed(
             color=0x00E8FF,
-            description='When a news site filter is enabled it will not be posted.',
+            description='When a news site filter is enabled it will be '
+                'included or excluded depending on the setting set '
+                'using the `/newfilter include_exclude` command. '
+                f'Currently the filter is set to {include_exclude}.',
             title='News Site Filters'
         )
         # Add available filters
@@ -223,6 +275,7 @@ class LiveLaunchNewsSitesFilter(
                 f"couldn\'t remove news site filter(s): `{', '.join(failed)}`."
             )
 
+    @newsfilter_include_exclude.error
     @newsfilter_list.error
     @newsfilter_add.error
     @newsfilter_remove.error

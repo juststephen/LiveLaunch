@@ -74,6 +74,12 @@ class LiveLaunchNewsTasks(commands.Cog):
                 filters := [await self.bot.lldb.news_filter_check(guild_id, i['news_site']) for i in new_news]
             ):
                 continue
+
+            # Check if the filter is set to include or exclude the news sites
+            if await self.bot.lldb.news_filter_get_include_exclude(guild_id):
+                # Set to include, invert filters
+                filters = [not i for i in filters]
+
             try:
                 # Creating session
                 async with aiohttp.ClientSession() as session:

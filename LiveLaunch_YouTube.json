@@ -1,14 +1,11 @@
 {
     "channels": [
-        "UCSUu1lih2RifWkKtDOJdsBA",
         "UCtI0Hodo5o5dUb67FeUjDeA",
         "UCsWq7LZaizhIi-c-Yo_bcpw",
-        "UCnrGPRKAg1PgvuSHrRIl3jg"
+        "UCnrGPRKAg1PgvuSHrRIl3jg",
+        "UCCKiR4D6hbgk9lW9UwxZXxg"
     ],
     "keywords": {
-        "UCSUu1lih2RifWkKtDOJdsBA": [
-        "live"
-        ],
         "UCtI0Hodo5o5dUb67FeUjDeA": [
         ""
         ],
@@ -18,13 +15,12 @@
         "UCnrGPRKAg1PgvuSHrRIl3jg": [
         "live",
         "broadcast"
+        ],
+        "UCCKiR4D6hbgk9lW9UwxZXxg": [
+        ""
         ]
     },
     "ignore": {
-        "UCSUu1lih2RifWkKtDOJdsBA": [
-        "nsf live",
-        "nasaspaceflight live"
-        ]
     },
     "agency_ids": {
         "UCtI0Hodo5o5dUb67FeUjDeA": 121,

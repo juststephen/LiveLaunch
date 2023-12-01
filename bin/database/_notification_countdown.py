@@ -255,6 +255,7 @@ class NotificationCountdown:
                         nc.minutes,
                         le.ll2_id,
                         laf.agency_id,
+                        eg.agencies_include_exclude,
                         eg.notification_event,
                         eg.notification_launch,
                         se.scheduled_event_id
@@ -266,7 +267,11 @@ class NotificationCountdown:
                         AND
                             le.start < DATE_ADD(NOW(), INTERVAL nc.minutes MINUTE)
                         AND
-                            laf.agency_id IS NULL
+                        (
+                            `type`
+                            OR laf.agency_id IS NULL
+                            XOR eg.agencies_include_exclude <=> 1
+                        )
                         AND
                         (
                             (

@@ -4,7 +4,7 @@ from discord.app_commands import AppCommandError
 from discord.ext import commands
 import logging
 
-from bin import combine_strings
+from bin import combine_strings, enums
 
 @app_commands.guild_only()
 class LiveLaunchAgenciesFilter(
@@ -18,6 +18,47 @@ class LiveLaunchAgenciesFilter(
     """
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+
+    @app_commands.command(name='include_exclude')
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.checks.cooldown(1, 8)
+    async def agencyfilter_include_exclude(
+        self,
+        interaction: Interaction,
+        include_or_exclude: enums.IncludeExclude
+    ) -> None:
+        """
+        Set the list of filtered agencies to be
+        the only ones included or the ones excluded.
+
+        Parameters
+        ----------
+        events : enums.IncludeExclude
+            Set the filter
+            to Include/Exclude.
+        """
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
+        # Guild ID
+        guild_id = interaction.guild_id
+
+        # Check if guild has settings
+        if not await self.bot.lldb.enabled_guilds_check(guild_id):
+            await interaction.followup.send(
+                'This guild has nothing enabled, can\'t change setting.'
+            )
+            return
+
+        # Update the setting
+        await self.bot.lldb.ll2_agencies_filter_set_include_exclude(
+            guild_id,
+            include_or_exclude=include_or_exclude is enums.IncludeExclude.Include
+        )
+
+        # Send response
+        await interaction.followup.send(
+            f'Set agency filter to {include_or_exclude.name.lower()} agencies.'
+        )
 
     @app_commands.command(name='list')
     @app_commands.checks.has_permissions(administrator=True)
@@ -42,10 +83,21 @@ class LiveLaunchAgenciesFilter(
             guild_id=guild_id
         )
 
+        # Get the include/exclude setting for the guild if it exists
+        if filters_guild:
+            include_exclude = await self.bot.lldb.ll2_agencies_filter_get_include_exclude(guild_id)
+            include_exclude = 'include' if include_exclude else 'exclude'
+        # Exclude is default if the guild has no settings yet
+        else:
+            include_exclude = 'exclude'
+
         # Create list embed
         embed = discord.Embed(
             color=0x00E8FF,
-            description='When an agency filter is enabled it will not use these for **launches**.',
+            description='When an agency filter is enabled it will be '
+                'included or excluded for **launches** depending on the setting set '
+                'using the `/agencyfilter include_exclude` command. '
+                f'Currently the filter is set to {include_exclude}.',
             title='Agency Filters'
         )
         # Add available filters

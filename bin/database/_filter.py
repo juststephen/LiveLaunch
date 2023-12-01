@@ -19,6 +19,10 @@ class FilterTable:
     id_column : str
         Column name of the data table
         that contains the IDs.
+    include_exclude_column : str
+        Column name of the `enabled_guilds`
+        table where the include/
+        exclude boolean is set.
     name_column : str
         Column name of the data table
         that contains the names.
@@ -26,6 +30,7 @@ class FilterTable:
     data_table: str
     filter_table: str
     id_column: str
+    include_exclude_column: str
     name_column: str
 
 class Filter:
@@ -34,6 +39,76 @@ class Filter:
     Contains methods for adding, removing,
     listing and checking filters.
     """
+    async def filter_set_include_exclude(
+        self,
+        tables: FilterTable,
+        guild_id: int,
+        *,
+        include_or_exclude: bool
+    ) -> None:
+        """
+        Set the filter to include/exclude.
+
+        Parameters
+        ----------
+        tables : FilterTable
+            FilterTable object
+            with the required
+            SQL table data.
+        guild_id : int
+            Discord guild ID.
+        include_or_exclude : bool
+            Set the filter
+            to Include/Exclude.
+            `True` when included,
+            `False` when excluded.
+        """
+        with await self.pool as con:
+            async with con.cursor() as cur:
+                await cur.execute(
+                    f"""
+                    UPDATE enabled_guilds
+                    SET {tables.include_exclude_column}=%s
+                    WHERE guild_id=%s
+                    """,
+                    (include_or_exclude, guild_id)
+                )
+
+    async def filter_get_include_exclude(
+        self,
+        tables: FilterTable,
+        guild_id: int
+    ) -> bool:
+        """
+        See if the filter is set to include/exclude.
+
+        Parameters
+        ----------
+        tables : FilterTable
+            FilterTable object
+            with the required
+            SQL table data.
+        guild_id : int
+            Discord guild ID.
+
+        Returns
+        -------
+        include_or_exclude : bool
+            `True` when included,
+            `False` when excluded.
+        """
+        with await self.pool as con:
+            async with con.cursor() as cur:
+                await cur.execute(
+                    f"""
+                    SELECT {tables.include_exclude_column}
+                    FROM enabled_guilds
+                    WHERE guild_id=%s
+                    """,
+                    (guild_id,)
+                )
+                return (await cur.fetchone())[0] != 0
+
     async def _filter_base_add_remove(
         self,
         tables: FilterTable,

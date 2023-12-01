@@ -33,6 +33,7 @@ class Start:
                     se_launch TINYINT UNSIGNED DEFAULT 1,
                     se_event TINYINT UNSIGNED DEFAULT 1,
                     se_no_url TINYINT UNSIGNED DEFAULT 0,
+                    agencies_include_exclude TINYINT UNSIGNED DEFAULT 0,
                     news_channel_id BIGINT UNSIGNED DEFAULT NULL,
                     news_webhook_url TEXT DEFAULT NULL,
                     news_include_exclude TINYINT UNSIGNED DEFAULT 0,

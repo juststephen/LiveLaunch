@@ -243,6 +243,7 @@ class ScheduledEvents:
                                     GROUP BY
                                         eg.guild_id,
                                         laf.agency_id,
+                                        eg.agencies_include_exclude,
                                         le.ll2_id,
                                         le.url,
                                         eg.scheduled_events,
@@ -254,7 +255,11 @@ class ScheduledEvents:
                                             eg.se_no_url AND le.url IS NULL
                                         )
                                         AND
-                                            laf.agency_id IS NULL
+                                        (
+                                            `type`
+                                            OR laf.agency_id IS NULL
+                                            XOR eg.agencies_include_exclude <=> 1
+                                        )
                                         AND
                                         (
                                             (
@@ -341,6 +346,7 @@ class ScheduledEvents:
                             GROUP BY
                                 eg.guild_id,
                                 laf.agency_id,
+                                eg.agencies_include_exclude,
                                 le.ll2_id,
                                 le.url,
                                 eg.scheduled_events,
@@ -352,7 +358,11 @@ class ScheduledEvents:
                                     eg.se_no_url AND le.url IS NULL
                                 )
                                 AND
-                                    laf.agency_id IS NULL
+                                (
+                                    `type`
+                                    OR laf.agency_id IS NULL
+                                    XOR eg.agencies_include_exclude <=> 1
+                                )
                                 AND
                                 (
                                     (

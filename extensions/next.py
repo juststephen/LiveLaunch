@@ -243,6 +243,13 @@ class LiveLaunchNext(commands.Cog):
             launches=launches
         )
 
+        # Reply when nothing is found
+        if ll2_ids is None:
+            await interaction.followup.send(
+                f"No {'events' if events else 'launches'} found."
+            )
+            return
+
         # Get items
         items = {i: self.bot.ll2.cache[i] for i in ll2_ids}
 

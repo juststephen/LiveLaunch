@@ -51,7 +51,7 @@ class LiveLaunchNewsSitesFilter(
         # Update the setting
         await self.bot.lldb.news_filter_set_include_exclude(
             guild_id,
-            include_or_exclude is enums.IncludeExclude.Include
+            include_or_exclude=include_or_exclude is enums.IncludeExclude.Include
         )
 
         # Send response
@@ -95,7 +95,7 @@ class LiveLaunchNewsSitesFilter(
             color=0x00E8FF,
             description='When a news site filter is enabled it will be '
                 'included or excluded depending on the setting set '
-                'using the `/newfilter include_exclude` command. '
+                'using the `/newsfilter include_exclude` command. '
                 f'Currently the filter is set to {include_exclude}.',
             title='News Site Filters'
         )

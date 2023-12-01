@@ -43,6 +43,7 @@ class LL2EventsNext:
             return
 
         # Execute SQL
+        print('aaaaaaaaaaaaaaa')
         with await self.pool as con:
             async with con.cursor() as cur:
                 await cur.execute(
@@ -52,15 +53,22 @@ class LL2EventsNext:
                     FROM
                         ll2_events AS le
                     LEFT JOIN
+                        enabled_guilds as eg
+                        ON eg.guild_id = %s
+                    LEFT JOIN
                         ll2_agencies_filter AS laf
-                        ON laf.guild_id = %s
+                        ON laf.guild_id = eg.guild_id
                         AND laf.agency_id = le.agency_id
                     WHERE
                         le.start > NOW()
                         AND
-                        le.ll2_id REGEXP '^[0-9]+$' = %s
+                            le.ll2_id REGEXP '^[0-9]+$' = %s
                         AND
-                        laf.agency_id IS NULL
+                        (
+                            le.ll2_id REGEXP '^[0-9]+$'
+                            OR laf.agency_id IS NULL
+                            XOR eg.agencies_include_exclude <=> 1
+                        )
                     ORDER BY
                         le.start
                     LIMIT

@@ -9,7 +9,56 @@ class LL2AgenciesFilter(Filter):
             data_table='ll2_agencies',
             filter_table='ll2_agencies_filter',
             id_column='agency_id',
+            include_exclude_column='agencies_include_exclude',
             name_column='name'
+        )
+
+    async def ll2_agencies_filter_set_include_exclude(
+        self,
+        guild_id: int,
+        *,
+        include_or_exclude: bool
+    ) -> None:
+        """
+        Set the agency filter to include/exclude.
+
+        Parameters
+        ----------
+        guild_id : int
+            Discord guild ID.
+        include_or_exclude : bool
+            Set the filter
+            to Include/Exclude.
+            `True` when included,
+            `False` when excluded.
+        """
+        return await self.filter_set_include_exclude(
+            self._agency_filter_table,
+            guild_id,
+            include_or_exclude=include_or_exclude
+        )
+
+    async def ll2_agencies_filter_get_include_exclude(
+        self,
+        guild_id: int
+    ) -> bool:
+        """
+        See if the agency filter is set to include/exclude.
+
+        Parameters
+        ----------
+        guild_id : int
+            Discord guild ID.
+
+        Returns
+        -------
+        include_or_exclude : bool
+            `True` when included,
+            `False` when excluded.
+        """
+        return await self.filter_get_include_exclude(
+            self._agency_filter_table,
+            guild_id
         )
 
     async def ll2_agencies_filter_add(

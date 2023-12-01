@@ -122,9 +122,13 @@ class NotificationIter:
                     WHERE
                         eg.notification_webhook_url IS NOT NULL
                         AND
-                        laf.agency_id IS NULL
+                        (
+                            le.ll2_id REGEXP '^[0-9]+$'
+                            OR laf.agency_id IS NULL
+                            XOR eg.agencies_include_exclude <=> 1
+                        )
                         AND
-                        {' AND '.join(settings)}
+                            {' AND '.join(settings)}
                     """,
                     (ll2_id,)
                 )

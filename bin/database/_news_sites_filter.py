@@ -9,12 +9,14 @@ class NewsFilter(Filter):
             data_table='news_sites',
             filter_table='news_filter',
             id_column='news_site_id',
+            include_exclude_column='news_include_exclude',
             name_column='news_site_name'
         )
 
     async def news_filter_set_include_exclude(
         self,
         guild_id: int,
+        *,
         include_or_exclude: bool
     ) -> None:
         """
@@ -30,16 +32,11 @@ class NewsFilter(Filter):
             `True` when included,
             `False` when excluded.
         """
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    UPDATE enabled_guilds
-                    SET news_include_exclude=%s
-                    WHERE guild_id=%s
-                    """,
-                    (include_or_exclude, guild_id)
-                )
+        return await self.filter_set_include_exclude(
+            self._news_filter_table,
+            guild_id,
+            include_or_exclude=include_or_exclude
+        )
 
     async def news_filter_get_include_exclude(
         self,
@@ -59,17 +56,10 @@ class NewsFilter(Filter):
             `True` when included,
             `False` when excluded.
         """
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    SELECT news_include_exclude
-                    FROM enabled_guilds
-                    WHERE guild_id=%s
-                    """,
-                    (guild_id,)
-                )
-                return (await cur.fetchone())[0] != 0
+        return await self.filter_get_include_exclude(
+            self._news_filter_table,
+            guild_id
+        )
 
     async def news_filter_add(
         self,

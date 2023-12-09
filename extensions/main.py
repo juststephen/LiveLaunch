@@ -222,6 +222,7 @@ class LiveLaunch(commands.Cog):
         start: datetime = None,
         end: datetime = None,
         webcast_live: bool = False,
+        entity_type: int = None,
         **kwargs
     ) -> dict[str, int and str]:
         """
@@ -250,6 +251,8 @@ class LiveLaunch(commands.Cog):
             given, start must also be given.
         webcast_live : bool, default: False
             Start the Discord event.
+        entity_type : int, default: None
+            Location type of the event.
         **kwargs
 
         Returns
@@ -276,6 +279,11 @@ class LiveLaunch(commands.Cog):
         if webcast_live:
             now = datetime.now(timezone.utc) + self.timedelta_1m
             payload['scheduled_start_time'] = now.isoformat()
+        if entity_type is not None:
+            payload['entity_type'] = entity_type
+            # When external, remove channel ID
+            if entity_type == 3:
+                payload['channel_id'] = None
         # Modify
         return self.bot.http.edit_scheduled_event(
             guild_id,
@@ -401,23 +409,29 @@ class LiveLaunch(commands.Cog):
                     if getattr(e, 'code', None) == 50013:
                         remove_event = True
 
-                    # Users manually started event, ignoring `start` and `webcast_live`
-                    elif (getattr(e, 'code', None) == 50035
-                            and 'Cannot update start time of non-scheduled event.' in e.text):
-
-                        # Remove `start` and `webcast_live` from the modify dictionary
-                        modify.pop('start', None)
-                        modify.pop('webcast_live', None)
-
-                        # Attempt to update again
-                        try:
-                            await self.modify_scheduled_event(
-                                guild_id,
-                                scheduled_event_id,
-                                **modify
-                            )
-                        except:
+                    # Sometimes fixable errors
+                    elif getattr(e, 'code', None) == 50035:
+                        # Users manually started event, ignoring `start` and `webcast_live`
+                        if 'Cannot update start time of non-scheduled event.' in e.text:
+                            # Remove `start` and `webcast_live` from the modify dictionary
+                            modify.pop('start', None)
+                            modify.pop('webcast_live', None)
+                        # User changed location type of the event, changing back to external
+                        elif 'This type of event should not have entity metadata.' in e.text:
+                            modify['entity_type'] = 3
+                        else:
                             remove_event = True
+
+                        if not remove_event:
+                            # Attempt to update again
+                            try:
+                                await self.modify_scheduled_event(
+                                    guild_id,
+                                    scheduled_event_id,
+                                    **modify
+                                )
+                            except:
+                                remove_event = True
 
                     else:
                         failed = True

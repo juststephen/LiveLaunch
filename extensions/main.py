@@ -157,6 +157,7 @@ class LiveLaunch(commands.Cog):
             Description of the event.
         url : str
             External location of the event.
+            Must be 100 characters or less.
         start : datetime
             Start datetime of the event, if
             given, end must also be given.
@@ -189,8 +190,8 @@ class LiveLaunch(commands.Cog):
                 ` 2 `: VOICE
                 ` 3 `: EXTERNAL
         """
-        # Insert a replacement string when there is no stream URL
-        if url is None:
+        # Insert a replacement string for no URL or when the URL is too long
+        if url is None or len(url) > 100:
             url = ll2.no_stream
         # Replace start with now + `.timedelta_1m` if `webcast_live`
         if webcast_live:
@@ -241,6 +242,7 @@ class LiveLaunch(commands.Cog):
             Description of the event.
         url : str, default: None
             External location of the event.
+            Must be 100 characters or less.
         image : bytes, default: None
             Event cover image.
         start : datetime, default: None
@@ -268,7 +270,7 @@ class LiveLaunch(commands.Cog):
             payload['name'] = name
         if description is not None:
             payload['description'] = description
-        if url is not None:
+        if url is not None and len(url) <= 100:
             payload['entity_metadata'] = {'location': url}
         if image is not None:
             payload['image'] = _bytes_to_base64_data(image)

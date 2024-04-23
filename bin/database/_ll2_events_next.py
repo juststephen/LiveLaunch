@@ -43,7 +43,6 @@ class LL2EventsNext:
             return
 
         # Execute SQL
-        print('aaaaaaaaaaaaaaa')
         with await self.pool as con:
             async with con.cursor() as cur:
                 await cur.execute(

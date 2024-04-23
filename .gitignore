@@ -114,6 +114,5 @@ dmypy.json
 .pyre/
 
 # LiveLaunch specific
-geckodriver*
 LiveLaunchDatabase.drawio
 LiveLaunchDatabase.png

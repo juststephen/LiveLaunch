@@ -730,7 +730,7 @@ class LiveLaunch(commands.Cog):
         """
         Discord task for getting new NASA TV streams.
         """
-        self.nasatv.update()
+        await self.nasatv.update()
 
     @tasks.loop(minutes=3)
     async def check_ll2(self):

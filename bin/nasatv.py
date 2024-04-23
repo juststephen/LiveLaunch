@@ -1,13 +1,10 @@
+import asyncio
+from bs4 import BeautifulSoup
 import json
 import os
 from os.path import isfile
-from selenium.webdriver import Firefox
-from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.options import Options
-from selenium.webdriver.firefox.service import Service
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from threading import Thread
+
+from bin import get
 
 class NASATV:
     """
@@ -20,11 +17,12 @@ class NASATV:
     def __init__(self):
         # NASA TV
         self._nasatv_file = 'LiveLaunch_NASATV.json'
-        self._nasatv_url = 'https://www.nasa.gov/multimedia/nasatv/index.html'
+        self._nasatv_url = 'https://www.nasa.gov/nasatv/'
 
     def __contains__(self, url: str) -> bool:
         """
-        Checks of the given url string is contained in the `.nasatv` list.
+        Checks of the given url string is
+        contained in the `.nasatv` list.
 
         Parameters
         ----------
@@ -40,11 +38,13 @@ class NASATV:
 
     def _defaultNASAlive(self) -> None:
         """
-        Reads the `._nasatv_file` json file and sets the `.nasatv` variable.
+        Reads the `._nasatv_file` json file
+        and sets the `.nasatv` variable.
 
         Notes
         -----
-        Stores the NASA TV YouTube stream URLs into the `.nasatv` variable.
+        Stores the NASA TV YouTube stream
+        URLs into the `.nasatv` variable.
         """
         # Default NASA TV URLs
         nasatv_default = ['https://www.youtube.com/watch?v=21X5lGlDOfg', \
@@ -63,56 +63,43 @@ class NASATV:
             with open(self._nasatv_file, 'w', encoding='utf-8') as f:
                 json.dump({'nasatv': self.nasatv}, f, indent=2)
 
-    def _findNASAlive(self) -> None:
+    async def _findNASAlive(self) -> None:
         """
-        finds the permanent NASA TV livestreams and stores it using webpage scraping.
-        Stores found URLs in a list at `.nasatv` and in the `._nasatv_file` json file.
+        finds the permanent NASA TV livestreams
+        and stores it using webpage scraping.
+        Stores found URLs in a list at `.nasatv`
+        and in the `._nasatv_file` json file.
 
         Notes
         -----
-        Stores the NASA TV YouTube stream URLs into the `.nasatv` variable.
+        Stores the NASA TV YouTube stream
+        URLs into the `.nasatv` variable.
         """
-        # Finds href by using the link text.
-        get_href = lambda text: element.find_element(By.LINK_TEXT, text).get_property('href')
-        # Check wether this is running in Windows (64bit) or Linux (64bit)
-        if os.name == 'nt':
-            extension = '.exe'
-        else:
-            extension = ''
-        # Render NASA page to get URLs
-        options = Options()
-        options.headless = True
-        service = Service(f'{os.getcwd()}/geckodriver{extension}')
-        with Firefox(service=service, options=options) as driver:
-            try:
-                # Opening the webpage and wait for it to render
-                driver.get(self._nasatv_url)
-                element = WebDriverWait(driver, 8).until(
-                    EC.presence_of_element_located((By.CLASS_NAME, 'link-block'))
-                )
-                # Getting URLs
-                streams = [get_href(i) for i in ('Public-Education Channel', 'Media')]
-            except:
-                pass
-            else:
-                # Find new streams
-                newstreams = [i for i in streams if i not in self.nasatv]
-                # Only continue if there are new NASA TV streams
-                if newstreams:
-                    # Add new streams
-                    self.nasatv += newstreams
-                    # Store new NASA TV streams in the self._nasatv_file json
-                    with open(self._nasatv_file, 'w', encoding='utf-8') as f:
-                        json.dump({'nasatv': self.nasatv}, f, indent=2)
-            finally:
-                driver.close()
+        soup = BeautifulSoup(
+            await get(self._nasatv_url),
+            features='html.parser'
+        )
+        search = soup.find_all(
+            'a',
+            class_='button-primary button-primary-sm link-external-true'
+        )
+        # Getting URLs
+        streams = [i['href'] for i in search if 'youtube' in i['href']]
+        # Find new streams
+        newstreams = [i for i in streams if i not in self.nasatv]
+        # Only continue if there are new NASA TV streams
+        if newstreams:
+            # Add new streams
+            self.nasatv += newstreams
+            # Store new NASA TV streams in the self._nasatv_file json
+            with open(self._nasatv_file, 'w', encoding='utf-8') as f:
+                json.dump({'nasatv': self.nasatv}, f, indent=2)
 
-    def update(self) -> None:
+    async def update(self) -> None:
         """
         Updates the object if there are any new NASA TV streams found.
         """
         # Read json containing NASA TV streams
         self._defaultNASAlive()
-        # Get NASA TV live streams in a different thread
-        thread = Thread(target=self._findNASAlive)
-        thread.start()
+        # Get NASA TV live streams
+        await self._findNASAlive()

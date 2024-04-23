@@ -7,8 +7,8 @@ class YouTubeStripVideoID:
     using regex.
     """
     def __init__(self):
-        self.full = re.compile('(?<=youtube.com\/watch\?v=).*').search
-        self.short = re.compile('(?<=youtu.be\/).*').search
+        self.full = re.compile(r'(?<=youtube.com\/watch\?v=).*').search
+        self.short = re.compile(r'(?<=youtu.be\/).*').search
 
     def __call__(self, url: str) -> str or None:
         """

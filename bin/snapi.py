@@ -1,11 +1,9 @@
+import asyncio
 from datetime import datetime, timedelta, timezone
 from dateutil.parser import isoparse
 from operator import itemgetter
 
-try:
-    from bin import get
-except:
-    from aget import get
+from bin import get
 
 class SpaceflightNewsAPI:
     """

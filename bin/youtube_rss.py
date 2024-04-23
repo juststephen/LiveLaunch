@@ -1,15 +1,11 @@
+import asyncio
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone
 import json
 from os.path import isfile
 import re
 
-try:
-    from bin import get
-except:
-    from aget import get
-
-import asyncio
+from bin import get
 
 class YouTubeRSS:
     """

@@ -57,7 +57,7 @@ class LiveLaunchDB(commands.Cog):
             )
 
             # Logging deletion of unused notification webhook
-            logging.warning(f'Guild ID: {guild_id}\tRemoved notification webhook, unused.')
+            logging.info(f'Guild ID: {guild_id}\tRemoved notification webhook, unused.')
 
 
 async def setup(bot: commands.Bot):

@@ -23,7 +23,7 @@ warnings.filterwarnings(
 load_dotenv() # Loading token
 TOKEN = getenv('DISCORD_TOKEN')
 if not TOKEN:
-    print('RIP, no TOKEN.')
+    logging.critical('RIP, no TOKEN.')
     exit()
 
 class LiveLaunchBot(Bot):
@@ -54,12 +54,12 @@ class LiveLaunchBot(Bot):
         # Load extensions during setup
         for extension in self.initial_extensions :
             await self.load_extension(extension)
-            print(f'Loaded {extension}')
+            logging.info(f'Loaded {extension}')
 
         # Create application commands if needed
         if False:
             response = await self.tree.sync()
-            print(response)
+            logging.debug(f'Creating application commands: {response}')
 
 bot = LiveLaunchBot()
 
@@ -67,7 +67,7 @@ bot = LiveLaunchBot()
 async def on_ready():
     # Set status
     await bot.change_presence(activity=Game(name='Kerbal Space Program'))
-    # Print amount of servers joined
-    print(f'{bot.user} Connected to {len(bot.guilds)} servers.')
+    # Log amount of servers joined
+    logging.info(f'{bot.user} Connected to {len(bot.guilds)} servers.')
 
 bot.run(TOKEN, log_handler=logger)

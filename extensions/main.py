@@ -121,11 +121,10 @@ class LiveLaunch(commands.Cog):
                     channel_id=None,
                     webhook_url=None
                 )
-                logging.warning(f'Guild ID: {guild_id}\tRemoved webhook, not found.')
+                logging.info(f'Guild ID: {guild_id}\tRemoved webhook, not found.')
             # When the bot fails (edge case)
             except Exception as e:
-                logging.warning(f'Guild ID: {guild_id}\tError during webhook sending: {e}, {type(e)}')
-                print(f'Guild ID: {guild_id}\tError during webhook sending: {e}, {type(e)}')
+                logging.error(f'Guild ID: {guild_id}\tError during webhook sending: {e}, {type(e)}')
 
         # Sending complete, add streams to the database to prevent sending it again
         for send in sending:
@@ -437,11 +436,10 @@ class LiveLaunch(commands.Cog):
 
                     else:
                         failed = True
-                        logging.warning(
+                        logging.error(
                             f'LL2 ID: {ll2_id}\tGuild ID: {guild_id}\t' \
                             f'Modify failure: {e} {type(e)}'
                         )
-                        print('Modify failure:', e, type(e))
 
                 if remove_event:
                     # Remove scheduled event from the database
@@ -491,11 +489,10 @@ class LiveLaunch(commands.Cog):
                 if getattr(e, 'code', None) != 50013:
                     success = False
                     status = False
-                    logging.warning(
+                    logging.error(
                         f'LL2 ID: {ll2_id}\tGuild ID: {guild_id}\t' \
                         f'Removal failure: {e} {type(e)}'
                     )
-                    print('Removal failure:', e, type(e))
             if success:
                 # Remove scheduled event from the database
                 await self.bot.lldb.scheduled_events_remove(
@@ -598,11 +595,10 @@ class LiveLaunch(commands.Cog):
                         notification_channel_id=None,
                         notification_webhook_url=None
                     )
-                    logging.warning(f'Guild ID: {guild_id}\tRemoved notification webhook, not found.')
+                    logging.info(f'Guild ID: {guild_id}\tRemoved notification webhook, not found.')
                 # When the bot fails (edge case)
                 except Exception as e:
-                    logging.warning(f'Guild ID: {guild_id}\tError during notification webhook sending: {e}, {type(e)}')
-                    print(f'Guild ID: {guild_id}\tError during notification webhook sending: {e}, {type(e)}')
+                    logging.error(f'Guild ID: {guild_id}\tError during notification webhook sending: {e}, {type(e)}')
 
         # Kwargs dict and get status
         kwargs = {'ll2_id': ll2_id}
@@ -747,7 +743,7 @@ class LiveLaunch(commands.Cog):
 
         # No data, return
         if not upcoming:
-            print('No LL2 Data')
+            logging.info('No LL2 Data')
             return
 
         #### Discord scheduled events & notifications ####
@@ -905,8 +901,7 @@ class LiveLaunch(commands.Cog):
                     if getattr(e, 'code', None) == 50013:
                         reset_settings = True
                     else:
-                        logging.warning(f'Creation failure in iter: {e} {type(e)}')
-                        print('Creation failure in iter:', e, type(e))
+                        logging.error(f'Creation failure in iter: {e} {type(e)}')
                 else:
                     # Add scheduled event to the database
                     await self.bot.lldb.scheduled_events_add(
@@ -938,8 +933,7 @@ class LiveLaunch(commands.Cog):
                     # Wrong permissions
                     if getattr(e, 'code', None) != 50013:
                         removed = False
-                        logging.warning(f'Removal failure in iter: {e} {type(e)}')
-                        print('Removal failure in iter:', e, type(e))
+                        logging.error(f'Removal failure in iter: {e} {type(e)}')
                 if removed:
                     # Remove scheduled event from the database
                     await self.bot.lldb.scheduled_events_remove(

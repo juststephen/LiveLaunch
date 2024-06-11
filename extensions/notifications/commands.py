@@ -344,8 +344,7 @@ class LiveLaunchNotificationsCommands(
                 ephemeral=True
             )
         else:
-            logging.warning(f'Command: {interaction.command}\nError: {error}')
-            print(f'Command: {interaction.command}\nError: {error}')
+            logging.error(f'Command: {interaction.command}\tError: {error}')
 
 
 async def setup(bot: commands.Bot):

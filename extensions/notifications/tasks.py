@@ -138,11 +138,10 @@ class LiveLaunchNotificationsTasks(commands.Cog):
                     notification_channel_id=None,
                     notification_webhook_url=None
                 )
-                logging.warning(f'Guild ID: {guild_id}\tRemoved notification webhook, not found.')
+                logging.info(f'Guild ID: {guild_id}\tRemoved notification webhook, not found.')
             # When the bot fails (edge case)
             except Exception as e:
-                logging.warning(f'Guild ID: {guild_id}\tError during notification webhook sending: {e}, {type(e)}')
-                print(f'Guild ID: {guild_id}\tError during notification webhook sending: {e}, {type(e)}')
+                logging.error(f'Guild ID: {guild_id}\tError during notification webhook sending: {e}, {type(e)}')
 
     @countdown_notifications.before_loop
     async def before_loop(self):

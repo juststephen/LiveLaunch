@@ -104,11 +104,10 @@ class LiveLaunchNewsTasks(commands.Cog):
                     news_channel_id=None,
                     news_webhook_url=None
                 )
-                logging.warning(f'Guild ID: {guild_id}\tRemoved news webhook, not found.')
+                logging.info(f'Guild ID: {guild_id}\tRemoved news webhook, not found.')
             # When the bot fails (edge case)
             except Exception as e:
-                logging.warning(f'Guild ID: {guild_id}\tError during news webhook sending: {e}, {type(e)}')
-                print(f'Guild ID: {guild_id}\tError during news webhook sending: {e}, {type(e)}')
+                logging.error(f'Guild ID: {guild_id}\tError during news webhook sending: {e}, {type(e)}')
 
     @fetch_news.before_loop
     async def before_loop(self):

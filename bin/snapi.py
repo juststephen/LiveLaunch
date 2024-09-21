@@ -1,6 +1,5 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
-from dateutil.parser import isoparse
 from operator import itemgetter
 
 from bin import get
@@ -44,8 +43,10 @@ class SpaceflightNewsAPI:
         # Iterate over articles to filter and convert
         filtered_news = []
         for article in news['results']:
-            # Convert `published_at`'s to datetime
-            article['published_at'] = isoparse(article['published_at'])
+            # Convert `published_at` to datetime
+            article['published_at'] = datetime.fromisoformat(
+                article['published_at']
+            )
 
             # Skip article when it is older than 5 days
             if article['published_at'] < now_min5days:

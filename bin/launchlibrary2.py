@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from isodate import parse_duration
 import os
 
@@ -57,8 +57,10 @@ class LaunchLibrary2:
         2: '[NET %H:00 UTC] ', # Hour
         3: '[Morning (local)] ', # Morning
         4: '[Afternoon (local)] ', # Afternoon
-        5: '[NET %B %#d] ' if os.name == 'nt' else '[NET %B %-d] ', # Day (Windows or Linux)
-        6: '[NET Week %#W] ' if os.name == 'nt' else '[NET Week %-W] ', # Week (Windows or Linux)
+        # Day (Windows or Linux)
+        5: '[NET %B %#d] ' if os.name == 'nt' else '[NET %B %-d] ',
+        # Week (Windows or Linux)
+        6: '[NET Week %#W] ' if os.name == 'nt' else '[NET Week %-W] ',
         7: '[NET %B] ', # Month
         8: '[Q1 %Y] ', # Q1
         9: '[Q2 %Y] ', # Q2
@@ -90,8 +92,8 @@ class LaunchLibrary2:
         self.max_events = 64
         # Max description length
         self.max_description_length = 1000
-        # 1 hour timedelta
-        self.dt1 = timedelta(hours=-1)
+        # Timedelta to limit time frame of the query
+        self.timedelta_max_net = timedelta(days=1461)
         # End launch status tags
         self.launch_status_end = (3, 4, 7)
         # Event duration (i.e. long EVAs)
@@ -102,8 +104,8 @@ class LaunchLibrary2:
         # Supported image formats
         self.image_formats = ('.gif', '.jpeg', '.jpg', '.png', '.webp')
         # Launch Library 2 API
-        self.ll2_launch_url = 'https://ll.thespacedevs.com/2.2.0/launch/upcoming/?mode=detailed&limit=32'
-        self.ll2_event_url = 'https://ll.thespacedevs.com/2.2.0/event/upcoming/?limit=32'
+        self.ll2_launch_url = 'https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=50&mode=detailed&net__lte=%s'
+        self.ll2_event_url = 'https://ll.thespacedevs.com/2.2.0/event/upcoming/?date__lte=%s&limit=50'
 
     async def ll2_request(self, url: str) -> dict or None:
         """
@@ -143,7 +145,10 @@ class LaunchLibrary2:
             mission description, net time, video URL and LL2 ID.
         """
         # Request data
-        results = await self.ll2_request(self.ll2_launch_url)
+        max_net = datetime.now(timezone.utc) + self.timedelta_max_net
+        results = await self.ll2_request(
+            self.ll2_launch_url % max_net.strftime('%Y-%m-%dT%H:%M:%SZ')
+        )
         if results is None:
             return {}
 
@@ -218,7 +223,10 @@ class LaunchLibrary2:
             mission description, net time, video URL and LL2 ID.
         """
         # Request data
-        results = await self.ll2_request(self.ll2_event_url)
+        max_net = datetime.now(timezone.utc) + self.timedelta_max_net
+        results = await self.ll2_request(
+            self.ll2_event_url % max_net.strftime('%Y-%m-%dT%H:%M:%SZ')
+        )
         if results is None:
             return {}
 

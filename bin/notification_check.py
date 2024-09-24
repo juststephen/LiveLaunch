@@ -24,14 +24,15 @@ class NotificationCheck:
         self.timedelta_4w = timedelta(weeks=4)
         # Dictionary containing statuses
         self.notification_status = {
-            1: {1: 1, 2: 2, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 2},
-            2: {1: 2, 2: None, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 2},
-            3: {i: None for i in range(9)},
-            4: {i: None for i in range(9)},
-            5: {1: 2, 2: 2, 3: 0, 4: 0, 5: None, 6: 0, 7: 0, 8: 2},
-            6: {1: None, 2: None, 3: 0, 4: 0, 5: None, 6: None, 7: 0, 8: None},
-            7: {i: None for i in range(9)},
-            8: {1: 2, 2: 2, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 1}
+            1: {1: 1, 2: 2, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 2, 9: 0},
+            2: {1: 2, 2: None, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 2, 9: 0},
+            3: {i: None for i in range(10)},
+            4: {i: None for i in range(10)},
+            5: {1: 2, 2: 2, 3: 0, 4: 0, 5: None, 6: 0, 7: 0, 8: 2, 9: 0},
+            6: {1: None, 2: None, 3: 0, 4: 0, 5: None, 6: None, 7: 0, 8: None, 9: 0},
+            7: {i: None for i in range(10)},
+            8: {1: 2, 2: 2, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 1, 9: 0},
+            9: {1: None, 2: None, 3: 0, 4: 0, 5: None, 6: None, 7: 0, 8: None, 9: None}
         }
 
     def __call__(

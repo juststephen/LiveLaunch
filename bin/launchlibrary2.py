@@ -39,6 +39,7 @@ class LaunchLibrary2:
         6: 0x0000FF, # In Flight
         7: 0xFF7F00, # Partial Failure
         8: 0xFF7F00, # TBC
+        9: 0x00FFFF, # Payload Deployed
     }
 
     # Status names for embeds
@@ -51,6 +52,7 @@ class LaunchLibrary2:
         6: 'Launch in Flight',
         7: 'Launch was a Partial Failure',
         8: 'To Be Confirmed',
+        9: 'Payload Deployed',
     }
 
     net_precision_formats = {
@@ -104,8 +106,8 @@ class LaunchLibrary2:
         # Supported image formats
         self.image_formats = ('.gif', '.jpeg', '.jpg', '.png', '.webp')
         # Launch Library 2 API
-        self.ll2_launch_url = 'https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=50&mode=detailed&net__lte=%s'
-        self.ll2_event_url = 'https://ll.thespacedevs.com/2.2.0/event/upcoming/?date__lte=%s&limit=50'
+        self.ll2_launch_url = 'https://ll.thespacedevs.com/2.3.0/launches/upcoming/?limit=50&mode=detailed&net__lte=%s'
+        self.ll2_event_url = 'https://ll.thespacedevs.com/2.3.0/events/upcoming/?date__lte=%s&limit=50'
 
     async def ll2_request(self, url: str) -> dict or None:
         """
@@ -161,7 +163,7 @@ class LaunchLibrary2:
             net = datetime.fromisoformat(entry['net'])
 
             # Name formatting
-            if (net_precision := entry['net_precision']):
+            if (net_precision := entry['net_precision']) is not None:
                 # Name with NET precision
                 name = net.strftime(
                     self.net_precision_formats.get(net_precision['id'], '')
@@ -171,14 +173,13 @@ class LaunchLibrary2:
                 name = entry['name'] if entry['status']['id'] != 2 else '[TBD] ' + entry['name']
 
             # Check for videos
+            priority = None
             picked_video = None
-            if 'vidURLs' in entry and entry['vidURLs']:
-                priority = None
-                for url in entry['vidURLs']:
-                    # Find lowest priority value
-                    if priority is None or url['priority'] < priority:
-                        priority = url['priority']
-                        picked_video = url['url']
+            for url in entry['vid_urls']:
+                # Find lowest priority value
+                if priority is None or url['priority'] < priority:
+                    priority = url['priority']
+                    picked_video = url['url']
 
             # Check description length and trim if needed
             if (description := entry['mission']) is not None:
@@ -189,7 +190,9 @@ class LaunchLibrary2:
                     description = description[:self.max_description_length-3] + '...'
 
             # Image format check
-            if (image_url := entry['image']) and not image_url.lower().endswith(self.image_formats):
+            if ((image := entry['image']) is None or
+                    (image_url := image['image_url']) and
+                    not image_url.lower().endswith(self.image_formats)):
                 image_url = None
 
             # Adding event to launches list
@@ -239,7 +242,7 @@ class LaunchLibrary2:
             net = datetime.fromisoformat(entry['date'])
 
             # Name formatting
-            if (net_precision := entry['date_precision']):
+            if (net_precision := entry['date_precision']) is not None:
                 # Name with NET precision
                 name = net.strftime(
                     self.net_precision_formats.get(net_precision['id'], '')
@@ -253,15 +256,19 @@ class LaunchLibrary2:
                 event_type = 'default'
 
             # Duration timedelta using potential duration
-            if (duration := entry['duration']):
+            if (duration := entry['duration']) is not None:
                 duration = parse_duration(duration)
             else:
                 duration = self.event_duration[event_type]
 
-            # Check for video
+            # Check for videos
+            priority = None
             picked_video = None
-            if 'video_url' in entry and entry['video_url']:
-                picked_video = entry['video_url']
+            for url in entry['vid_urls']:
+                # Find lowest priority value
+                if priority is None or url['priority'] < priority:
+                    priority = url['priority']
+                    picked_video = url['url']
 
             # Check description length and trim if needed
             if ((description := entry['description']) is not None
@@ -269,7 +276,9 @@ class LaunchLibrary2:
                 description = description[:self.max_description_length-3] + '...'
 
             # Image format check
-            if (image_url := entry['feature_image']) and not image_url.lower().endswith(self.image_formats):
+            if ((image := entry['image']) is None or
+                    (image_url := image['image_url']) and
+                    not image_url.lower().endswith(self.image_formats)):
                 image_url = None
 
             # Adding event to events list
@@ -306,11 +315,8 @@ class LaunchLibrary2:
         if not ( launches and events ):
             return {}
 
-        # Combine
-        try: # Python 3.9+
-            upcoming = launches | events
-        except: # Older versions
-            upcoming = {**launches, **events}
+        # Combine launches and events
+        upcoming = launches | events
 
         # Sort by start datetime and limit it to `.max_events` items
         upcoming = dict(

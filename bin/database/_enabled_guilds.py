@@ -238,6 +238,7 @@ class EnabledGuilds:
             notification_event : int,
             notification_liftoff : int,
             notification_hold : int,
+            notification_deploy : int,
             notification_end_status : int,
             notification_scheduled_event : int
             ] or None
@@ -428,6 +429,8 @@ class EnabledGuilds:
                                 eg.notification_liftoff
                                 OR
                                 eg.notification_hold
+                                OR
+                                eg.notification_deploy
                                 OR
                                 eg.notification_end_status
                             )

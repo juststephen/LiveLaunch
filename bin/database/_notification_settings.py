@@ -16,6 +16,7 @@ class NotificationSettings:
         go: bool = None,
         liftoff: bool = None,
         hold: bool = None,
+        deploy: bool = None,
         end_status: bool = None,
         scheduled_event: bool = None
     ) -> None:
@@ -51,6 +52,9 @@ class NotificationSettings:
         hold : bool, default: None
             Enable/disable launch
             hold notifications.
+        deploy : bool, default: None
+            Enable/disable payload
+            deployed status notifications.
         end_status : bool, default: None
             Enable/disable launch
             end status notifications.
@@ -92,6 +96,10 @@ class NotificationSettings:
         if hold is not None:
             cols.append('notification_hold=%s')
             args.append(hold)
+        # Update deploy if given
+        if deploy is not None:
+            cols.append('notification_deploy=%s')
+            args.append(deploy)
         # Update end_status if given
         if end_status is not None:
             cols.append('notification_end_status=%s')

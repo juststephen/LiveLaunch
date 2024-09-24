@@ -87,6 +87,7 @@ class LiveLaunchNotificationsCommands(
                 'go': everything,
                 'liftoff': everything,
                 'hold': everything,
+                'deploy': everything,
                 'end_status': everything,
                 'scheduled_event': everything
             }
@@ -254,6 +255,7 @@ class LiveLaunchNotificationsCommands(
         self,
         interaction: Interaction,
         end_status: enums.EnableDisable = None,
+        deploy: enums.EnableDisable = None,
         hold: enums.EnableDisable = None,
         liftoff: enums.EnableDisable = None,
         go: enums.EnableDisable = None,
@@ -265,9 +267,12 @@ class LiveLaunchNotificationsCommands(
 
         Parameters
         ----------
-        end_status: enums.EnableDisable, default: None
+        end_status : enums.EnableDisable, default: None
             Enable/disable final
             status notifications.
+        deploy : enums.EnableDisable, default: None
+            Enable/disable payload
+            deployed status notifications.
         hold : enums.EnableDisable, default: None
             Enable/disable
             hold notifications.
@@ -300,6 +305,8 @@ class LiveLaunchNotificationsCommands(
         settings = {}
         if end_status is not None:
             settings['end_status'] = end_status is enums.EnableDisable.Enable
+        if deploy is not None:
+            settings['deploy'] = deploy is enums.EnableDisable.Enable
         if hold is not None:
             settings['hold'] = hold is enums.EnableDisable.Enable
         if liftoff is not None:

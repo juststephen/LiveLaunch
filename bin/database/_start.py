@@ -11,7 +11,6 @@ class Start:
         """
         Loads the LiveLaunch database.
         """
-        self.started = True
         # Connect
         self.pool = await aiomysql.create_pool(
             host=self._host,
@@ -47,6 +46,7 @@ class Start:
                     notification_go TINYINT UNSIGNED DEFAULT 0,
                     notification_liftoff TINYINT UNSIGNED DEFAULT 0,
                     notification_hold TINYINT UNSIGNED DEFAULT 0,
+                    notification_deploy TINYINT UNSIGNED DEFAULT 0,
                     notification_end_status TINYINT UNSIGNED DEFAULT 0,
                     notification_scheduled_event TINYINT UNSIGNED DEFAULT 0,
                     notification_button_fc TINYINT UNSIGNED DEFAULT 1,
@@ -164,3 +164,5 @@ class Start:
                     )
                     """
                 )
+        # Database is ready
+        self.started = True

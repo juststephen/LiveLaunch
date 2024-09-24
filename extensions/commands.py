@@ -591,7 +591,7 @@ class LiveLaunchCommand(commands.Cog):
             ),
             (
                 'Launch end status',
-                'Payload Deployed',
+                'Payload deployed',
                 'Launch hold',
                 'Launch liftoff',
                 'Go for launch',

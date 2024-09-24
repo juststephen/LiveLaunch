@@ -88,6 +88,10 @@ class NotificationIter:
             settings.append(
                 f'{status_prefix}eg.notification_hold'
             )
+        elif status == 9:
+            settings.append(
+                f'{status_prefix}eg.notification_deploy'
+            )
         elif status in (3, 4, 7):
             settings.append(
                 f'{status_prefix}eg.notification_end_status'

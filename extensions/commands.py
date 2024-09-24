@@ -582,6 +582,7 @@ class LiveLaunchCommand(commands.Cog):
         for key, name in zip(
             (
                 'notification_end_status',
+                'notification_deploy',
                 'notification_hold',
                 'notification_liftoff',
                 'notification_go',
@@ -590,6 +591,7 @@ class LiveLaunchCommand(commands.Cog):
             ),
             (
                 'Launch end status',
+                'Payload Deployed',
                 'Launch hold',
                 'Launch liftoff',
                 'Go for launch',

@@ -84,9 +84,10 @@ class LiveLaunchHelp(commands.Cog):
         )
         embed.add_field(
             name='Notifications Launch Status',
-            value='Use `/notifications launch_status` to enable/disable notifications '
-                'for launch status changes. These are `end_status`, `hold`, `liftoff`, '
-                '`go`, `tbc` and `tbd`.'
+            value='Use `/notifications launch_status` to enable/disable '
+                'notifications for launch status changes. These are '
+                '`end_status`, `deploy`, `hold`, '
+                '`liftoff`, `go`, `tbc` and `tbd`.'
         )
 
         # Send embed

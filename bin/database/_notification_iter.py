@@ -98,7 +98,7 @@ class NotificationIter:
             )
 
         # Execute SQL
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute(
                     f"""

@@ -23,7 +23,7 @@ class NotificationCountdown:
             Amount of minutes
             per notification.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
@@ -55,7 +55,7 @@ class NotificationCountdown:
             when sorting minutes
             by ascending.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
@@ -109,7 +109,7 @@ class NotificationCountdown:
             the countdown minute
             settings of the guild.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
@@ -146,7 +146,7 @@ class NotificationCountdown:
             Whether or not the maximum
             has been reached.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
@@ -204,7 +204,7 @@ class NotificationCountdown:
             return
 
         # Execute SQL
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute(
                     """

@@ -26,7 +26,7 @@ class ScheduledEvents:
             Launch Library 2 ID indicating
             scheduled event content.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
@@ -54,7 +54,7 @@ class ScheduledEvents:
         scheduled_event_id : int
             Discord scheduled event ID.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
@@ -85,7 +85,7 @@ class ScheduledEvents:
         scheduled_event_id : int
             Discord scheduled event ID.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
@@ -128,7 +128,7 @@ class ScheduledEvents:
         scheduled_event_id : int
             Discord scheduled event ID.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
@@ -166,7 +166,7 @@ class ScheduledEvents:
             Yields row with of a scheduled
             event linked to the LL2 event.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
@@ -193,7 +193,7 @@ class ScheduledEvents:
             create_remove : bool = False
         ]
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute(
                     """
@@ -303,7 +303,7 @@ class ScheduledEvents:
             create_remove : bool = True
         ]
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute(
                     """

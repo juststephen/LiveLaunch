@@ -55,7 +55,7 @@ class LL2Events:
             Event has a Flight Club page.
         **kwargs
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
@@ -90,7 +90,7 @@ class LL2Events:
         ll2_id : str
             Launch Library 2 ID.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
@@ -144,7 +144,7 @@ class LL2Events:
         else:
             raise Exception('Wrong `asc_desc` value given.')
 
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute(
                     f"""
@@ -193,7 +193,7 @@ class LL2Events:
             Returns a row with the ll2_event's data
             if it exists, otherwise None.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute(
                     """
@@ -293,7 +293,7 @@ class LL2Events:
         # Add ll2_id to the arguments
         args.append(ll2_id)
         # Update
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     f"""

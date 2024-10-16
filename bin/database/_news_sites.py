@@ -12,7 +12,7 @@ class News:
         news_site_name : str
             Name of the news site.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
@@ -42,7 +42,7 @@ class News:
         logo_url : str
             Logo of the news site.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """

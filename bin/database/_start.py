@@ -19,7 +19,7 @@ class Start:
             db=self._database,
             autocommit=True
         )
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 # Create table for storing guild settings
                 await cur.execute(

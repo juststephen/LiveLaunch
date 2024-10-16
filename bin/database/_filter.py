@@ -63,7 +63,7 @@ class Filter:
             `True` when included,
             `False` when excluded.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     f"""
@@ -97,7 +97,7 @@ class Filter:
             `True` when included,
             `False` when excluded.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     f"""
@@ -151,7 +151,7 @@ class Filter:
         }
         failed = []
 
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 # Iterating over data to check & perform SQL
                 for col, args in data.items():
@@ -305,7 +305,7 @@ class Filter:
             names & IDs being filtered
             or all available ones.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 if guild_id:
                     await cur.execute(
@@ -368,7 +368,7 @@ class Filter:
             True when the name or ID is
             not filtered within the guild.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 if name_value:
                     await cur.execute(

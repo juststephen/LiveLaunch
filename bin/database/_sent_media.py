@@ -37,7 +37,7 @@ class SentMedia:
             args = (yt_vid_id, timestamp)
 
         # Connect and add
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     f"""
@@ -56,7 +56,7 @@ class SentMedia:
         -----
         Removes entries older than one year.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
@@ -101,7 +101,7 @@ class SentMedia:
             args = (yt_vid_id,)
 
         # Connect and check
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     f"""

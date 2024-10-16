@@ -46,7 +46,7 @@ class ButtonSettings:
         args.append(guild_id)
 
         # Update db
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     f"""
@@ -83,7 +83,7 @@ class ButtonSettings:
             Button settings
             for the guild.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute(
                     f"""

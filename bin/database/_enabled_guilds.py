@@ -44,7 +44,7 @@ class EnabledGuilds:
             Discord webhook URL for
             sending notifications.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
@@ -83,7 +83,7 @@ class EnabledGuilds:
         guild_id : int
             Discord guild ID.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
@@ -108,7 +108,7 @@ class EnabledGuilds:
             Whether or not the
             guild has any settings.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
@@ -134,7 +134,7 @@ class EnabledGuilds:
             Yields the guild_id,
             news_webhook_url.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
@@ -168,7 +168,7 @@ class EnabledGuilds:
             created before reaching
             the guild's maximum amount.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
@@ -195,7 +195,7 @@ class EnabledGuilds:
             Yields Discord Guild ID and
             webhook url when it exists.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
@@ -245,7 +245,7 @@ class EnabledGuilds:
             Returns a row with the guild's data
             if it exists, otherwise None.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute(
                     """
@@ -322,7 +322,7 @@ class EnabledGuilds:
         # Add guild ID to the arguments
         args.append(guild_id)
         # Update
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     f"""
@@ -339,7 +339,7 @@ class EnabledGuilds:
         the `enabled_guilds` table of the
         LiveLaunch database.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
@@ -383,7 +383,7 @@ class EnabledGuilds:
             Yields the Guild ID and
             notification webhook URL.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """

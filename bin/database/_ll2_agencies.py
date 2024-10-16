@@ -19,7 +19,7 @@ class LL2Agencies:
         name : str
             Name of the agency.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """
@@ -52,7 +52,7 @@ class LL2Agencies:
         logo_url : str
             Logo of the agency.
         """
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     """

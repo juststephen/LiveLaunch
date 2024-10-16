@@ -46,7 +46,7 @@ class ScheduledEventsSettings:
         args.append(guild_id)
 
         # Update db
-        with await self.pool as con:
+        async with self.pool.acquire() as con:
             async with con.cursor() as cur:
                 await cur.execute(
                     f"""

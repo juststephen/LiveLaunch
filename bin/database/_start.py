@@ -164,5 +164,3 @@ class Start:
                     )
                     """
                 )
-        # Database is ready
-        self.started = True

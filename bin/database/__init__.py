@@ -38,7 +38,6 @@ class Database(
         self._host = 'server.juststephen.com'
         self._user = 'root'
         self._database = 'LiveLaunch'
-        self.started = False
         # Initialize filter classes
         LL2AgenciesFilter.__init__(self)
         NewsFilter.__init__(self)

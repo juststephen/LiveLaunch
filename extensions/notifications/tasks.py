@@ -143,13 +143,6 @@ class LiveLaunchNotificationsTasks(commands.Cog):
             except Exception as e:
                 logging.error(f'Guild ID: {guild_id}\tError during notification webhook sending: {e}, {type(e)}')
 
-    @countdown_notifications.before_loop
-    async def before_loop(self):
-        """
-        Wait untill the database is loaded.
-        """
-        await self.bot.wait_until_ready()
-
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(LiveLaunchNotificationsTasks(bot))

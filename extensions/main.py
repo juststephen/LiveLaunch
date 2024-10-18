@@ -1016,14 +1016,6 @@ class LiveLaunch(commands.Cog):
             # Send streams
             await self.send_webhook_message(sending)
 
-    @check_ll2.before_loop
-    @check_rss.before_loop
-    async def before_loop(self):
-        """
-        Wait untill the database is loaded.
-        """
-        await self.bot.wait_until_ready()
-
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(LiveLaunch(bot))

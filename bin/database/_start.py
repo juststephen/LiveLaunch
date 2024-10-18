@@ -1,15 +1,22 @@
 import aiomysql
+import logging
 from os import getenv
+from types import TracebackType
+from typing import Literal, Self
 
 class Start:
     """
-    Start class containing the `.start()` method for
-    connecting to the database and creating the
-    necessary tables if needed.
+    Class containing the database pool connect and disconnect logic.
     """
     async def start(self) -> bool:
         """
-        Loads the LiveLaunch database.
+        Creates the LiveLaunch database connection pool
+        and required tables if they don't exist yet.
+
+        Examples
+        --------
+        >>> async with db:
+        ...    await db.start()
         """
         # Connect
         self.pool = await aiomysql.create_pool(
@@ -164,3 +171,49 @@ class Start:
                     )
                     """
                 )
+
+    async def __aenter__(self) -> Self:
+        """
+        Enter asynchronous context manager.
+
+        Returns
+        -------
+        self : Database
+            Returns self.
+        """
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[Exception] | None,
+        exc_value: Exception | None,
+        traceback: TracebackType | None
+    ) -> Literal[True] | None:
+        """
+        Exit asynchronous context manager.
+        Closes the database connection pool.
+
+        Parameters
+        ----------
+        exc_type : type[Exception] or None
+            Exception type.
+        exc_value : Exception or None
+            Exception value.
+        traceback : TracebackType or None
+            Exception traceback.
+
+        Returns
+        -------
+        exc_handled : Literal[True] or None
+            True when exception handled, otherwise None.
+        """
+        # Close pool
+        if hasattr(self, 'pool'):
+            self.pool.close()
+            await self.pool.wait_closed()
+        # Surpress exception if the database is down and log it
+        if exc_type is aiomysql.OperationalError:
+            logging.critical(
+                f'Cannot connect to the database, exiting: {exc_value}'
+            )
+            return True

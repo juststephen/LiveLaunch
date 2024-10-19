@@ -3,34 +3,19 @@ from discord import Webhook
 from discord.ext import commands, tasks
 import logging
 
-from bin import Database
-
 class LiveLaunchDB(commands.Cog):
     """
-    Discord.py cog for loading database methods.
-
-    Notes
-    -----
-    The database can be accessed via
-    the `.bot.lldb` variable.
+    Discord.py cog for cleaning up the database.
     """
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
-        self.bot.lldb = Database()
         self.clean_database.start()
-
-    def cog_unload(self):
-        self.bot.lldb.pool.close()
 
     @tasks.loop(hours=24)
     async def clean_database(self) -> None:
         """
-        Discord task for starting
-        and cleaning up the database.
+        Discord task for cleaning up the database.
         """
-        if not hasattr(self.bot.lldb, 'pool'):
-            await self.bot.lldb.start()
-
         # Clean sent media
         await self.bot.lldb.sent_media_clean()
 

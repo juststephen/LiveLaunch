@@ -10,10 +10,14 @@ import warnings
 from bin import Database
 
 logging.basicConfig(
-    filename='LiveLaunch.log',
-    format='%(asctime)s : %(name)s - %(levelname)s - %(message)s',
-    level=logging.WARNING
+    filename='livelaunch.log',
+    format='{asctime} : {name} - {levelname} - {message}',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    style='{',
+    level=logging.WARNING,
+    encoding='utf-8'
 )
+
 # No Discord voice support required, turn warning off
 VoiceClient.warn_nacl = False
 # Turn off aiomysql table creation warnings

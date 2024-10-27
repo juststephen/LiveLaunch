@@ -11,6 +11,8 @@ from bin import (
     LaunchLibrary2 as ll2
 )
 
+logger = logging.getLogger(__name__)
+
 @app_commands.guild_only()
 class LiveLaunchNotificationsCommands(
     commands.GroupCog,
@@ -351,7 +353,7 @@ class LiveLaunchNotificationsCommands(
                 ephemeral=True
             )
         else:
-            logging.error(f'Command: {interaction.command}\tError: {error}')
+            logger.error(error)
 
 
 async def setup(bot: commands.Bot):

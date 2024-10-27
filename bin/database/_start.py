@@ -4,6 +4,8 @@ from os import getenv
 from types import TracebackType
 from typing import Literal, Self
 
+logger = logging.getLogger(__name__)
+
 class Start:
     """
     Class containing the database pool connect and disconnect logic.
@@ -213,7 +215,7 @@ class Start:
             await self.pool.wait_closed()
         # Surpress exception if the database is down and log it
         if exc_type is aiomysql.OperationalError:
-            logging.critical(
+            logger.critical(
                 f'Cannot connect to the database, exiting: {exc_value}'
             )
             return True

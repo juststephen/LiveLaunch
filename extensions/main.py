@@ -18,6 +18,8 @@ from bin import (
     YouTubeStripVideoID
 )
 
+logger = logging.getLogger(__name__)
+
 class LiveLaunch(commands.Cog):
     """
     Discord.py cog for reporting live launches.
@@ -121,10 +123,16 @@ class LiveLaunch(commands.Cog):
                     channel_id=None,
                     webhook_url=None
                 )
-                logging.info(f'Guild ID: {guild_id}\tRemoved webhook, not found.')
+                logger.info(
+                    f'Guild ID {guild_id}: removed'
+                    ' unfound video webhook'
+                )
             # When the bot fails (edge case)
             except Exception as e:
-                logging.error(f'Guild ID: {guild_id}\tError during webhook sending: {e}, {type(e)}')
+                logger.error(
+                    f'Guild ID {guild_id}: error during '
+                    f'video webhook sending: {e}, {type(e)}'
+                )
 
         # Sending complete, add streams to the database to prevent sending it again
         for send in sending:
@@ -436,9 +444,9 @@ class LiveLaunch(commands.Cog):
 
                     else:
                         failed = True
-                        logging.error(
-                            f'LL2 ID: {ll2_id}\tGuild ID: {guild_id}\t' \
-                            f'Modify failure: {e} {type(e)}'
+                        logger.error(
+                            f'LL2 ID {ll2_id}, Guild ID {guild_id}:'
+                            f' modify failure: {e} {type(e)}'
                         )
 
                 if remove_event:
@@ -489,9 +497,9 @@ class LiveLaunch(commands.Cog):
                 if getattr(e, 'code', None) != 50013:
                     success = False
                     status = False
-                    logging.error(
-                        f'LL2 ID: {ll2_id}\tGuild ID: {guild_id}\t' \
-                        f'Removal failure: {e} {type(e)}'
+                    logger.error(
+                        f'LL2 ID {ll2_id}, Guild ID {guild_id}:'
+                        f' removal failure: {e} {type(e)}'
                     )
             if success:
                 # Remove scheduled event from the database
@@ -595,10 +603,16 @@ class LiveLaunch(commands.Cog):
                         notification_channel_id=None,
                         notification_webhook_url=None
                     )
-                    logging.info(f'Guild ID: {guild_id}\tRemoved notification webhook, not found.')
+                    logger.info(
+                        f'Guild ID: {guild_id}: removed'
+                        ' unfound notification webhook'
+                    )
                 # When the bot fails (edge case)
                 except Exception as e:
-                    logging.error(f'Guild ID: {guild_id}\tError during notification webhook sending: {e}, {type(e)}')
+                    logger.error(
+                        f'Guild ID: {guild_id}: error during '
+                        f'notification webhook sending: {e}, {type(e)}'
+                    )
 
         # Kwargs dict and get status
         kwargs = {'ll2_id': ll2_id}
@@ -743,7 +757,7 @@ class LiveLaunch(commands.Cog):
 
         # No data, return
         if not upcoming:
-            logging.info('No LL2 Data')
+            logger.info('No LL2 Data')
             return
 
         #### Discord scheduled events & notifications ####
@@ -901,7 +915,10 @@ class LiveLaunch(commands.Cog):
                     if getattr(e, 'code', None) == 50013:
                         reset_settings = True
                     else:
-                        logging.error(f'Creation failure in iter: {e} {type(e)}')
+                        logger.error(
+                            'Scheduled event creation failed'
+                            f' in iteration: {e} {type(e)}'
+                        )
                 else:
                     # Add scheduled event to the database
                     await self.bot.lldb.scheduled_events_add(
@@ -933,7 +950,10 @@ class LiveLaunch(commands.Cog):
                     # Wrong permissions
                     if getattr(e, 'code', None) != 50013:
                         removed = False
-                        logging.error(f'Removal failure in iter: {e} {type(e)}')
+                        logger.error(
+                            'Scheduled event removal failed'
+                            f' in iteration: {e} {type(e)}'
+                        )
                 if removed:
                     # Remove scheduled event from the database
                     await self.bot.lldb.scheduled_events_remove(

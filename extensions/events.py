@@ -5,6 +5,8 @@ import logging
 
 from bin import enums
 
+logger = logging.getLogger(__name__)
+
 class LiveLaunchEvents(commands.Cog):
     """
     Discord.py cog for event commands.
@@ -85,7 +87,7 @@ class LiveLaunchEvents(commands.Cog):
                 ephemeral=True
             )
         else:
-            logging.error(f'Command: {interaction.command}\tError: {error}')
+            logger.error(error)
 
 
 async def setup(bot: commands.Bot):

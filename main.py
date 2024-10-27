@@ -11,12 +11,13 @@ from bin import Database
 
 logging.basicConfig(
     filename='livelaunch.log',
-    format='{asctime} : {name} - {levelname} - {message}',
+    format='{asctime} - {name} - {levelname} - {message}',
     datefmt='%Y-%m-%d %H:%M:%S',
     style='{',
     level=logging.WARNING,
     encoding='utf-8'
 )
+logger = logging.getLogger('main')
 
 # No Discord voice support required, turn warning off
 VoiceClient.warn_nacl = False
@@ -27,10 +28,10 @@ warnings.filterwarnings(
     module='aiomysql'
 )
 
-load_dotenv() # Loading token
-TOKEN = getenv('DISCORD_TOKEN')
-if not TOKEN:
-    logging.critical('RIP, no TOKEN.')
+# Loading Discord API token
+load_dotenv()
+if not (TOKEN := getenv('DISCORD_TOKEN')):
+    logger.critical('Cannot find Discord API token, exiting')
     exit()
 
 class LiveLaunchBot(Bot):
@@ -82,12 +83,12 @@ class LiveLaunchBot(Bot):
         # Load extensions during setup
         for extension in self.initial_extensions:
             await self.load_extension(extension)
-            logging.info(f'Loaded {extension}')
+            logger.info(f'Loaded {extension}')
 
         # Create application commands if needed
         if False:
             response = await self.tree.sync()
-            logging.debug(f'Creating application commands: {response}')
+            logger.debug(f'Creating application commands: {response}')
 
 bot = LiveLaunchBot()
 
@@ -96,6 +97,6 @@ async def on_ready() -> None:
     # Set status
     await bot.change_presence(activity=Game(name='Kerbal Space Program'))
     # Log amount of servers joined
-    logging.info(f'{bot.user} Connected to {len(bot.guilds)} servers.')
+    logger.info(f'{bot.user} connected to {len(bot.guilds)} servers')
 
 bot.run(TOKEN)

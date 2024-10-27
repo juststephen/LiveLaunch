@@ -3,6 +3,8 @@ from discord import Webhook
 from discord.ext import commands, tasks
 import logging
 
+logger = logging.getLogger(__name__)
+
 class LiveLaunchDB(commands.Cog):
     """
     Discord.py cog for cleaning up the database.
@@ -42,9 +44,10 @@ class LiveLaunchDB(commands.Cog):
                 notification_webhook_url=None
             )
 
-            # Logging deletion of unused notification webhook
-            logging.info(
-                f'Guild ID: {guild_id}\tRemoved notification webhook, unused.'
+            # Log removal of unused notification webhook
+            logger.info(
+                f'Guild ID {guild_id}: removed'
+                ' unused notification webhook'
             )
 
 

@@ -9,6 +9,8 @@ from bin import (
     LaunchLibrary2 as ll2
 )
 
+logger = logging.getLogger(__name__)
+
 class LiveLaunchNotificationsTasks(commands.Cog):
     """
     Discord.py cog for sending notifications.
@@ -138,10 +140,16 @@ class LiveLaunchNotificationsTasks(commands.Cog):
                     notification_channel_id=None,
                     notification_webhook_url=None
                 )
-                logging.info(f'Guild ID: {guild_id}\tRemoved notification webhook, not found.')
+                logger.info(
+                    f'Guild ID {guild_id}: removed'
+                    ' unfound notification webhook'
+                )
             # When the bot fails (edge case)
             except Exception as e:
-                logging.error(f'Guild ID: {guild_id}\tError during notification webhook sending: {e}, {type(e)}')
+                logger.error(
+                    f'Guild ID {guild_id}: error during '
+                    f'notification webhook sending: {e}, {type(e)}'
+                )
 
 
 async def setup(bot: commands.Bot):

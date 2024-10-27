@@ -3,6 +3,8 @@ from discord.app_commands import AppCommandError
 from discord.ext import commands
 import logging
 
+logger = logging.getLogger(__name__)
+
 class LiveLaunchHelp(commands.Cog):
     """
     Discord.py cog for supplying help for LiveLaunch.
@@ -102,7 +104,7 @@ class LiveLaunchHelp(commands.Cog):
         """
         Method that handles erroneous interactions.
         """
-        logging.error(f'Command: {interaction.command}\tError: {error}')
+        logger.error(error)
 
 
 async def setup(bot: commands.Bot):

@@ -43,38 +43,37 @@ class LL2EventsNext:
             return
 
         # Execute SQL
-        async with self.pool.acquire() as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    SELECT
-                        le.ll2_id
-                    FROM
-                        ll2_events AS le
-                    LEFT JOIN
-                        enabled_guilds as eg
-                        ON eg.guild_id = %s
-                    LEFT JOIN
-                        ll2_agencies_filter AS laf
-                        ON laf.guild_id = eg.guild_id
-                        AND laf.agency_id = le.agency_id
-                    WHERE
-                        le.start > NOW()
-                        AND
-                            le.ll2_id REGEXP '^[0-9]+$' = %s
-                        AND
-                        (
-                            le.ll2_id REGEXP '^[0-9]+$'
-                            OR laf.agency_id IS NULL
-                            XOR eg.agencies_include_exclude <=> 1
-                        )
-                    ORDER BY
-                        le.start
-                    LIMIT
-                        %s
-                    """,
-                    (guild_id, event_type, amount)
-                )
-                # Flatten tuple
-                if (results := await cur.fetchall()):
-                    return tuple(chain(*results))
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                SELECT
+                    le.ll2_id
+                FROM
+                    ll2_events AS le
+                LEFT JOIN
+                    enabled_guilds as eg
+                    ON eg.guild_id = %s
+                LEFT JOIN
+                    ll2_agencies_filter AS laf
+                    ON laf.guild_id = eg.guild_id
+                    AND laf.agency_id = le.agency_id
+                WHERE
+                    le.start > NOW()
+                    AND
+                        le.ll2_id REGEXP '^[0-9]+$' = %s
+                    AND
+                    (
+                        le.ll2_id REGEXP '^[0-9]+$'
+                        OR laf.agency_id IS NULL
+                        XOR eg.agencies_include_exclude <=> 1
+                    )
+                ORDER BY
+                    le.start
+                LIMIT
+                    %s
+                """,
+                (guild_id, event_type, amount)
+            )
+            # Flatten tuple
+            if (results := await cur.fetchall()):
+                return tuple(chain(*results))

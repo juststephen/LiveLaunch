@@ -37,15 +37,14 @@ class SentMedia:
             args = (yt_vid_id, timestamp)
 
         # Connect and add
-        async with self.pool.acquire() as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    f"""
-                    INSERT INTO sent_{table}
-                    VALUES (%s, %s)
-                    """,
-                    args
-                )
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                f"""
+                INSERT INTO sent_{table}
+                VALUES (%s, %s)
+                """,
+                args
+            )
 
     async def sent_media_clean(self) -> None:
         """
@@ -56,16 +55,15 @@ class SentMedia:
         -----
         Removes entries older than one year.
         """
-        async with self.pool.acquire() as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    DELETE FROM sent_news
-                    WHERE datetime < DATE_SUB(NOW(), INTERVAL 1 YEAR);
-                    DELETE FROM sent_streams
-                    WHERE datetime < DATE_SUB(NOW(), INTERVAL 1 YEAR)
-                    """
-                )
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                DELETE FROM sent_news
+                WHERE datetime < DATE_SUB(NOW(), INTERVAL 1 YEAR);
+                DELETE FROM sent_streams
+                WHERE datetime < DATE_SUB(NOW(), INTERVAL 1 YEAR)
+                """
+            )
 
     async def sent_media_exists(
         self,
@@ -101,14 +99,13 @@ class SentMedia:
             args = (yt_vid_id,)
 
         # Connect and check
-        async with self.pool.acquire() as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    f"""
-                    SELECT COUNT(*)
-                    FROM sent_{table}
-                    WHERE {col}=%s
-                    """,
-                    args
-                )
-                return (await cur.fetchone())[0] != 0
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                f"""
+                SELECT COUNT(*)
+                FROM sent_{table}
+                WHERE {col}=%s
+                """,
+                args
+            )
+            return (await cur.fetchone())[0] != 0

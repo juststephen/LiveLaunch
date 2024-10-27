@@ -23,18 +23,17 @@ class NotificationCountdown:
             Amount of minutes
             per notification.
         """
-        async with self.pool.acquire() as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    INSERT INTO notification_countdown
-                    (guild_id, minutes)
-                    VALUES (%s, %s) AS new
-                    ON DUPLICATE KEY UPDATE
-                        minutes = new.minutes
-                    """,
-                    (guild_id, minutes)
-                )
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                INSERT INTO notification_countdown
+                (guild_id, minutes)
+                VALUES (%s, %s) AS new
+                ON DUPLICATE KEY UPDATE
+                    minutes = new.minutes
+                """,
+                (guild_id, minutes)
+            )
 
     async def notification_countdown_remove(
         self,
@@ -55,39 +54,38 @@ class NotificationCountdown:
             when sorting minutes
             by ascending.
         """
-        async with self.pool.acquire() as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    DELETE FROM
-                        notification_countdown
-                    WHERE
-                        (guild_id, minutes) IN (
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                DELETE FROM
+                    notification_countdown
+                WHERE
+                    (guild_id, minutes) IN (
+                        SELECT
+                            guild_id,
+                            minutes
+                        FROM
+                        (
                             SELECT
                                 guild_id,
-                                minutes
+                                minutes,
+                                ROW_NUMBER() OVER
+                                (
+                                    ORDER BY
+                                        minutes
+                                        ASC
+                                ) `index`
                             FROM
-                            (
-                                SELECT
-                                    guild_id,
-                                    minutes,
-                                    ROW_NUMBER() OVER
-                                    (
-                                        ORDER BY
-                                            minutes
-                                            ASC
-                                    ) `index`
-                                FROM
-                                    notification_countdown
-                                WHERE
-                                    guild_id = %s
-                            ) AS tmp
+                                notification_countdown
                             WHERE
-                                `index` = %s
-                        )
-                    """,
-                    (guild_id, index)
-                )
+                                guild_id = %s
+                        ) AS tmp
+                        WHERE
+                            `index` = %s
+                    )
+                """,
+                (guild_id, index)
+            )
 
     async def notification_countdown_list(self, guild_id: int) -> tuple[int]:
         """
@@ -109,26 +107,25 @@ class NotificationCountdown:
             the countdown minute
             settings of the guild.
         """
-        async with self.pool.acquire() as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    SELECT
-                        ROW_NUMBER() OVER
-                        (
-                            ORDER BY
-                                minutes
-                                ASC
-                        ) `index`,
-                        minutes
-                    FROM
-                        notification_countdown
-                    WHERE
-                        guild_id=%s
-                    """,
-                    (guild_id,)
-                )
-                return await cur.fetchall()
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                SELECT
+                    ROW_NUMBER() OVER
+                    (
+                        ORDER BY
+                            minutes
+                            ASC
+                    ) `index`,
+                    minutes
+                FROM
+                    notification_countdown
+                WHERE
+                    guild_id=%s
+                """,
+                (guild_id,)
+            )
+            return await cur.fetchall()
 
     async def notification_countdown_check(self, guild_id: int) -> bool:
         """
@@ -146,17 +143,16 @@ class NotificationCountdown:
             Whether or not the maximum
             has been reached.
         """
-        async with self.pool.acquire() as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    SELECT COUNT(*) >= 64
-                    FROM notification_countdown
-                    WHERE guild_id=%s
-                    """,
-                    (guild_id,)
-                )
-                return (await cur.fetchone())[0] != 0
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                SELECT COUNT(*) >= 64
+                FROM notification_countdown
+                WHERE guild_id=%s
+                """,
+                (guild_id,)
+            )
+            return (await cur.fetchone())[0] != 0
 
     async def notification_countdown_iter(
         self
@@ -204,99 +200,101 @@ class NotificationCountdown:
             return
 
         # Execute SQL
-        async with self.pool.acquire() as con:
-            async with con.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute(
-                    """
-                    SELECT
-                        eg.guild_id,
-                        eg.notification_webhook_url,
-                        le.flightclub AND eg.notification_button_fc AS button_fc,
-                        eg.notification_button_g4l AS button_g4l,
-                        eg.notification_button_sln AS button_sln,
-                        nc.minutes,
-                        le.ll2_id,
-                        le.name,
-                        le.slug,
-                        le.status,
-                        la.name AS agency,
-                        la.logo_url,
-                        le.url,
-                        le.image_url,
-                        le.start,
-                        se.scheduled_event_id,
-                        le.ll2_id REGEXP '^[0-9]+$' AS `type`,
-                        NOW() AS now
-                    FROM ll2_events AS le
-                    JOIN
-                        enabled_guilds AS eg
-                        ON eg.notification_webhook_url IS NOT NULL
-                    JOIN
-                        notification_countdown AS nc
-                        ON nc.guild_id = eg.guild_id
-                    LEFT JOIN
-                        ll2_agencies AS la
-                        ON la.agency_id = le.agency_id
-                    LEFT JOIN
-                        ll2_agencies_filter as laf
-                        ON laf.guild_id = eg.guild_id
-                        AND laf.agency_id = le.agency_id
-                    LEFT JOIN
-                        scheduled_events AS se
-                        ON se.guild_id = eg.guild_id
-                        AND eg.notification_scheduled_event
-                        AND se.ll2_id = le.ll2_id
-                    WHERE
-                        le.status != 5
-                        OR
-                        le.status IS NULL
-                    GROUP BY
-                        eg.guild_id,
-                        nc.minutes,
-                        le.ll2_id,
-                        laf.agency_id,
-                        eg.agencies_include_exclude,
-                        eg.notification_event,
-                        eg.notification_launch,
-                        se.scheduled_event_id
-                    HAVING
-                            le.start >= DATE_ADD(
-                                STR_TO_DATE(%s, '%%Y-%%m-%%d %%H:%%i:%%s'),
-                                INTERVAL nc.minutes MINUTE
-                            )
-                        AND
-                            le.start < DATE_ADD(NOW(), INTERVAL nc.minutes MINUTE)
-                        AND
-                        (
-                            `type`
-                            OR laf.agency_id IS NULL
-                            XOR eg.agencies_include_exclude <=> 1
+        async with (
+            self.pool.acquire() as con,
+            con.cursor(aiomysql.DictCursor) as cur
+        ):
+            await cur.execute(
+                """
+                SELECT
+                    eg.guild_id,
+                    eg.notification_webhook_url,
+                    le.flightclub AND eg.notification_button_fc AS button_fc,
+                    eg.notification_button_g4l AS button_g4l,
+                    eg.notification_button_sln AS button_sln,
+                    nc.minutes,
+                    le.ll2_id,
+                    le.name,
+                    le.slug,
+                    le.status,
+                    la.name AS agency,
+                    la.logo_url,
+                    le.url,
+                    le.image_url,
+                    le.start,
+                    se.scheduled_event_id,
+                    le.ll2_id REGEXP '^[0-9]+$' AS `type`,
+                    NOW() AS now
+                FROM ll2_events AS le
+                JOIN
+                    enabled_guilds AS eg
+                    ON eg.notification_webhook_url IS NOT NULL
+                JOIN
+                    notification_countdown AS nc
+                    ON nc.guild_id = eg.guild_id
+                LEFT JOIN
+                    ll2_agencies AS la
+                    ON la.agency_id = le.agency_id
+                LEFT JOIN
+                    ll2_agencies_filter as laf
+                    ON laf.guild_id = eg.guild_id
+                    AND laf.agency_id = le.agency_id
+                LEFT JOIN
+                    scheduled_events AS se
+                    ON se.guild_id = eg.guild_id
+                    AND eg.notification_scheduled_event
+                    AND se.ll2_id = le.ll2_id
+                WHERE
+                    le.status != 5
+                    OR
+                    le.status IS NULL
+                GROUP BY
+                    eg.guild_id,
+                    nc.minutes,
+                    le.ll2_id,
+                    laf.agency_id,
+                    eg.agencies_include_exclude,
+                    eg.notification_event,
+                    eg.notification_launch,
+                    se.scheduled_event_id
+                HAVING
+                        le.start >= DATE_ADD(
+                            STR_TO_DATE(%s, '%%Y-%%m-%%d %%H:%%i:%%s'),
+                            INTERVAL nc.minutes MINUTE
                         )
-                        AND
+                    AND
+                        le.start < DATE_ADD(NOW(), INTERVAL nc.minutes MINUTE)
+                    AND
+                    (
+                        `type`
+                        OR laf.agency_id IS NULL
+                        XOR eg.agencies_include_exclude <=> 1
+                    )
+                    AND
+                    (
                         (
-                            (
-                                `type` AND
-                                eg.notification_event
-                            ) OR (
-                                NOT `type` AND
-                                eg.notification_launch
-                            )
+                            `type` AND
+                            eg.notification_event
+                        ) OR (
+                            NOT `type` AND
+                            eg.notification_launch
                         )
-                    """,
-                    (self.last_get,)
-                )
+                    )
+                """,
+                (self.last_get,)
+            )
 
-                # No results, increment `.last_get` for next call
-                if not cur.rowcount:
-                    self.last_get += timedelta(minutes=1)
+            # No results, increment `.last_get` for next call
+            if not cur.rowcount:
+                self.last_get += timedelta(minutes=1)
 
-                async for row in cur:
-                    # New `.last_get` for next call
-                    self.last_get = row.pop('now')
-                    # Convert timezone unaware datetime into UTC datetime
-                    row['start'] = row['start'].replace(tzinfo=timezone.utc)
-                    # Convert button settings to bools
-                    row['button_fc'] = bool(row['button_fc'])
-                    row['button_g4l'] = bool(row['button_g4l'])
-                    row['button_sln'] = bool(row['button_sln'])
-                    yield row
+            async for row in cur:
+                # New `.last_get` for next call
+                self.last_get = row.pop('now')
+                # Convert timezone unaware datetime into UTC datetime
+                row['start'] = row['start'].replace(tzinfo=timezone.utc)
+                # Convert button settings to bools
+                row['button_fc'] = bool(row['button_fc'])
+                row['button_g4l'] = bool(row['button_g4l'])
+                row['button_sln'] = bool(row['button_sln'])
+                yield row

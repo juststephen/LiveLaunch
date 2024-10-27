@@ -12,21 +12,20 @@ class News:
         news_site_name : str
             Name of the news site.
         """
-        async with self.pool.acquire() as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    INSERT INTO
-                    news_sites(news_site_name)
-                    SELECT %s
-                    WHERE NOT EXISTS(
-                        SELECT *
-                        FROM news_sites
-                        WHERE news_site_name=%s
-                    )
-                    """,
-                    (news_site_name, news_site_name)
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                INSERT INTO
+                news_sites(news_site_name)
+                SELECT %s
+                WHERE NOT EXISTS(
+                    SELECT *
+                    FROM news_sites
+                    WHERE news_site_name=%s
                 )
+                """,
+                (news_site_name, news_site_name)
+            )
 
     async def news_sites_get_logo(self, news_site_name: str) -> str:
         """
@@ -42,17 +41,16 @@ class News:
         logo_url : str
             Logo of the news site.
         """
-        async with self.pool.acquire() as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    SELECT
-                        logo_url
-                    FROM
-                        news_sites
-                    WHERE
-                        news_site_name = %s
-                    """,
-                    (news_site_name,)
-                )
-                return (await cur.fetchone())[0]
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                SELECT
+                    logo_url
+                FROM
+                    news_sites
+                WHERE
+                    news_site_name = %s
+                """,
+                (news_site_name,)
+            )
+            return (await cur.fetchone())[0]

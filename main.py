@@ -85,10 +85,9 @@ class LiveLaunchBot(Bot):
             await self.load_extension(extension)
             logger.info(f'Loaded {extension}')
 
-        # Create application commands if needed
-        if False:
-            response = await self.tree.sync()
-            logger.debug(f'Creating application commands: {response}')
+        # Create application commands
+        response = await self.tree.sync()
+        logger.debug(f'Created application commands: {response}')
 
 bot = LiveLaunchBot()
 

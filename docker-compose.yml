@@ -1,0 +1,9 @@
+services:
+    livelaunch:
+        build: .
+        container_name: livelaunch
+        env_file: .env
+        image: livelaunch
+        restart: always
+        volumes:
+            - ./livelaunch.log:/usr/src/app/livelaunch.log

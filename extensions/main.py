@@ -328,11 +328,13 @@ class LiveLaunch(commands.Cog):
 
         # Downloading image
         if (image_url := check.get('image_url')):
-            async with aiohttp.ClientSession() as session:
-                async with session.get(image_url) as resp:
-                    # Check status and size (Discord maximum)
-                    if resp.status == 200 and resp.content_length <= 10240000:
-                        check['image'] = await resp.read()
+            async with (
+                aiohttp.ClientSession() as session,
+                session.get(image_url) as resp
+            ):
+                # Check status and size (Discord maximum)
+                if resp.status == 200 and resp.content_length <= 10240000:
+                    check['image'] = await resp.read()
 
         # Iterate over scheduled events corresponding to the ll2_id
         async for scheduled_event_id, guild_id in self.bot.lldb.scheduled_events_ll2_id_iter(ll2_id):
@@ -894,11 +896,13 @@ class LiveLaunch(commands.Cog):
                 # Downloading image
                 if (upcoming[row['ll2_id']].get('image') is None
                         and (image_url := upcoming[row['ll2_id']].get('image_url'))):
-                    async with aiohttp.ClientSession() as session:
-                        async with session.get(image_url) as resp:
-                            # Check status and size (Discord maximum)
-                            if resp.status == 200 and resp.content_length <= 10240000:
-                                upcoming[row['ll2_id']]['image'] = await resp.read()
+                    async with (
+                        aiohttp.ClientSession() as session,
+                        session.get(image_url) as resp
+                    ):
+                        # Check status and size (Discord maximum)
+                        if resp.status == 200 and resp.content_length <= 10240000:
+                            upcoming[row['ll2_id']]['image'] = await resp.read()
 
                 reset_settings = False
                 try:

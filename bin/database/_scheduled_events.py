@@ -26,19 +26,18 @@ class ScheduledEvents:
             Launch Library 2 ID indicating
             scheduled event content.
         """
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    INSERT INTO scheduled_events
-                    VALUES (%s, %s, %s)
-                    """,
-                    (
-                        scheduled_event_id,
-                        guild_id,
-                        ll2_id
-                    )
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                INSERT INTO scheduled_events
+                VALUES (%s, %s, %s)
+                """,
+                (
+                    scheduled_event_id,
+                    guild_id,
+                    ll2_id
                 )
+            )
 
     async def scheduled_events_remove(
         self,
@@ -54,15 +53,14 @@ class ScheduledEvents:
         scheduled_event_id : int
             Discord scheduled event ID.
         """
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    DELETE FROM scheduled_events
-                    WHERE scheduled_event_id=%s
-                    """,
-                    (scheduled_event_id,)
-                )
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                DELETE FROM scheduled_events
+                WHERE scheduled_event_id=%s
+                """,
+                (scheduled_event_id,)
+            )
 
     async def scheduled_events_get(
         self,
@@ -85,29 +83,28 @@ class ScheduledEvents:
         scheduled_event_id : int
             Discord scheduled event ID.
         """
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    SELECT
-                        se.scheduled_event_id
-                    FROM
-                        enabled_guilds AS eg
-                    JOIN
-                        scheduled_events AS se
-                        ON se.guild_id = eg.guild_id
-                    WHERE
-                        eg.guild_id = %s
-                        AND
-                        eg.notification_scheduled_event
-                        AND
-                        se.ll2_id = %s
-                    """,
-                    (guild_id, ll2_id)
-                )
-                result = await cur.fetchone()
-                if result:
-                    return result[0]
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                SELECT
+                    se.scheduled_event_id
+                FROM
+                    enabled_guilds AS eg
+                JOIN
+                    scheduled_events AS se
+                    ON se.guild_id = eg.guild_id
+                WHERE
+                    eg.guild_id = %s
+                    AND
+                    eg.notification_scheduled_event
+                    AND
+                    se.ll2_id = %s
+                """,
+                (guild_id, ll2_id)
+            )
+            result = await cur.fetchone()
+            if result:
+                return result[0]
 
     async def scheduled_events_guild_id_iter(
         self,
@@ -128,18 +125,17 @@ class ScheduledEvents:
         scheduled_event_id : int
             Discord scheduled event ID.
         """
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    SELECT scheduled_event_id
-                    FROM scheduled_events
-                    WHERE guild_id=%s
-                    """,
-                    (guild_id,)
-                )
-                async for row in cur:
-                    yield row[0]
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                SELECT scheduled_event_id
+                FROM scheduled_events
+                WHERE guild_id=%s
+                """,
+                (guild_id,)
+            )
+            async for row in cur:
+                yield row[0]
 
     async def scheduled_events_ll2_id_iter(
         self,
@@ -166,18 +162,17 @@ class ScheduledEvents:
             Yields row with of a scheduled
             event linked to the LL2 event.
         """
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    SELECT scheduled_event_id, guild_id
-                    FROM scheduled_events
-                    WHERE ll2_id=%s
-                    """,
-                    (ll2_id,)
-                )
-                async for row in cur:
-                    yield row
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                SELECT scheduled_event_id, guild_id
+                FROM scheduled_events
+                WHERE ll2_id=%s
+                """,
+                (ll2_id,)
+            )
+            async for row in cur:
+                yield row
 
     async def scheduled_events_remove_iter(self) -> dict[str, int and bool]:
         """
@@ -193,101 +188,103 @@ class ScheduledEvents:
             create_remove : bool = False
         ]
         """
-        with await self.pool as con:
-            async with con.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute(
-                    """
-                    SELECT
-                        se.guild_id,
-                        se.scheduled_event_id,
-                        0 as create_remove
-                    FROM
-                        scheduled_events as se
-                    LEFT JOIN
-                        (
-                            SELECT
-                                le.guild_id,
-                                le.ll2_id
-                            FROM
-                                (
-                                    SELECT
-                                        eg.guild_id,
-                                        eg.scheduled_events,
-                                        le.ll2_id,
-                                        le.`start`,
-                                        le.ll2_id REGEXP '^[0-9]+$' AS `type`,
-                                        ROW_NUMBER() OVER
+        async with (
+            self.pool.acquire() as con,
+            con.cursor(aiomysql.DictCursor) as cur
+        ):
+            await cur.execute(
+                """
+                SELECT
+                    se.guild_id,
+                    se.scheduled_event_id,
+                    0 as create_remove
+                FROM
+                    scheduled_events as se
+                LEFT JOIN
+                    (
+                        SELECT
+                            le.guild_id,
+                            le.ll2_id
+                        FROM
+                            (
+                                SELECT
+                                    eg.guild_id,
+                                    eg.scheduled_events,
+                                    le.ll2_id,
+                                    le.`start`,
+                                    le.ll2_id REGEXP '^[0-9]+$' AS `type`,
+                                    ROW_NUMBER() OVER
+                                    (
+                                        PARTITION BY
+                                            eg.guild_id
+                                        ORDER BY
+                                            le.`start`
+                                            ASC
+                                    ) row_nr
+                                FROM
+                                    ll2_events AS le
+                                JOIN
+                                    enabled_guilds AS eg
+                                LEFT JOIN
+                                    ll2_agencies_filter as laf
+                                    ON laf.guild_id = eg.guild_id
+                                    AND laf.agency_id = le.agency_id
+                                WHERE
+                                    le.`end` > NOW()
+                                    AND
+                                    (
+                                        le.`status` IS NULL
+                                        OR
+                                        le.`status` NOT IN (3, 4, 7)
+                                    )
+                                GROUP BY
+                                    eg.guild_id,
+                                    laf.agency_id,
+                                    eg.agencies_include_exclude,
+                                    le.ll2_id,
+                                    le.url,
+                                    eg.scheduled_events,
+                                    eg.se_launch,
+                                    eg.se_event,
+                                    eg.se_no_url
+                                HAVING
+                                    NOT (
+                                        eg.se_no_url AND le.url IS NULL
+                                    )
+                                    AND
+                                    (
+                                        `type`
+                                        OR laf.agency_id IS NULL
+                                        XOR eg.agencies_include_exclude <=> 1
+                                    )
+                                    AND
+                                    (
                                         (
-                                            PARTITION BY
-                                                eg.guild_id
-                                            ORDER BY
-                                                le.`start`
-                                                ASC
-                                        ) row_nr
-                                    FROM
-                                        ll2_events AS le
-                                    JOIN
-                                        enabled_guilds AS eg
-                                    LEFT JOIN
-                                        ll2_agencies_filter as laf
-                                        ON laf.guild_id = eg.guild_id
-                                        AND laf.agency_id = le.agency_id
-                                    WHERE
-                                        le.`end` > NOW()
-                                        AND
-                                        (
-                                            le.`status` IS NULL
-                                            OR
-                                            le.`status` NOT IN (3, 4, 7)
+                                            `type` AND
+                                            eg.se_event
+                                        ) OR (
+                                            NOT `type` AND
+                                            eg.se_launch
                                         )
-                                    GROUP BY
-                                        eg.guild_id,
-                                        laf.agency_id,
-                                        eg.agencies_include_exclude,
-                                        le.ll2_id,
-                                        le.url,
-                                        eg.scheduled_events,
-                                        eg.se_launch,
-                                        eg.se_event,
-                                        eg.se_no_url
-                                    HAVING
-                                        NOT (
-                                            eg.se_no_url AND le.url IS NULL
-                                        )
-                                        AND
-                                        (
-                                            `type`
-                                            OR laf.agency_id IS NULL
-                                            XOR eg.agencies_include_exclude <=> 1
-                                        )
-                                        AND
-                                        (
-                                            (
-                                                `type` AND
-                                                eg.se_event
-                                            ) OR (
-                                                NOT `type` AND
-                                                eg.se_launch
-                                            )
-                                        )
-                                ) AS le
-                            GROUP BY
-                                le.guild_id,
-                                le.ll2_id,
-                                le.row_nr,
-                                le.scheduled_events
-                            HAVING
-                                le.row_nr <= le.scheduled_events
-                        ) AS le
-                        ON le.guild_id = se.guild_id
-                        AND le.ll2_id = se.ll2_id
-                    WHERE
-                        le.guild_id IS NULL
-                    """
-                )
-                async for row in cur:
-                    row['create_remove'] = bool(row['create_remove'])
-                    yield row
+                                    )
+                            ) AS le
+                        GROUP BY
+                            le.guild_id,
+                            le.ll2_id,
+                            le.row_nr,
+                            le.scheduled_events
+                        HAVING
+                            le.row_nr <= le.scheduled_events
+                    ) AS le
+                    ON le.guild_id = se.guild_id
+                    AND le.ll2_id = se.ll2_id
+                WHERE
+                    le.guild_id IS NULL
+                """
+            )
+            async for row in cur:
+                row['create_remove'] = bool(row['create_remove'])
+                yield row
 
     async def scheduled_events_create_iter(self) -> dict[str, int and str and bool]:
         """
@@ -303,98 +300,100 @@ class ScheduledEvents:
             create_remove : bool = True
         ]
         """
-        with await self.pool as con:
-            async with con.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute(
-                    """
-                    SELECT
-                        le.guild_id,
-                        le.ll2_id,
-                        1 as create_remove
-                    FROM
-                        (
-                            SELECT
-                                eg.guild_id,
-                                eg.scheduled_events,
-                                le.ll2_id,
-                                le.`start`,
-                                le.ll2_id REGEXP '^[0-9]+$' AS `type`,
-                                ROW_NUMBER() OVER
+        async with (
+            self.pool.acquire() as con,
+            con.cursor(aiomysql.DictCursor) as cur
+        ):
+            await cur.execute(
+                """
+                SELECT
+                    le.guild_id,
+                    le.ll2_id,
+                    1 as create_remove
+                FROM
+                    (
+                        SELECT
+                            eg.guild_id,
+                            eg.scheduled_events,
+                            le.ll2_id,
+                            le.`start`,
+                            le.ll2_id REGEXP '^[0-9]+$' AS `type`,
+                            ROW_NUMBER() OVER
+                            (
+                                PARTITION BY
+                                    eg.guild_id
+                                ORDER BY
+                                    le.`start`
+                                    ASC
+                            ) row_nr
+                        FROM
+                            ll2_events AS le
+                        JOIN
+                            enabled_guilds AS eg
+                        LEFT JOIN
+                            ll2_agencies_filter as laf
+                            ON laf.guild_id = eg.guild_id
+                            AND laf.agency_id = le.agency_id
+                        WHERE
+                            le.`end` > NOW()
+                            AND
+                            (
+                                le.`status` IS NULL
+                                OR
+                                le.`status` NOT IN (3, 4, 7)
+                            )
+                        GROUP BY
+                            eg.guild_id,
+                            laf.agency_id,
+                            eg.agencies_include_exclude,
+                            le.ll2_id,
+                            le.url,
+                            eg.scheduled_events,
+                            eg.se_launch,
+                            eg.se_event,
+                            eg.se_no_url
+                        HAVING
+                            NOT (
+                                eg.se_no_url AND le.url IS NULL
+                            )
+                            AND
+                            (
+                                `type`
+                                OR laf.agency_id IS NULL
+                                XOR eg.agencies_include_exclude <=> 1
+                            )
+                            AND
+                            (
                                 (
-                                    PARTITION BY
-                                        eg.guild_id
-                                    ORDER BY
-                                        le.`start`
-                                        ASC
-                                ) row_nr
-                            FROM
-                                ll2_events AS le
-                            JOIN
-                                enabled_guilds AS eg
-                            LEFT JOIN
-                                ll2_agencies_filter as laf
-                                ON laf.guild_id = eg.guild_id
-                                AND laf.agency_id = le.agency_id
-                            WHERE
-                                le.`end` > NOW()
-                                AND
-                                (
-                                    le.`status` IS NULL
-                                    OR
-                                    le.`status` NOT IN (3, 4, 7)
+                                    `type` AND
+                                    eg.se_event
+                                ) OR (
+                                    NOT `type` AND
+                                    eg.se_launch
                                 )
-                            GROUP BY
-                                eg.guild_id,
-                                laf.agency_id,
-                                eg.agencies_include_exclude,
-                                le.ll2_id,
-                                le.url,
-                                eg.scheduled_events,
-                                eg.se_launch,
-                                eg.se_event,
-                                eg.se_no_url
-                            HAVING
-                                NOT (
-                                    eg.se_no_url AND le.url IS NULL
-                                )
-                                AND
-                                (
-                                    `type`
-                                    OR laf.agency_id IS NULL
-                                    XOR eg.agencies_include_exclude <=> 1
-                                )
-                                AND
-                                (
-                                    (
-                                        `type` AND
-                                        eg.se_event
-                                    ) OR (
-                                        NOT `type` AND
-                                        eg.se_launch
-                                    )
-                                )
-                        ) AS le
-                    LEFT JOIN
-                        scheduled_events AS se
-                        ON se.guild_id = le.guild_id
-                        AND se.ll2_id = le.ll2_id
-                    WHERE
-                        le.`start` > DATE_ADD(NOW(), INTERVAL 2 MINUTE)
-                    GROUP BY
-                        le.guild_id,
-                        le.ll2_id,
-                        le.row_nr,
-                        le.scheduled_events,
-                        se.scheduled_event_id
-                    HAVING
-                        se.scheduled_event_id IS NULL
-                        AND
-                        le.row_nr <= le.scheduled_events
-                    """
-                )
-                async for row in cur:
-                    row['create_remove'] = bool(row['create_remove'])
-                    yield row
+                            )
+                    ) AS le
+                LEFT JOIN
+                    scheduled_events AS se
+                    ON se.guild_id = le.guild_id
+                    AND se.ll2_id = le.ll2_id
+                WHERE
+                    le.`start` > DATE_ADD(NOW(), INTERVAL 2 MINUTE)
+                GROUP BY
+                    le.guild_id,
+                    le.ll2_id,
+                    le.row_nr,
+                    le.scheduled_events,
+                    se.scheduled_event_id
+                HAVING
+                    se.scheduled_event_id IS NULL
+                    AND
+                    le.row_nr <= le.scheduled_events
+                """
+            )
+            async for row in cur:
+                row['create_remove'] = bool(row['create_remove'])
+                yield row
 
     async def scheduled_events_remove_create_iter(
         self

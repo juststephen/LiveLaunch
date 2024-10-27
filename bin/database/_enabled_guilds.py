@@ -44,34 +44,33 @@ class EnabledGuilds:
             Discord webhook URL for
             sending notifications.
         """
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    INSERT INTO enabled_guilds
-                    (
-                        guild_id,
-                        channel_id,
-                        webhook_url,
-                        scheduled_events,
-                        news_channel_id,
-                        news_webhook_url,
-                        notification_channel_id,
-                        notification_webhook_url
-                    )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                    """,
-                    (
-                        guild_id,
-                        channel_id,
-                        webhook_url,
-                        scheduled_events,
-                        news_channel_id,
-                        news_webhook_url,
-                        notification_channel_id,
-                        notification_webhook_url
-                    )
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                INSERT INTO enabled_guilds
+                (
+                    guild_id,
+                    channel_id,
+                    webhook_url,
+                    scheduled_events,
+                    news_channel_id,
+                    news_webhook_url,
+                    notification_channel_id,
+                    notification_webhook_url
                 )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    guild_id,
+                    channel_id,
+                    webhook_url,
+                    scheduled_events,
+                    news_channel_id,
+                    news_webhook_url,
+                    notification_channel_id,
+                    notification_webhook_url
+                )
+            )
 
     async def enabled_guilds_remove(self, guild_id: int) -> None:
         """
@@ -83,15 +82,14 @@ class EnabledGuilds:
         guild_id : int
             Discord guild ID.
         """
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    DELETE FROM enabled_guilds
-                    WHERE guild_id=%s
-                    """,
-                    (guild_id,)
-                )
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                DELETE FROM enabled_guilds
+                WHERE guild_id=%s
+                """,
+                (guild_id,)
+            )
 
     async def enabled_guilds_check(self, guild_id: int) -> bool:
         """
@@ -108,17 +106,16 @@ class EnabledGuilds:
             Whether or not the
             guild has any settings.
         """
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    SELECT COUNT(*)
-                    FROM enabled_guilds
-                    WHERE guild_id=%s
-                    """,
-                    (guild_id,)
-                )
-                return (await cur.fetchone())[0] != 0
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                SELECT COUNT(*)
+                FROM enabled_guilds
+                WHERE guild_id=%s
+                """,
+                (guild_id,)
+            )
+            return (await cur.fetchone())[0] != 0
 
     async def enabled_guilds_news_iter(self) -> tuple[int, str]:
         """
@@ -134,17 +131,16 @@ class EnabledGuilds:
             Yields the guild_id,
             news_webhook_url.
         """
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    SELECT guild_id, news_webhook_url
-                    FROM enabled_guilds
-                    WHERE news_webhook_url IS NOT NULL
-                    """
-                )
-                async for row in cur:
-                    yield row
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                SELECT guild_id, news_webhook_url
+                FROM enabled_guilds
+                WHERE news_webhook_url IS NOT NULL
+                """
+            )
+            async for row in cur:
+                yield row
 
     async def enabled_guilds_scheduled_events_iter(self) -> tuple[int]:
         """
@@ -168,17 +164,16 @@ class EnabledGuilds:
             created before reaching
             the guild's maximum amount.
         """
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    SELECT guild_id, scheduled_events
-                    FROM enabled_guilds WHERE
-                    scheduled_events > 0
-                    """
-                )
-                async for row in cur:
-                    yield row
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                SELECT guild_id, scheduled_events
+                FROM enabled_guilds WHERE
+                scheduled_events > 0
+                """
+            )
+            async for row in cur:
+                yield row
 
     async def enabled_guilds_webhook_iter(self) -> tuple[int, str]:
         """
@@ -195,17 +190,16 @@ class EnabledGuilds:
             Yields Discord Guild ID and
             webhook url when it exists.
         """
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    SELECT guild_id, webhook_url
-                    FROM enabled_guilds
-                    WHERE webhook_url IS NOT NULL
-                    """
-                )
-                async for row in cur:
-                    yield row
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                SELECT guild_id, webhook_url
+                FROM enabled_guilds
+                WHERE webhook_url IS NOT NULL
+                """
+            )
+            async for row in cur:
+                yield row
 
     async def enabled_guilds_get(
         self,
@@ -245,17 +239,19 @@ class EnabledGuilds:
             Returns a row with the guild's data
             if it exists, otherwise None.
         """
-        with await self.pool as con:
-            async with con.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute(
-                    """
-                    SELECT *
-                    FROM enabled_guilds
-                    WHERE guild_id=%s
-                    """,
-                    (guild_id,)
-                )
-                return await cur.fetchone()
+        async with (
+            self.pool.acquire() as con,
+            con.cursor(aiomysql.DictCursor) as cur
+        ):
+            await cur.execute(
+                """
+                SELECT *
+                FROM enabled_guilds
+                WHERE guild_id=%s
+                """,
+                (guild_id,)
+            )
+            return await cur.fetchone()
 
     async def enabled_guilds_edit(
         self, guild_id: int,
@@ -322,16 +318,15 @@ class EnabledGuilds:
         # Add guild ID to the arguments
         args.append(guild_id)
         # Update
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    f"""
-                    UPDATE enabled_guilds
-                    SET {', '.join(cols)}
-                    WHERE guild_id=%s
-                    """,
-                    args
-                )
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                f"""
+                UPDATE enabled_guilds
+                SET {', '.join(cols)}
+                WHERE guild_id=%s
+                """,
+                args
+            )
 
     async def enabled_guilds_clean(self) -> None:
         """
@@ -339,35 +334,34 @@ class EnabledGuilds:
         the `enabled_guilds` table of the
         LiveLaunch database.
         """
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    DELETE
-                        eg
-                    FROM
-                        enabled_guilds AS eg
-                    LEFT JOIN
-                        scheduled_events AS se
-                        ON se.guild_id = eg.guild_id
-                    WHERE
-                        se.guild_id IS NULL
-                        AND
-                        eg.channel_id IS NULL
-                        AND
-                        eg.webhook_url IS NULL
-                        AND
-                        eg.scheduled_events = 0
-                        AND
-                        eg.news_channel_id IS NULL
-                        AND
-                        eg.news_webhook_url IS NULL
-                        AND
-                        eg.notification_channel_id IS NULL
-                        AND
-                        eg.notification_webhook_url IS NULL
-                    """
-                )
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                DELETE
+                    eg
+                FROM
+                    enabled_guilds AS eg
+                LEFT JOIN
+                    scheduled_events AS se
+                    ON se.guild_id = eg.guild_id
+                WHERE
+                    se.guild_id IS NULL
+                    AND
+                    eg.channel_id IS NULL
+                    AND
+                    eg.webhook_url IS NULL
+                    AND
+                    eg.scheduled_events = 0
+                    AND
+                    eg.news_channel_id IS NULL
+                    AND
+                    eg.news_webhook_url IS NULL
+                    AND
+                    eg.notification_channel_id IS NULL
+                    AND
+                    eg.notification_webhook_url IS NULL
+                """
+            )
 
     async def enabled_guilds_unused_notification_iter(self) -> tuple[int, str]:
         """
@@ -383,59 +377,58 @@ class EnabledGuilds:
             Yields the Guild ID and
             notification webhook URL.
         """
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    SELECT
-                        eg.guild_id,
-                        eg.notification_webhook_url
-                    FROM
-                        enabled_guilds AS eg
-                    WHERE
-                        eg.notification_channel_id IS NOT NULL
-                        AND
-                        eg.notification_webhook_url IS NOT NULL
-                        AND NOT
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                SELECT
+                    eg.guild_id,
+                    eg.notification_webhook_url
+                FROM
+                    enabled_guilds AS eg
+                WHERE
+                    eg.notification_channel_id IS NOT NULL
+                    AND
+                    eg.notification_webhook_url IS NOT NULL
+                    AND NOT
+                    (
                         (
                             (
-                                (
-                                    eg.notification_launch
-                                    OR
-                                    eg.notification_event
-                                )
-                                AND
-                                (
-                                    eg.notification_t0_change
-                                    OR
-                                    (
-                                        SELECT
-                                            COUNT(*) > 0
-                                        FROM
-                                            notification_countdown AS nc
-                                        WHERE
-                                            nc.guild_id = eg.guild_id
-                                    )
-                                )
+                                eg.notification_launch
+                                OR
+                                eg.notification_event
                             )
-                            OR
+                            AND
                             (
-                                eg.notification_tbd
+                                eg.notification_t0_change
                                 OR
-                                eg.notification_tbc
-                                OR
-                                eg.notification_go
-                                OR
-                                eg.notification_liftoff
-                                OR
-                                eg.notification_hold
-                                OR
-                                eg.notification_deploy
-                                OR
-                                eg.notification_end_status
+                                (
+                                    SELECT
+                                        COUNT(*) > 0
+                                    FROM
+                                        notification_countdown AS nc
+                                    WHERE
+                                        nc.guild_id = eg.guild_id
+                                )
                             )
                         )
-                    """
-                )
-                async for row in cur:
-                    yield row
+                        OR
+                        (
+                            eg.notification_tbd
+                            OR
+                            eg.notification_tbc
+                            OR
+                            eg.notification_go
+                            OR
+                            eg.notification_liftoff
+                            OR
+                            eg.notification_hold
+                            OR
+                            eg.notification_deploy
+                            OR
+                            eg.notification_end_status
+                        )
+                    )
+                """
+            )
+            async for row in cur:
+                yield row

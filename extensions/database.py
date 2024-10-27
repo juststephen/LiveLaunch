@@ -3,39 +3,27 @@ from discord import Webhook
 from discord.ext import commands, tasks
 import logging
 
-from bin import Database
+logger = logging.getLogger(__name__)
 
 class LiveLaunchDB(commands.Cog):
     """
-    Discord.py cog for loading database methods.
-
-    Notes
-    -----
-    The database can be accessed via
-    the `.bot.lldb` variable.
+    Discord.py cog for cleaning up the database.
     """
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
-        self.bot.lldb = Database()
         self.clean_database.start()
 
-    def cog_unload(self):
-        self.bot.lldb.pool.close()
-
     @tasks.loop(hours=24)
-    async def clean_database(self):
+    async def clean_database(self) -> None:
         """
-        Discord task for starting
-        and cleaning up the database.
+        Discord task for cleaning up the database.
         """
-        if not self.bot.lldb.started:
-            await self.bot.lldb.start()
-
         # Clean sent media
         await self.bot.lldb.sent_media_clean()
 
         # Clean guilds with an unused notifications webhook
-        async for guild_id, webhook_url in self.bot.lldb.enabled_guilds_unused_notification_iter():
+        async_iter = self.bot.lldb.enabled_guilds_unused_notification_iter()
+        async for guild_id, webhook_url in async_iter:
 
             # Create webhook connection for deletion
             async with aiohttp.ClientSession() as session:
@@ -56,8 +44,11 @@ class LiveLaunchDB(commands.Cog):
                 notification_webhook_url=None
             )
 
-            # Logging deletion of unused notification webhook
-            logging.info(f'Guild ID: {guild_id}\tRemoved notification webhook, unused.')
+            # Log removal of unused notification webhook
+            logger.info(
+                f'Guild ID {guild_id}: removed'
+                ' unused notification webhook'
+            )
 
 
 async def setup(bot: commands.Bot):

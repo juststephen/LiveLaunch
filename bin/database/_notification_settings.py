@@ -112,13 +112,12 @@ class NotificationSettings:
         args.append(guild_id)
 
         # Update db
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    f"""
-                    UPDATE enabled_guilds
-                    SET {', '.join(cols)}
-                    WHERE guild_id=%s
-                    """,
-                    args
-                )
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                f"""
+                UPDATE enabled_guilds
+                SET {', '.join(cols)}
+                WHERE guild_id=%s
+                """,
+                args
+            )

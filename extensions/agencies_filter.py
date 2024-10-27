@@ -6,6 +6,8 @@ import logging
 
 from bin import combine_strings, enums
 
+logger = logging.getLogger(__name__)
+
 @app_commands.guild_only()
 class LiveLaunchAgenciesFilter(
     commands.GroupCog,
@@ -298,7 +300,7 @@ class LiveLaunchAgenciesFilter(
                 ephemeral=True
             )
         else:
-            logging.error(f'Command: {interaction.command}\tError: {error}')
+            logger.error(error)
 
 
 async def setup(bot: commands.Bot):

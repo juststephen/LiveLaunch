@@ -63,16 +63,15 @@ class Filter:
             `True` when included,
             `False` when excluded.
         """
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    f"""
-                    UPDATE enabled_guilds
-                    SET {tables.include_exclude_column}=%s
-                    WHERE guild_id=%s
-                    """,
-                    (include_or_exclude, guild_id)
-                )
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                f"""
+                UPDATE enabled_guilds
+                SET {tables.include_exclude_column}=%s
+                WHERE guild_id=%s
+                """,
+                (include_or_exclude, guild_id)
+            )
 
     async def filter_get_include_exclude(
         self,
@@ -97,17 +96,16 @@ class Filter:
             `True` when included,
             `False` when excluded.
         """
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    f"""
-                    SELECT {tables.include_exclude_column}
-                    FROM enabled_guilds
-                    WHERE guild_id=%s
-                    """,
-                    (guild_id,)
-                )
-                return (await cur.fetchone())[0] != 0
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                f"""
+                SELECT {tables.include_exclude_column}
+                FROM enabled_guilds
+                WHERE guild_id=%s
+                """,
+                (guild_id,)
+            )
+            return (await cur.fetchone())[0] != 0
 
     async def _filter_base_add_remove(
         self,
@@ -151,34 +149,33 @@ class Filter:
         }
         failed = []
 
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                # Iterating over data to check & perform SQL
-                for col, args in data.items():
-                    for arg in args:
-                        # Check if data exists
-                        await cur.execute(
-                            f"""
-                            SELECT IFNULL(
-                                (
-                                    SELECT {tables.id_column}
-                                    FROM {tables.data_table}
-                                    WHERE {col} = %s
-                                ),
-                                0
-                            )
-                            """,
-                            arg
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            # Iterating over data to check & perform SQL
+            for col, args in data.items():
+                for arg in args:
+                    # Check if data exists
+                    await cur.execute(
+                        f"""
+                        SELECT IFNULL(
+                            (
+                                SELECT {tables.id_column}
+                                FROM {tables.data_table}
+                                WHERE {col} = %s
+                            ),
+                            0
                         )
+                        """,
+                        arg
+                    )
 
-                        # Perform SQL query if it exists, else add to failed
-                        if (_id := (await cur.fetchone())[0]):
-                            await cur.execute(
-                                query,
-                                (guild_id, _id)
-                            )
-                        else:
-                            failed.append(arg)
+                    # Perform SQL query if it exists, else add to failed
+                    if (_id := (await cur.fetchone())[0]):
+                        await cur.execute(
+                            query,
+                            (guild_id, _id)
+                        )
+                    else:
+                        failed.append(arg)
 
         return failed
 
@@ -305,37 +302,36 @@ class Filter:
             names & IDs being filtered
             or all available ones.
         """
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                if guild_id:
-                    await cur.execute(
-                        f"""
-                        SELECT
-                            `data`.{tables.id_column}, `data`.{tables.name_column}
-                        FROM
-                            {tables.filter_table} AS `filter`
-                        JOIN
-                            {tables.data_table} AS `data`
-                            ON `data`.{tables.id_column} = `filter`.{tables.id_column}
-                        WHERE
-                            `filter`.guild_id = %s
-                        ORDER BY
-                            `data`.{tables.id_column}
-                        """,
-                        (guild_id,)
-                    )
-                else:
-                    await cur.execute(
-                        f"""
-                        SELECT
-                            {tables.id_column}, {tables.name_column}
-                        FROM
-                            {tables.data_table}
-                        ORDER BY
-                            {tables.id_column}
-                        """
-                    )
-                return await cur.fetchall()
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            if guild_id:
+                await cur.execute(
+                    f"""
+                    SELECT
+                        `data`.{tables.id_column}, `data`.{tables.name_column}
+                    FROM
+                        {tables.filter_table} AS `filter`
+                    JOIN
+                        {tables.data_table} AS `data`
+                        ON `data`.{tables.id_column} = `filter`.{tables.id_column}
+                    WHERE
+                        `filter`.guild_id = %s
+                    ORDER BY
+                        `data`.{tables.id_column}
+                    """,
+                    (guild_id,)
+                )
+            else:
+                await cur.execute(
+                    f"""
+                    SELECT
+                        {tables.id_column}, {tables.name_column}
+                    FROM
+                        {tables.data_table}
+                    ORDER BY
+                        {tables.id_column}
+                    """
+                )
+            return await cur.fetchall()
 
     async def filter_check(
         self,
@@ -368,37 +364,36 @@ class Filter:
             True when the name or ID is
             not filtered within the guild.
         """
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                if name_value:
-                    await cur.execute(
-                        f"""
-                        SELECT
-                            COUNT(*)
-                        FROM
-                            {tables.filter_table} AS `filter`
-                        JOIN
-                            {tables.data_table} AS `data`
-                            ON `data`.{tables.id_column} = `filter`.{tables.id_column}
-                        WHERE
-                            `filter`.guild_id = %s
-                            AND
-                            `data`.{tables.name_column} = %s
-                        """,
-                        (guild_id, name_value)
-                    )
-                else:
-                    await cur.execute(
-                        f"""
-                        SELECT
-                            COUNT(*)
-                        FROM
-                            {tables.filter_table}
-                        WHERE
-                            guild_id = %s
-                            AND
-                            {tables.id_column} = %s
-                        """,
-                        (guild_id, id_value)
-                    )
-                return (await cur.fetchone())[0] == 0
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            if name_value:
+                await cur.execute(
+                    f"""
+                    SELECT
+                        COUNT(*)
+                    FROM
+                        {tables.filter_table} AS `filter`
+                    JOIN
+                        {tables.data_table} AS `data`
+                        ON `data`.{tables.id_column} = `filter`.{tables.id_column}
+                    WHERE
+                        `filter`.guild_id = %s
+                        AND
+                        `data`.{tables.name_column} = %s
+                    """,
+                    (guild_id, name_value)
+                )
+            else:
+                await cur.execute(
+                    f"""
+                    SELECT
+                        COUNT(*)
+                    FROM
+                        {tables.filter_table}
+                    WHERE
+                        guild_id = %s
+                        AND
+                        {tables.id_column} = %s
+                    """,
+                    (guild_id, id_value)
+                )
+            return (await cur.fetchone())[0] == 0

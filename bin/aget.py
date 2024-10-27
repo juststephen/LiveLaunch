@@ -25,9 +25,11 @@ async def get(
         Response data in a form of a string or dictionairy
         depending on the json parameter.
     """
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers=headers) as response:
-            if json:
-                return await response.json()
-            else:
-                return await response.text()
+    async with (
+        aiohttp.ClientSession() as session,
+        session.get(url, headers=headers) as response
+    ):
+        if json:
+            return await response.json()
+        else:
+            return await response.text()

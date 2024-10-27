@@ -6,6 +6,8 @@ import logging
 
 from bin import SpaceflightNewsAPI
 
+logger = logging.getLogger(__name__)
+
 class LiveLaunchNewsTasks(commands.Cog):
     """
     Discord.py cog for reporting space news.
@@ -104,17 +106,16 @@ class LiveLaunchNewsTasks(commands.Cog):
                     news_channel_id=None,
                     news_webhook_url=None
                 )
-                logging.info(f'Guild ID: {guild_id}\tRemoved news webhook, not found.')
+                logger.info(
+                    f'Guild ID {guild_id}: removed'
+                    ' unfound news webhook'
+                )
             # When the bot fails (edge case)
             except Exception as e:
-                logging.error(f'Guild ID: {guild_id}\tError during news webhook sending: {e}, {type(e)}')
-
-    @fetch_news.before_loop
-    async def before_loop(self):
-        """
-        Wait untill the database is loaded.
-        """
-        await self.bot.wait_until_ready()
+                logger.error(
+                    f'Guild ID {guild_id}: error during '
+                    f'news webhook sending: {e}, {type(e)}'
+                )
 
 
 async def setup(bot: commands.Bot):

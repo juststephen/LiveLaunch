@@ -19,21 +19,20 @@ class LL2Agencies:
         name : str
             Name of the agency.
         """
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    INSERT INTO ll2_agencies
-                    (agency_id, name)
-                    VALUES (%s, %s) AS new
-                    ON DUPLICATE KEY UPDATE
-                        name = new.name
-                    """,
-                    (
-                        agency_id,
-                        name
-                    )
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                INSERT INTO ll2_agencies
+                (agency_id, name)
+                VALUES (%s, %s) AS new
+                ON DUPLICATE KEY UPDATE
+                    name = new.name
+                """,
+                (
+                    agency_id,
+                    name
                 )
+            )
 
     async def ll2_agencies_get(self, ll2_id: str) -> tuple[str, str]:
         """
@@ -52,22 +51,21 @@ class LL2Agencies:
         logo_url : str
             Logo of the agency.
         """
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    SELECT
-                        la.name,
-                        la.logo_url
-                    FROM
-                        ll2_events AS le
-                    JOIN
-                        ll2_agencies AS la
-                        ON
-                        la.agency_id = le.agency_id
-                    WHERE
-                        ll2_id = %s
-                    """,
-                    (ll2_id,)
-                )
-                return await cur.fetchone()
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                SELECT
+                    la.name,
+                    la.logo_url
+                FROM
+                    ll2_events AS le
+                JOIN
+                    ll2_agencies AS la
+                    ON
+                    la.agency_id = le.agency_id
+                WHERE
+                    ll2_id = %s
+                """,
+                (ll2_id,)
+            )
+            return await cur.fetchone()

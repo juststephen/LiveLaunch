@@ -98,47 +98,49 @@ class NotificationIter:
             )
 
         # Execute SQL
-        with await self.pool as con:
-            async with con.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute(
-                    f"""
-                    SELECT
-                        eg.guild_id,
-                        eg.notification_webhook_url,
-                        le.flightclub AND eg.notification_button_fc AS button_fc,
-                        eg.notification_button_g4l AS button_g4l,
-                        eg.notification_button_sln AS button_sln,
-                        se.scheduled_event_id
-                    FROM
-                        enabled_guilds AS eg
-                    JOIN
-                        ll2_events as le
-                        ON le.ll2_id = %s
-                    LEFT JOIN
-                        ll2_agencies_filter as laf
-                        ON laf.guild_id = eg.guild_id
-                        AND laf.agency_id = le.agency_id
-                    LEFT JOIN
-                        scheduled_events AS se
-                        ON se.guild_id = eg.guild_id
-                        AND eg.notification_scheduled_event
-                        AND se.ll2_id = le.ll2_id
-                    WHERE
-                        eg.notification_webhook_url IS NOT NULL
-                        AND
-                        (
-                            le.ll2_id REGEXP '^[0-9]+$'
-                            OR laf.agency_id IS NULL
-                            XOR eg.agencies_include_exclude <=> 1
-                        )
-                        AND
-                            {' AND '.join(settings)}
-                    """,
-                    (ll2_id,)
-                )
-                async for row in cur:
-                    # Convert button settings to bools
-                    row['button_fc'] = bool(row['button_fc'])
-                    row['button_g4l'] = bool(row['button_g4l'])
-                    row['button_sln'] = bool(row['button_sln'])
-                    yield row
+        async with (
+            self.pool.acquire() as con,
+            con.cursor(aiomysql.DictCursor) as cur
+        ):
+            await cur.execute(
+                f"""
+                SELECT
+                    eg.guild_id,
+                    eg.notification_webhook_url,
+                    le.flightclub AND eg.notification_button_fc AS button_fc,
+                    eg.notification_button_g4l AS button_g4l,
+                    eg.notification_button_sln AS button_sln,
+                    se.scheduled_event_id
+                FROM
+                    enabled_guilds AS eg
+                JOIN
+                    ll2_events as le
+                    ON le.ll2_id = %s
+                LEFT JOIN
+                    ll2_agencies_filter as laf
+                    ON laf.guild_id = eg.guild_id
+                    AND laf.agency_id = le.agency_id
+                LEFT JOIN
+                    scheduled_events AS se
+                    ON se.guild_id = eg.guild_id
+                    AND eg.notification_scheduled_event
+                    AND se.ll2_id = le.ll2_id
+                WHERE
+                    eg.notification_webhook_url IS NOT NULL
+                    AND
+                    (
+                        le.ll2_id REGEXP '^[0-9]+$'
+                        OR laf.agency_id IS NULL
+                        XOR eg.agencies_include_exclude <=> 1
+                    )
+                    AND
+                        {' AND '.join(settings)}
+                """,
+                (ll2_id,)
+            )
+            async for row in cur:
+                # Convert button settings to bools
+                row['button_fc'] = bool(row['button_fc'])
+                row['button_g4l'] = bool(row['button_g4l'])
+                row['button_sln'] = bool(row['button_sln'])
+                yield row

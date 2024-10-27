@@ -15,6 +15,8 @@ import logging
 
 from bin import combine_strings, convert_minutes, enums
 
+logger = logging.getLogger(__name__)
+
 class LiveLaunchCommand(commands.Cog):
     """
     Discord.py cog for enabling/disabling LiveLaunch in a Discord channel.
@@ -654,7 +656,7 @@ class LiveLaunchCommand(commands.Cog):
                 ephemeral=True
             )
         else:
-            logging.error(f'Command: {interaction.command}\tError: {error}')
+            logger.error(error)
 
 
 async def setup(bot: commands.Bot):

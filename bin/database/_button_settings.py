@@ -46,16 +46,15 @@ class ButtonSettings:
         args.append(guild_id)
 
         # Update db
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    f"""
-                    UPDATE enabled_guilds
-                    SET {', '.join(cols)}
-                    WHERE guild_id=%s
-                    """,
-                    args
-                )
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                f"""
+                UPDATE enabled_guilds
+                SET {', '.join(cols)}
+                WHERE guild_id=%s
+                """,
+                args
+            )
 
     async def button_settings_get(
         self,
@@ -83,22 +82,24 @@ class ButtonSettings:
             Button settings
             for the guild.
         """
-        with await self.pool as con:
-            async with con.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute(
-                    f"""
-                    SELECT
-                        le.flightclub AND eg.notification_button_fc AS button_fc,
-                        eg.notification_button_g4l AS button_g4l,
-                        eg.notification_button_sln AS button_sln
-                    FROM
-                        enabled_guilds as eg
-                    JOIN
-                        ll2_events as le
-                        ON le.ll2_id = %s
-                    WHERE
-                        eg.guild_id = %s
-                    """,
-                    (ll2_id, guild_id)
-                )
-                return await cur.fetchone()
+        async with (
+            self.pool.acquire() as con,
+            con.cursor(aiomysql.DictCursor) as cur
+        ):
+            await cur.execute(
+                f"""
+                SELECT
+                    le.flightclub AND eg.notification_button_fc AS button_fc,
+                    eg.notification_button_g4l AS button_g4l,
+                    eg.notification_button_sln AS button_sln
+                FROM
+                    enabled_guilds as eg
+                JOIN
+                    ll2_events as le
+                    ON le.ll2_id = %s
+                WHERE
+                    eg.guild_id = %s
+                """,
+                (ll2_id, guild_id)
+            )
+            return await cur.fetchone()

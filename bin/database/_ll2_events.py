@@ -55,27 +55,26 @@ class LL2Events:
             Event has a Flight Club page.
         **kwargs
         """
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    INSERT INTO ll2_events
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    """,
-                    (
-                        ll2_id,
-                        agency_id,
-                        name,
-                        status,
-                        description, url,
-                        image_url,
-                        start,
-                        end,
-                        webcast_live,
-                        slug,
-                        flightclub
-                    )
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                INSERT INTO ll2_events
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    ll2_id,
+                    agency_id,
+                    name,
+                    status,
+                    description, url,
+                    image_url,
+                    start,
+                    end,
+                    webcast_live,
+                    slug,
+                    flightclub
                 )
+            )
 
     async def ll2_events_remove(
         self,
@@ -90,15 +89,14 @@ class LL2Events:
         ll2_id : str
             Launch Library 2 ID.
         """
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    """
-                    DELETE FROM ll2_events
-                    WHERE ll2_id=%s
-                    """,
-                    (ll2_id,)
-                )
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                """
+                DELETE FROM ll2_events
+                WHERE ll2_id=%s
+                """,
+                (ll2_id,)
+            )
 
     async def ll2_events_iter(
         self,
@@ -144,23 +142,25 @@ class LL2Events:
         else:
             raise Exception('Wrong `asc_desc` value given.')
 
-        with await self.pool as con:
-            async with con.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute(
-                    f"""
-                    SELECT *
-                    FROM ll2_events
-                    ORDER BY start {order}
-                    """
-                )
-                async for row in cur:
-                    # Convert timezone unaware datetimes into UTC datetimes
-                    row['start'] = row['start'].replace(tzinfo=timezone.utc)
-                    row['end'] = row['end'].replace(tzinfo=timezone.utc)
-                    # Convert booleans
-                    row['webcast_live'] = bool(row['webcast_live'])
-                    row['flightclub'] = bool(row['flightclub'])
-                    yield row
+        async with (
+            self.pool.acquire() as con,
+            con.cursor(aiomysql.DictCursor) as cur
+        ):
+            await cur.execute(
+                f"""
+                SELECT *
+                FROM ll2_events
+                ORDER BY start {order}
+                """
+            )
+            async for row in cur:
+                # Convert timezone unaware datetimes into UTC datetimes
+                row['start'] = row['start'].replace(tzinfo=timezone.utc)
+                row['end'] = row['end'].replace(tzinfo=timezone.utc)
+                # Convert booleans
+                row['webcast_live'] = bool(row['webcast_live'])
+                row['flightclub'] = bool(row['flightclub'])
+                yield row
 
     async def ll2_events_get(
         self,
@@ -193,17 +193,19 @@ class LL2Events:
             Returns a row with the ll2_event's data
             if it exists, otherwise None.
         """
-        with await self.pool as con:
-            async with con.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute(
-                    """
-                    SELECT *
-                    FROM ll2_events
-                    WHERE ll2_id=%s
-                    """,
-                    (ll2_id,)
-                )
-                row = await cur.fetchone()
+        async with (
+            self.pool.acquire() as con,
+            con.cursor(aiomysql.DictCursor) as cur
+        ):
+            await cur.execute(
+                """
+                SELECT *
+                FROM ll2_events
+                WHERE ll2_id=%s
+                """,
+                (ll2_id,)
+            )
+            row = await cur.fetchone()
         if row:
             # Convert timezone unaware datetimes into UTC datetimes
             row['start'] = row['start'].replace(tzinfo=timezone.utc)
@@ -293,13 +295,12 @@ class LL2Events:
         # Add ll2_id to the arguments
         args.append(ll2_id)
         # Update
-        with await self.pool as con:
-            async with con.cursor() as cur:
-                await cur.execute(
-                    f"""
-                    UPDATE ll2_events
-                    SET {', '.join(cols)}
-                    WHERE ll2_id=%s
-                    """,
-                    args
-                )
+        async with self.pool.acquire() as con, con.cursor() as cur:
+            await cur.execute(
+                f"""
+                UPDATE ll2_events
+                SET {', '.join(cols)}
+                WHERE ll2_id=%s
+                """,
+                args
+            )

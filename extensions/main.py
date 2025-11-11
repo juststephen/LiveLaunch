@@ -63,13 +63,16 @@ class LiveLaunch(commands.Cog):
         self.check_ll2.start()
         self.check_rss.start()
 
-    async def send_webhook_message(self, sending: list[dict[str, str]]) -> None:
+    async def send_webhook_message(
+        self,
+        sending: list[dict[str, int | str]]
+    ) -> None:
         """
         Sends all streams within the sending list.
 
         Parameters
         ----------
-        sending : list[dict[str, str]]
+        sending : list[dict[str, int | str]]
             List containing dictionaries of the
             streams that need to be sent.
             - Mandatory keys:
@@ -88,15 +91,21 @@ class LiveLaunch(commands.Cog):
         """
         async for guild_id, webhook_url in self.bot.lldb.enabled_guilds_webhook_iter():
 
-            # Check if the agencies are being filtered
-            if not any(
-                filters := [
+            # Fetch the agency filters set by the guild
+            filters = [
                     await self.bot.lldb.ll2_agencies_filter_check(guild_id, i['agency_id'])
                     if i['agency_id']
                     else True
                     for i in sending
-                ]
-            ):
+            ]
+
+            # Check if the filter is set to include or exclude the agencies
+            if await self.bot.lldb.ll2_agencies_filter_get_include_exclude(guild_id):
+                # Set to include, invert filters
+                filters = [not i for i in filters]
+
+            # Continue when everything is being filtered
+            if not any(filters):
                 continue
 
             try:

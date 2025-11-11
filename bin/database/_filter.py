@@ -113,9 +113,9 @@ class Filter:
         query: str,
         guild_id: int,
         *,
-        names: list[str] = None,
-        ids: list[int] = None
-    ) -> list[int and str]:
+        names: list[str] | None = None,
+        ids: list[int] | None = None
+    ) -> list[int | str]:
         """
         Base for add/remove filters.
 
@@ -130,9 +130,9 @@ class Filter:
             on the data.
         guild_id : int
             Discord guild ID.
-        names : list[str], default: None
+        names : list[str] or None, default: None
             Name list.
-        ids : list[int], default: None
+        ids : list[int] or None, default: None
             ID list.
 
         Returns
@@ -143,11 +143,11 @@ class Filter:
             List containing all the
             failed names and IDs.
         """
-        data = {
+        data: dict[str, list[int] | list[str] | None] = {
             tables.name_column: names,
             tables.id_column: ids
         }
-        failed = []
+        failed: list[int | str] = []
 
         async with self.pool.acquire() as con, con.cursor() as cur:
             # Iterating over data to check & perform SQL
@@ -184,9 +184,9 @@ class Filter:
         tables: FilterTable,
         guild_id: int,
         *,
-        names: list[str] = None,
-        ids: list[int] = None
-    ) -> list[int and str]:
+        names: list[str] | None = None,
+        ids: list[int] | None = None
+    ) -> list[int | str]:
         """
         Add filters per guild.
 
@@ -198,9 +198,9 @@ class Filter:
             SQL table data.
         guild_id : int
             Discord guild ID.
-        names : list[str], default: None
+        names : list[str] or None, default: None
             Name list.
-        ids : list[int], default: None
+        ids : list[int] or None, default: None
             ID list.
 
         Returns
@@ -230,9 +230,9 @@ class Filter:
         tables: FilterTable,
         guild_id: int,
         *,
-        names: list[str] = None,
-        ids: list[int] = None
-    ) -> list[int and str]:
+        names: list[str] | None = None,
+        ids: list[int] | None = None
+    ) -> list[int | str]:
         """
         Remove filters per guild.
 
@@ -244,9 +244,9 @@ class Filter:
             SQL table data.
         guild_id : int
             Discord guild ID.
-        names : list[str], default: None
+        names : list[str] or None, default: None
             Name list.
-        ids : list[int], default: None
+        ids : list[int] or None, default: None
             ID list.
 
         Returns
@@ -276,7 +276,7 @@ class Filter:
         self,
         tables: FilterTable,
         *,
-        guild_id: int = None
+        guild_id: int | None = None
     ) -> tuple[tuple[int, str]]:
         """
         List available or enabled filters.
@@ -287,7 +287,7 @@ class Filter:
             FilterTable object
             with the required
             SQL table data.
-        guild_id : int, default: None
+        guild_id : int or None, default: None
             Discord guild ID, when
             None, return all available
             items for filtering.
@@ -338,8 +338,8 @@ class Filter:
         tables: FilterTable,
         guild_id: int,
         *,
-        name_value: str = None,
-        id_value: int = None
+        name_value: str | None = None,
+        id_value: int | None = None
     ) -> bool:
         """
         Check if the name or ID is not
@@ -353,9 +353,9 @@ class Filter:
             SQL table data.
         guild_id : int
             Discord guild ID.
-        name_value : int, default: None
+        name_value : str or None, default: None
             Name to check.
-        id_value : int, default: None
+        id_value : int or None, default: None
             ID to check.
 
         Returns

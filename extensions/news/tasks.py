@@ -71,16 +71,21 @@ class LiveLaunchNewsTasks(commands.Cog):
 
         # Sending
         async for guild_id, webhook_url in self.bot.lldb.enabled_guilds_news_iter():
-            # Continue when a guild doesn't want any articles
-            if not any(
-                filters := [await self.bot.lldb.news_filter_check(guild_id, i['news_site']) for i in new_news]
-            ):
-                continue
+
+            # Fetch the news site filters set by the guild
+            filters = [
+                await self.bot.lldb.news_filter_check(guild_id, i['news_site'])
+                for i in new_news
+            ]
 
             # Check if the filter is set to include or exclude the news sites
             if await self.bot.lldb.news_filter_get_include_exclude(guild_id):
                 # Set to include, invert filters
                 filters = [not i for i in filters]
+
+            # Continue when everything is being filtered
+            if not any(filters):
+                continue
 
             try:
                 # Creating session

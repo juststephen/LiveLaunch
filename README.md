@@ -2,7 +2,7 @@
 
 Creates space related events and sends live streams!
 
-[Add to Server](https://discord.com/api/oauth2/authorize?client_id=869969874036867082&permissions=9126823936&scope=bot%20applications.commands)
+[Add to Server](https://discord.com/api/oauth2/authorize?client_id=869969874036867082&permissions=17601312868352&scope=bot%20applications.commands)
 
 ## Features:
 The events are created from Launch Library 2 launch and event data, events are automatically maintained by the bot by updating information, starting the event when the livestream goes live and ending it when the launch is a success or fails.

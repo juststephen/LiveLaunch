@@ -32,6 +32,7 @@ class LiveLaunchCommand(commands.Cog):
     @app_commands.checks.bot_has_permissions(
         manage_webhooks=True,
         manage_events=True,
+        create_events=True,
         send_messages=True,
         embed_links=True
     )
@@ -646,7 +647,8 @@ class LiveLaunchCommand(commands.Cog):
             )
         elif isinstance(error, app_commands.errors.BotMissingPermissions):
             await interaction.response.send_message(
-                'LiveLaunch requires the `Manage Webhooks`, `Manage Events`, '
+                'LiveLaunch requires the `Manage Webhooks`, '
+                '`Manage Events`, `Create Events`, '
                 '`Send Messages` and `Embed Links` permissions.',
                 ephemeral=True
             )

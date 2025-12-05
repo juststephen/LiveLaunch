@@ -1,5 +1,6 @@
 from ._button_settings import ButtonSettings
 from ._enabled_guilds import EnabledGuilds
+from ._guilds import Guilds
 from ._ll2_agencies import LL2Agencies
 from ._ll2_agencies_filter import LL2AgenciesFilter
 from ._ll2_events import LL2Events
@@ -17,6 +18,7 @@ from ._start import Start
 class Database(
     ButtonSettings,
     EnabledGuilds,
+    Guilds,
     LL2Agencies,
     LL2AgenciesFilter,
     LL2Events,

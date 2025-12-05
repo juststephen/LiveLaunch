@@ -29,6 +29,14 @@ class Start:
             autocommit=True
         )
         async with self.pool.acquire() as con, con.cursor() as cur:
+            # Create table for storing guilds
+            await cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS guilds (
+                guild_id BIGINT UNSIGNED PRIMARY KEY
+                )
+                """
+            )
             # Create table for storing guild settings
             await cur.execute(
                 """

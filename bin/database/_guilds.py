@@ -21,10 +21,8 @@ class Guilds:
                 """
             )
             await cur.executemany(
-                """
-                INSERT INTO `tmp_guilds` (`guild_id`) VALUES (%s);
-                """,
-                guild_ids
+                'INSERT INTO `tmp_guilds` (`guild_id`) VALUES (%s);',
+                ((gid,) for gid in guild_ids)
             )
 
             # Remove old IDs
@@ -44,6 +42,9 @@ class Guilds:
                 ON DUPLICATE KEY UPDATE `guild_id` = `guilds`.`guild_id`;
                 """
             )
+
+            # Drop the temporary table
+            await cur.execute('DROP TEMPORARY TABLE `tmp_guilds`;')
 
     async def guild_add(self, guild_id: int) -> None:
         """

@@ -8,6 +8,10 @@ from itertools import compress
 import logging
 from operator import itemgetter
 import re
+from typing import Any, Literal, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from discord.types import scheduled_event
 
 from bin import (
     LaunchLibrary2 as ll2,
@@ -15,8 +19,9 @@ from bin import (
     NotificationCheck,
     YouTubeAPI,
     YouTubeRSS,
-    YouTubeStripVideoID
+    youtube_strip_video_id
 )
+from main import LiveLaunchBot
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +29,7 @@ class LiveLaunch(commands.Cog):
     """
     Discord.py cog for reporting live launches.
     """
-    def __init__(self, bot):
+    def __init__(self, bot: LiveLaunchBot):
         self.bot = bot
         #### Settings ####
         # Scheduled event base url
@@ -45,10 +50,8 @@ class LiveLaunch(commands.Cog):
         self.ytapi = YouTubeAPI()
         # YouTube RSS
         self.ytrss = YouTubeRSS()
-        # YouTube regex for stripping IDs from URLs
-        self.ytid_re = YouTubeStripVideoID()
         # YouTube base url for videos
-        self.yt_base_url = 'https://www.youtube.com/watch?v='
+        self.yt_base_url = 'https://www.youtube.com/watch?v=%s'
         # Regex check for type checking
         self.type_check = re.compile('^[0-9]+$')
         # Itemgetter object for getting notification button settings
@@ -65,7 +68,7 @@ class LiveLaunch(commands.Cog):
 
     async def send_webhook_message(
         self,
-        sending: list[dict[str, int | str]]
+        sending: list[dict[str, int | str | None]]
     ) -> None:
         """
         Sends all streams within the sending list.
@@ -82,7 +85,7 @@ class LiveLaunch(commands.Cog):
                     Channel name.
                 - ` yt_vid_id ` : str
                     YouTube video ID.
-                - ` agency_id ` : int
+                - ` agency_id ` : int or None
                     Agency ID.
             - Optional key:
                 - ` embed ` : discord.Embed
@@ -93,8 +96,10 @@ class LiveLaunch(commands.Cog):
 
             # Fetch the agency filters set by the guild
             filters = [
-                    await self.bot.lldb.ll2_agencies_filter_check(guild_id, i['agency_id'])
-                    if i['agency_id']
+                    await self.bot.lldb.ll2_agencies_filter_check(
+                        guild_id, i['agency_id']
+                    )
+                    if i['agency_id'] is not None
                     else True
                     for i in sending
             ]
@@ -120,7 +125,7 @@ class LiveLaunch(commands.Cog):
                     # Sending streams
                     for send in compress(sending, filters):
                         await webhook.send(
-                            self.yt_base_url + send['yt_vid_id'],
+                            self.yt_base_url % send['yt_vid_id'],
                             username=send['channel'],
                             avatar_url=send['avatar']
                         )
@@ -147,18 +152,18 @@ class LiveLaunch(commands.Cog):
         for send in sending:
             await self.bot.lldb.sent_media_add(yt_vid_id=send['yt_vid_id'])
 
-    def create_scheduled_event(
+    async def create_scheduled_event(
         self,
         guild_id: int,
         name: str,
         description: str,
-        url: str,
+        url: str | None,
         start: datetime,
         end: datetime,
         webcast_live: bool = False,
-        image: bytes = None,
-        **kwargs
-    ) -> dict[str, int and str]:
+        image: bytes | None = None,
+        **kwargs: Any
+    ) -> scheduled_event.GuildScheduledEvent:
         """
         Create a Discord scheduled event
         at an external location.
@@ -171,7 +176,7 @@ class LiveLaunch(commands.Cog):
             Name of the event.
         description : str
             Description of the event.
-        url : str
+        url : str or None
             External location of the event.
             Must be 100 characters or less.
         start : datetime
@@ -182,13 +187,14 @@ class LiveLaunch(commands.Cog):
             given, start must also be given.
         webcast_live : bool, default: False
             Start the Discord event.
-        image : bytes, default: None
+        image : bytes or None, default: None
             Event cover image.
-        **kwargs
+        **kwargs : Any
+            Ignored kwargs.
 
         Returns
         -------
-        dict[str, int and str]
+        dict[str, int | str]
             Created Discord scheduled
             event data object.
 
@@ -213,10 +219,10 @@ class LiveLaunch(commands.Cog):
         if webcast_live:
             start = datetime.now(timezone.utc) + self.timedelta_1m
         # Convert image bytes to base64
-        if image:
-            image = _bytes_to_base64_data(image)
+        encoded_image = _bytes_to_base64_data(image) if image else None
+
         # Return creation coroutine
-        return self.bot.http.create_guild_scheduled_event(
+        return await self.bot.http.create_guild_scheduled_event(
             guild_id,
             **{
                 'name': name, 'privacy_level': 2,
@@ -224,24 +230,25 @@ class LiveLaunch(commands.Cog):
                 'scheduled_end_time': end.isoformat(),
                 'description': description, 'entity_type': 3,
                 'entity_metadata': {'location': url},
-                'image': image
-            }
+                'image': encoded_image
+            },
+            reason=None
         )
 
-    def modify_scheduled_event(
+    async def modify_scheduled_event(
         self,
         guild_id: int,
-        scheduled_event_id: str = None,
-        name: str = None,
-        description: str = None,
-        url: str = None,
-        image: bytes = None,
-        start: datetime = None,
-        end: datetime = None,
+        scheduled_event_id: int,
+        name: str | None = None,
+        description: str | None = None,
+        url: str | None = None,
+        image: bytes | None = None,
+        start: datetime | None = None,
+        end: datetime | None = None,
         webcast_live: bool = False,
-        entity_type: int = None,
-        **kwargs
-    ) -> dict[str, int and str]:
+        entity_type: int | None = None,
+        **kwargs : Any
+    ) -> scheduled_event.GuildScheduledEvent:
         """
         Update a Discord scheduled event
         at an external location.
@@ -252,30 +259,31 @@ class LiveLaunch(commands.Cog):
             Discord guild ID.
         scheduled_event_id : int
             Discord scheduled event ID.
-        name : str, default: None
+        name : str or None, default: None
             Name of the event.
-        description : str, default: None
+        description : str or None, default: None
             Description of the event.
-        url : str, default: None
+        url : str or None, default: None
             External location of the event.
             Must be 100 characters or less.
-        image : bytes, default: None
+        image : bytes or None, default: None
             Event cover image.
-        start : datetime, default: None
+        start : datetime or None, default: None
             Start datetime of the event, if
             given, end must also be given.
-        end : datetime, default: None
+        end : datetime or None, default: None
             End datetime of the event, if
             given, start must also be given.
         webcast_live : bool, default: False
             Start the Discord event.
-        entity_type : int, default: None
+        entity_type : int or None, default: None
             Location type of the event.
-        **kwargs
+        **kwargs : Any
+            Ignored kwargs.
 
         Returns
         -------
-        dict[str, int and str]
+        dict[str, int | str]
             Modified Discord scheduled
             event data object.
         """
@@ -303,18 +311,19 @@ class LiveLaunch(commands.Cog):
             if entity_type == 3:
                 payload['channel_id'] = None
         # Modify
-        return self.bot.http.edit_scheduled_event(
+        return await self.bot.http.edit_scheduled_event(
             guild_id,
             scheduled_event_id,
-            **payload
+            **payload,
+            reason=None
         )
 
     async def scheduled_events_update(
         self,
         ll2_id: str,
         *,
-        cached: dict[str, bool and datetime and int and str],
-        check: dict[str, bool or datetime or int or str]
+        cached: dict[str, bool | datetime | int | str],
+        check: dict[str, bool | datetime | int | str]
     ) -> None:
         """
         Update scheduled events when any
@@ -324,13 +333,9 @@ class LiveLaunch(commands.Cog):
         ----------
         ll2_id : str
             Launch Library 2 ID.
-        cached: dict[
-            str, bool and datetime and int and str
-        ]
+        cached: dict[str, bool | datetime | int | str]
             Cached data for the event.
-        check : dict[
-            str, bool or datetime or int or str
-        ]
+        check : dict[str, bool | datetime | int | str]
             Data from events that changed.
         """
         failed = False
@@ -342,7 +347,9 @@ class LiveLaunch(commands.Cog):
                 session.get(image_url) as resp
             ):
                 # Check status and size (Discord maximum)
-                if resp.status == 200 and resp.content_length <= 10240000:
+                if (resp.status == 200
+                        and resp.content_length
+                        and resp.content_length <= 10240000):
                     check['image'] = await resp.read()
 
         # Iterate over scheduled events corresponding to the ll2_id
@@ -411,7 +418,7 @@ class LiveLaunch(commands.Cog):
                         del modify['start']
 
                 # Insert a replacement string when there is no stream URL
-                if check.get('url', False) is None:
+                if check.get('url') is None:
                     modify['url'] = ll2.no_stream
 
                 remove_event = False
@@ -473,7 +480,7 @@ class LiveLaunch(commands.Cog):
                 **check
             )
 
-    async def scheduled_events_remove(self, ll2_id: str) -> None:
+    async def scheduled_events_remove(self, ll2_id: str) -> bool:
         """
         Remove a scheduled event in
         all Discord guilds.
@@ -526,8 +533,8 @@ class LiveLaunch(commands.Cog):
         notification_type : int,
         *,
         ll2_id: str,
-        data: dict[str, bool and datetime and int and str],
-        cached_start: datetime = None
+        data: dict[str, bool | datetime | int | str],
+        cached_start: datetime | None = None
     ) -> None:
         """
         Send a notification when called, uses the
@@ -547,13 +554,13 @@ class LiveLaunch(commands.Cog):
             str, bool and datetime and int and str
         ]
             Data of the event.
-        cached_start : datetime, default: None
+        cached_start : datetime or None, default: None
             Previous start datetime.
         """
         async def send(
             embed: discord.Embed,
-            buttons: dict[str, Button],
-            kwargs: dict[str, bool or int and str]
+            buttons: dict[str, Button[View]],
+            kwargs: dict[str, bool | int | str]
         ) -> None:
             """
             Send notifications depending on the type.
@@ -562,12 +569,12 @@ class LiveLaunch(commands.Cog):
             ----------
             embed : discord.Embed
                 Embed object to send.
-            buttons : dict[str, Button]
+            buttons : dict[str, Button[View]]
                 Buttons to external sites:
-                    ` fc `: FC button.
-                    ` g4l `: G4L button.
-                    ` sln `: SLN button.
-            kwargs : dict[str, bool or int and str]
+                    ` button_fc `: FC button.
+                    ` button_g4l `: G4L button.
+                    ` button_sln `: SLN button.
+            kwargs : dict[str, bool | int | str]
                 Iteration kwargs.
             """
             # Iterate over guilds that enabled the notification type
@@ -586,8 +593,8 @@ class LiveLaunch(commands.Cog):
                 # Add correct buttons
                 if any(button_settings := self.button_settings(notification)):
                     message['view'] = View()
-                    for i in compress(buttons, button_settings):
-                        message['view'].add_item(i)
+                    for key in compress(buttons, button_settings):
+                        message['view'].add_item(buttons[key])
 
                 try:
                     # Creating session
@@ -626,15 +633,15 @@ class LiveLaunch(commands.Cog):
                     )
 
         # Kwargs dict and get status
-        kwargs = {'ll2_id': ll2_id}
+        kwargs: dict[str, bool | int | str] = {'ll2_id': ll2_id}
         status = data.get('status')
 
         # Only enable video URL when available
+        title_url: dict[Literal['url'], str] = {}
         if (url := data['url']):
-            title_url = {'url': url}
+            title_url['url'] = url
             url = f'[Stream]({url})'
         else:
-            title_url = {}
             url = ll2.no_stream
 
         # Select the correct G4L and SLN base URL
@@ -648,38 +655,32 @@ class LiveLaunch(commands.Cog):
             kwargs['launch'] = True
 
         # FC, G4L and SLN buttons for the event
-        buttons = []
+        buttons: dict[str, Button[View]] = {}
         # Add SLN button
-        buttons.append(
-            Button(
-                label=ll2.sln_name,
-                style=discord.ButtonStyle.link,
-                emoji=ll2.sln_emoji,
-                url=sln_url % data['slug']
-            )
+        buttons['button_sln'] = Button(
+            label=ll2.sln_name,
+            style=discord.ButtonStyle.link,
+            emoji=ll2.sln_emoji,
+            url=sln_url % data['slug']
         )
         # Add G4L button
-        buttons.append(
-            Button(
-                label=ll2.g4l_name,
-                style=discord.ButtonStyle.link,
-                emoji=ll2.g4l_emoji,
-                url=g4l_url % ll2_id
-            )
+        buttons['button_g4l'] = Button(
+            label=ll2.g4l_name,
+            style=discord.ButtonStyle.link,
+            emoji=ll2.g4l_emoji,
+            url=g4l_url % ll2_id
         )
         # Add FC button
-        buttons.append(
-            Button(
-                label=ll2.fc_name,
-                style=discord.ButtonStyle.link,
-                emoji=ll2.fc_emoji,
-                url=ll2.fc_url % ll2_id
-            )
+        buttons['button_fc'] = Button(
+            label=ll2.fc_name,
+            style=discord.ButtonStyle.link,
+            emoji=ll2.fc_emoji,
+            url=ll2.fc_url % ll2_id
         )
 
         # Get the agency's name and logo
-        if (agency := await self.bot.lldb.ll2_agencies_get(ll2_id)):
-            agency, logo_url = agency
+        if (agency_data := await self.bot.lldb.ll2_agencies_get(ll2_id)):
+            agency, logo_url = agency_data
         else:
             agency, logo_url = None, None
 
@@ -787,11 +788,17 @@ class LiveLaunch(commands.Cog):
                 now = datetime.now(timezone.utc)
 
                 # Scheduled event check
-                scheduled_event_check = data['end'] > now \
+                scheduled_event_check = (
+                    data['end'] > now
                     and data.get('status') not in self.ll2.launch_status_end
+                )
 
                 # Check for updates to the event
-                check = {key: data.get(key) for key in self.ll2.data_keys if data.get(key) != cached[key]}
+                check = {
+                    key: data.get(key)
+                    for key in self.ll2.data_keys
+                    if data.get(key) != cached[key]
+                }
 
                 # Update agency data
                 if (agency_id := check.get('agency_id')):
@@ -910,7 +917,9 @@ class LiveLaunch(commands.Cog):
                         session.get(image_url) as resp
                     ):
                         # Check status and size (Discord maximum)
-                        if resp.status == 200 and resp.content_length <= 10240000:
+                        if (resp.status == 200
+                                and resp.content_length
+                                and resp.content_length <= 10240000):
                             upcoming[row['ll2_id']]['image'] = await resp.read()
 
                 reset_settings = False
@@ -976,23 +985,31 @@ class LiveLaunch(commands.Cog):
         #### Sending streams using webhooks ####
 
         # Go through upcoming streams for webhook sending
-        sending = []
+        sending: list[dict[str, int | str | None]] = []
         for ll2_id, data in upcoming.items():
             # Add stream if it is within 1 hour to the sending list
             now = datetime.now(timezone.utc)
             if abs(data['start'] - now) < timedelta(hours=1) and data['url']:
                 # Check if the stream is on YouTube and not a NASA TV stream
-                yt_vid_id = self.ytid_re(data['url'])
-                if yt_vid_id and self.yt_base_url + (yt_vid_id := yt_vid_id[0]) not in self.nasatv:
+                yt_vid_id = youtube_strip_video_id(data['url'])
+                if yt_vid_id and self.yt_base_url % yt_vid_id not in self.nasatv:
                     # Only send streams that aren't sent already
-                    if not await self.bot.lldb.sent_media_exists(yt_vid_id=yt_vid_id):
+                    if not await self.bot.lldb.sent_media_exists(
+                        yt_vid_id=yt_vid_id
+                    ):
 
                         # Get YouTube channel
-                        if (channel := self.ytapi.get_channel_from_video(yt_vid_id)) is None:
+                        channel = self.ytapi.get_channel_from_video(yt_vid_id)
+                        if channel is None:
                             # Can't find the channel, continue
                             continue
                         # Get YouTube channel name and avatar
-                        thumb, title = self.ytapi.get_channel_thumbtitle(channel)
+                        channel_info = self.ytapi.get_channel_thumbtitle(
+                            channel
+                        )
+                        if channel_info is None:
+                            continue
+                        thumb, title = channel_info
 
                         # Adding to the sending list
                         sending.append(
@@ -1018,7 +1035,7 @@ class LiveLaunch(commands.Cog):
         Discord task for checking the YouTube RSS feed.
         """
         # Storage list of streams to send
-        sending = []
+        sending: list[dict[str, int | str | None]] = []
 
         # Check if there are any streams
         streams = await self.ytrss.request()
@@ -1030,10 +1047,17 @@ class LiveLaunch(commands.Cog):
                 # Iterate through the streams of a channel
                 for yt_vid_id in streams[channel]:
                     # Only send streams that aren't sent already
-                    if not await self.bot.lldb.sent_media_exists(yt_vid_id=yt_vid_id):
+                    if not await self.bot.lldb.sent_media_exists(
+                        yt_vid_id=yt_vid_id
+                    ):
 
                         # Get YouTube channel name and avatar
-                        thumb, title = self.ytapi.get_channel_thumbtitle(channel)
+                        channel_info = self.ytapi.get_channel_thumbtitle(
+                            channel
+                        )
+                        if channel_info is None:
+                            continue
+                        thumb, title = channel_info
 
                         # Adding to the sending list
                         sending.append(
@@ -1050,5 +1074,5 @@ class LiveLaunch(commands.Cog):
             await self.send_webhook_message(sending)
 
 
-async def setup(bot: commands.Bot):
+async def setup(bot: LiveLaunchBot):
     await bot.add_cog(LiveLaunch(bot))

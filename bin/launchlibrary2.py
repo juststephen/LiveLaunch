@@ -1,9 +1,11 @@
-import asyncio
 from datetime import datetime, timedelta, timezone
-from isodate import parse_duration
+from isodate import parse_duration  # type: ignore
 import os
+from typing import Any
 
 from bin import get
+
+type Item = dict[str, bool | datetime | int | str | None]
 
 class LaunchLibrary2:
     """
@@ -109,7 +111,7 @@ class LaunchLibrary2:
         self.ll2_launch_url = 'https://ll.thespacedevs.com/2.3.0/launches/upcoming/?limit=50&mode=detailed&net__lte=%s'
         self.ll2_event_url = 'https://ll.thespacedevs.com/2.3.0/events/upcoming/?date__lte=%s&limit=50'
 
-    async def ll2_request(self, url: str) -> dict or None:
+    async def ll2_request(self, url: str) -> list[dict[str, Any]] | None:
         """
         Requests the Launch Library 2 API for the results of `url`.
 
@@ -120,7 +122,7 @@ class LaunchLibrary2:
 
         Returns
         -------
-        results : dict or None
+        results : dict[str, Any] | None
             Get a dictionary of the results or None if it fails.
         """
         # Request data from the LL2 API
@@ -136,13 +138,15 @@ class LaunchLibrary2:
             if 'results' in result:
                 return result['results']
 
-    async def upcoming_launches(self) -> dict[str, dict[str, bool and datetime and int and str]]:
+    async def upcoming_launches(
+        self
+    ) -> dict[str, Item]:
         """
         Gets data of upcoming launches.
 
         Returns
         -------
-        streams : dict[str, dict[str, bool and datetime and str]]
+        streams : dict[str, Item]
             Dictionairy with the launch name, webcast_live,
             mission description, net time, video URL and LL2 ID.
         """
@@ -155,7 +159,7 @@ class LaunchLibrary2:
             return {}
 
         # Storage dict for returning
-        launches = {}
+        launches: dict[str, Item] = {}
 
         # Go through data
         for entry in results:
@@ -215,13 +219,15 @@ class LaunchLibrary2:
         # Returning
         return launches
 
-    async def upcoming_events(self) -> dict[str, dict[str, bool and datetime and str]]:
+    async def upcoming_events(
+        self
+    ) -> dict[str, Item]:
         """
         Gets data of upcoming events.
 
         Returns
         -------
-        streams : dict[str, dict[str, bool and datetime and str]]
+        streams : dict[str, Item]
             Dictionairy with the event name, webcast_live,
             mission description, net time, video URL and LL2 ID.
         """
@@ -234,7 +240,7 @@ class LaunchLibrary2:
             return {}
 
         # Storage dict for returning
-        events = {}
+        events: dict[str, Item] = {}
 
         # Go through data
         for entry in results:
@@ -298,13 +304,15 @@ class LaunchLibrary2:
         # Returning
         return events
 
-    async def upcoming(self) -> dict[str, dict[str, bool and datetime and int and str]]:
+    async def upcoming(
+        self
+    ) -> dict[str, Item]:
         """
         Gets data of upcoming events and launches.
 
         Returns
         -------
-        streams : dict[str, dict[str, bool and datetime and str]]
+        streams : dict[str, Item]
             Dictionairy with the event name, webcast_live,
             mission description, net time, video URL and LL2 ID.
         """
@@ -316,11 +324,13 @@ class LaunchLibrary2:
             return {}
 
         # Combine launches and events
-        upcoming = launches | events
+        upcoming = launches | events  # type: ignore
 
         # Sort by start datetime and limit it to `.max_events` items
-        upcoming = dict(
-            sorted(upcoming.items(), key=lambda item: item[1]['start'])[:self.max_events]
+        upcoming: dict[str, Item] = dict(
+            sorted(  # type: ignore
+                upcoming.items(), key=lambda item: item[1]['start']  # type: ignore
+            )[:self.max_events]
         )
 
         # Update cache

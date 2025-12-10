@@ -4,9 +4,11 @@ from discord.ext import commands
 import logging
 
 from bin import combine_strings, enums
+from main import LiveLaunchBot
 
 logger = logging.getLogger(__name__)
 
+@app_commands.default_permissions(administrator=True)
 @app_commands.guild_only()
 class LiveLaunchNewsSitesFilter(
     commands.GroupCog,
@@ -17,7 +19,7 @@ class LiveLaunchNewsSitesFilter(
     """
     Discord.py cog for the news site filter commands.
     """
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: LiveLaunchBot):
         self.bot = bot
 
     @app_commands.command(name='include_exclude')
@@ -41,7 +43,8 @@ class LiveLaunchNewsSitesFilter(
         await interaction.response.defer(ephemeral=True, thinking=True)
 
         # Guild ID
-        guild_id = interaction.guild_id
+        if (guild_id := interaction.guild_id) is None:
+            raise TypeError('guild_id should never be None')
 
         # Check if guild has settings
         if not await self.bot.lldb.enabled_guilds_check(guild_id):
@@ -74,7 +77,8 @@ class LiveLaunchNewsSitesFilter(
         await interaction.response.defer(ephemeral=True, thinking=True)
 
         # Guild ID
-        guild_id = interaction.guild_id
+        if (guild_id := interaction.guild_id) is None:
+            raise TypeError('guild_id should never be None')
 
         # Get all available filters
         filters_all = await self.bot.lldb.news_filter_list()
@@ -148,7 +152,8 @@ class LiveLaunchNewsSitesFilter(
         await interaction.response.defer(ephemeral=True, thinking=True)
 
         # Guild ID
-        guild_id = interaction.guild_id
+        if (guild_id := interaction.guild_id) is None:
+            raise TypeError('guild_id should never be None')
 
         # Check if guild has settings
         if not await self.bot.lldb.enabled_guilds_check(guild_id):
@@ -160,8 +165,8 @@ class LiveLaunchNewsSitesFilter(
         # Split bulk into a list
         newssites = [i.strip() for i in newssite.split(',')]
 
-        news_site_ids = []
-        news_site_names = []
+        news_site_ids: list[int] = []
+        news_site_names: list[str] = []
         for item in newssites:
 
             try:
@@ -222,7 +227,8 @@ class LiveLaunchNewsSitesFilter(
         await interaction.response.defer(ephemeral=True, thinking=True)
 
         # Guild ID
-        guild_id = interaction.guild_id
+        if (guild_id := interaction.guild_id) is None:
+            raise TypeError('guild_id should never be None')
 
         # Check if guild has settings
         if not await self.bot.lldb.enabled_guilds_check(guild_id):
@@ -234,8 +240,8 @@ class LiveLaunchNewsSitesFilter(
         # Split bulk into a list
         newssites = [i.strip() for i in newssite.split(',')]
 
-        news_site_ids = []
-        news_site_names = []
+        news_site_ids: list[int] = []
+        news_site_names: list[str] = []
         for item in newssites:
 
             try:
@@ -303,5 +309,5 @@ class LiveLaunchNewsSitesFilter(
             logger.error(error)
 
 
-async def setup(bot: commands.Bot):
+async def setup(bot: LiveLaunchBot):
     await bot.add_cog(LiveLaunchNewsSitesFilter(bot))

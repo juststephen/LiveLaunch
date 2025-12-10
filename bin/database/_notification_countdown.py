@@ -1,15 +1,18 @@
 import aiomysql
 from datetime import datetime, timedelta, timezone
+from typing import AsyncGenerator
 
 class NotificationCountdown:
     """
     Notification Countdown table.
     """
+    last_get: datetime
+
     async def notification_countdown_add(
         self,
         guild_id: int,
         minutes: int
-    ) -> str:
+    ) -> None:
         """
         Add a countdown setting
         for the guild with the given
@@ -87,7 +90,10 @@ class NotificationCountdown:
                 (guild_id, index)
             )
 
-    async def notification_countdown_list(self, guild_id: int) -> tuple[int]:
+    async def notification_countdown_list(
+        self,
+        guild_id: int
+    ) -> tuple[tuple[int, int], ...]:
         """
         List all countdown notification
         minutes settings of a guild.
@@ -99,10 +105,10 @@ class NotificationCountdown:
 
         Returns
         -------
-        settings : tuple[
+        settings : tuple[tuple[
             index : int
             minutes : int
-        ]
+        ], ...]
             A list containing all
             the countdown minute
             settings of the guild.
@@ -156,7 +162,7 @@ class NotificationCountdown:
 
     async def notification_countdown_iter(
         self
-    ) -> dict[str, datetime and int and str]:
+    ) -> AsyncGenerator[dict[str, datetime | int | str]]:
         """
         Retrieve all countdown notifications
         that need sending to their respective
@@ -164,7 +170,7 @@ class NotificationCountdown:
 
         Yields
         -------
-        notifications : dict[
+        notifications : AsyncGenerator[dict[
             guild_id : int,
             notification_webhook_url : str,
             button_fc : bool,
@@ -182,7 +188,7 @@ class NotificationCountdown:
             start : datetime,
             scheduled_event_id : int
             type : int
-        ]
+        ]]
             A list containing the
             notification data.
 

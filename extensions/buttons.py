@@ -4,6 +4,7 @@ from discord.ext import commands
 import logging
 
 from bin import enums
+from main import LiveLaunchBot
 
 logger = logging.getLogger(__name__)
 
@@ -11,36 +12,38 @@ class LiveLaunchButtons(commands.Cog):
     """
     Discord.py cog for the button setting command.
     """
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: LiveLaunchBot):
         self.bot = bot
 
     @app_commands.command()
+    @app_commands.default_permissions(administrator=True)
     @app_commands.guild_only()
     @app_commands.checks.has_permissions(administrator=True)
     @app_commands.checks.cooldown(1, 8)
     async def button_settings(
         self,
         interaction: Interaction,
-        button_fc: enums.IncludeExclude = None,
-        button_g4l: enums.IncludeExclude = None,
-        button_sln: enums.IncludeExclude = None,
+        button_fc: enums.IncludeExclude | None = None,
+        button_g4l: enums.IncludeExclude | None = None,
+        button_sln: enums.IncludeExclude | None = None,
     ) -> None:
         """
         Button settings, only for administrators.
 
         Parameters
         ----------
-        button_fc : enums.IncludeExclude, default: None
+        button_fc : enums.IncludeExclude or None, default: None
             Include/exclude a button to Flight Club.
-        button_g4l : enums.IncludeExclude, default: None
+        button_g4l : enums.IncludeExclude or None, default: None
             Include/exclude a button to Go4Liftoff.
-        button_sln : enums.IncludeExclude, default: None
+        button_sln : enums.IncludeExclude or None, default: None
             Include/exclude a button to Space Launch Now.
         """
         await interaction.response.defer(ephemeral=True, thinking=True)
 
         # Guild ID
-        guild_id = interaction.guild_id
+        if (guild_id := interaction.guild_id) is None:
+            raise TypeError('guild_id should never be None')
 
         # Check if anything is enabled
         if not await self.bot.lldb.enabled_guilds_check(guild_id):
@@ -50,7 +53,7 @@ class LiveLaunchButtons(commands.Cog):
             return
 
         # Select desired button settings
-        settings = {}
+        settings: dict[str, bool] = {}
         if button_fc is not None:
             settings['button_fc'] = button_fc is enums.IncludeExclude.Include
         if button_g4l is not None:
@@ -88,5 +91,5 @@ class LiveLaunchButtons(commands.Cog):
             logger.error(error)
 
 
-async def setup(bot: commands.Bot):
+async def setup(bot: LiveLaunchBot):
     await bot.add_cog(LiveLaunchButtons(bot))

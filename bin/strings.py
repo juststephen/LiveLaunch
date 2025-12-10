@@ -32,7 +32,7 @@ def combine_strings(
     """
     combined = ''
     combined_size = 0
-    result = []
+    result: list[str] = []
 
     for string in strings:
         # Count bytes of current string

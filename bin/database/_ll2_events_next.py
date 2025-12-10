@@ -1,4 +1,5 @@
 from itertools import chain
+from typing import Literal
 
 class LL2EventsNext:
     """
@@ -7,40 +8,34 @@ class LL2EventsNext:
     """
     async def ll2_events_next(
         self,
-        guild_id: int,
+        guild_id: int | None,
         amount: int,
-        *,
-        events: bool = False,
-        launches: bool = False
-    ) -> tuple[str]:
+        event_type: Literal['events', 'launches']
+    ) -> tuple[str] | None:
         """
         Get the upcoming events for a guild,
         takes agency filters into account.
 
         Parameters
         ----------
-        guild_id : int
-            Discord guild ID.
+        guild_id : int or None
+            Optional Discord guild ID.
         amount : int
             Amount of IDs to return.
-        events : bool, default: False
-            Select events only.
-        launches : bool, default: False
-            Select launches only.
+        event_type : Literal['events', 'launches']
+            Type of event.
 
         Returns
         -------
-        ll2_ids : tuple[str]
+        ll2_ids : tuple[str] or None
             LL2 IDs of the upcoming
             events or launches.
         """
         # Select the event type
-        if events:
-            event_type = 1
-        elif launches:
-            event_type = 0
+        if event_type == 'events':
+            event_type_int = 1
         else:
-            return
+            event_type_int = 0
 
         # Execute SQL
         async with self.pool.acquire() as con, con.cursor() as cur:
@@ -72,7 +67,7 @@ class LL2EventsNext:
                 LIMIT
                     %s
                 """,
-                (guild_id, event_type, amount)
+                (guild_id, event_type_int, amount)
             )
             # Flatten tuple
             if (results := await cur.fetchall()):

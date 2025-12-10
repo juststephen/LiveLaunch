@@ -1,31 +1,23 @@
 import re
 
-class YouTubeStripVideoID:
+def youtube_strip_video_id(url: str) -> str | None:
     """
-    Strip the YouTube Video
-    ID from a URL if possible,
-    using regex.
+    Try to strip a YouTube Video ID from a URL using regex.
+
+    Parameters
+    ----------
+    url : str
+        Possible YouTube video url.
+
+    Returns
+    -------
+    id : str or None
+        YouTube video ID when it can be found, otherwise it returns None.
     """
-    def __init__(self):
-        self.full = re.compile(r'(?<=youtube.com\/watch\?v=).*').search
-        self.short = re.compile(r'(?<=youtu.be\/).*').search
-
-    def __call__(self, url: str) -> str or None:
-        """
-        Parameters
-        ----------
-        url : str
-            Possible YouTube
-            video url.
-
-        Returns
-        -------
-        id : str or None
-            YouTube video ID when
-            it can be found, otherwise
-            it returns None.
-        """
-        if 'youtube' in url:
-            return self.full(url)
-        elif 'youtu.be' in url:
-            return self.short(url)
+    match = None
+    if 'youtube' in url:
+        match = re.search(r'(?<=youtube.com\/watch\?v=).*', url)
+    elif 'youtu.be' in url:
+        match = re.search(r'(?<=youtu.be\/).*', url)
+    if match:
+        return match.group()

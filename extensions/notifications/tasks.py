@@ -3,11 +3,13 @@ import discord
 from discord.ext import commands, tasks
 from discord.ui import Button, View
 import logging
+from typing import Literal
 
 from bin import (
     convert_minutes,
     LaunchLibrary2 as ll2
 )
+from main import LiveLaunchBot
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +17,7 @@ class LiveLaunchNotificationsTasks(commands.Cog):
     """
     Discord.py cog for sending notifications.
     """
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: LiveLaunchBot):
         self.bot = bot
         # Scheduled event base url
         self.se_url = 'https://discord.com/events/%s/%s'
@@ -33,11 +35,11 @@ class LiveLaunchNotificationsTasks(commands.Cog):
             status = notification['status']
 
             # Only enable video URL when available
+            title_url: dict[Literal['url'], str] = {}
             if (url := notification['url']):
-                title_url = {'url': url}
+                title_url['url'] = url
                 url = f'[Stream]({url})'
             else:
-                title_url = {}
                 url = ll2.no_stream
 
             # Select the correct G4L and SLN base URL
@@ -52,7 +54,7 @@ class LiveLaunchNotificationsTasks(commands.Cog):
             message = {}
 
             # FC, G4L and SLN buttons for the event
-            buttons = []
+            buttons: list[Button[View]] = []
             # Add SLN button
             if notification['button_sln']:
                 buttons.append(
@@ -152,5 +154,5 @@ class LiveLaunchNotificationsTasks(commands.Cog):
                 )
 
 
-async def setup(bot: commands.Bot):
+async def setup(bot: LiveLaunchBot):
     await bot.add_cog(LiveLaunchNotificationsTasks(bot))

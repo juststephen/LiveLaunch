@@ -6,8 +6,10 @@ from discord.ext import commands
 from discord.ui import Button, View
 import logging
 import re
+from typing import Literal
 
 from bin import LaunchLibrary2 as ll2
+from main import LiveLaunchBot
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +17,7 @@ class LiveLaunchNext(commands.Cog):
     """
     Discord.py cog for the next launch and event commands.
     """
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: LiveLaunchBot):
         self.bot = bot
         # Regex check for type checking
         self.type_check = re.compile('^[0-9]+$')
@@ -27,7 +29,7 @@ class LiveLaunchNext(commands.Cog):
         button_settings: dict[str, bool],
         ll2_id: str,
         slug: str
-    ) -> View:
+    ) -> View | None:
         """
         Create buttons if required.
 
@@ -42,7 +44,7 @@ class LiveLaunchNext(commands.Cog):
 
         Returns
         -------
-        buttons : View
+        buttons : View or None
             Created buttons.
         """
         # Select the correct G4L and SLN base URL
@@ -54,7 +56,7 @@ class LiveLaunchNext(commands.Cog):
             sln_url = ll2.sln_launch_url
 
         # FC, G4L and SLN buttons for the event
-        buttons = []
+        buttons: list[Button[View]] = []
         # Add SLN button
         if button_settings['button_sln']:
             buttons.append(
@@ -96,7 +98,7 @@ class LiveLaunchNext(commands.Cog):
 
     def create_single_embed(
         self,
-        item: dict[str, bool and datetime and int and str]
+        item: dict[str, bool | datetime | int | str]
     ) -> discord.Embed:
         """
         Create the embed with
@@ -115,11 +117,11 @@ class LiveLaunchNext(commands.Cog):
         status = item.get('status')
 
         # Only enable video URL when available
+        title_url: dict[Literal['url'], str] = {}
         if (url := item['url']):
-            title_url = {'url': url}
+            title_url['url'] = url
             url = f'[Stream]({url})'
         else:
-            title_url = {}
             url = ll2.no_stream
 
         # Creating embed
@@ -145,9 +147,8 @@ class LiveLaunchNext(commands.Cog):
 
     def create_multi_embed(
         self,
-        items: dict[str, dict[str, bool and datetime and int and str]],
-        events: bool = False,
-        launches: bool = False
+        items: dict[str, dict[str, bool | datetime | int | str]],
+        event_type: Literal['events', 'launches']
     ) -> discord.Embed:
         """
         Create the embed with
@@ -157,26 +158,18 @@ class LiveLaunchNext(commands.Cog):
         ----------
         items : dict[str, dict[str, bool and datetime and int and str]]
             Items for in the message.
-        events : bool, default: False
-            Select events only.
-        launches : bool, default: False
-            Select launches only.
+        event_type : Literal['events', 'launches']
+            Type of event.
 
         Returns
         -------
         embed : discord.Embed
             Created embed.
         """
-        # Select the event type
-        if events:
-            type_name = 'events'
-        elif launches:
-            type_name = 'launches'
-
         # Creating embed
         embed = discord.Embed(
             color=0x00E8FF,
-            title=f'Next {len(items)} {type_name}'
+            title=f'Next {len(items)} {event_type}'
         )
         # Set footer
         embed.set_footer(
@@ -185,9 +178,6 @@ class LiveLaunchNext(commands.Cog):
 
         # Add fields
         for item in items.values():
-            # Get status
-            status = item.get('status')
-
             # Only enable video URL when available
             if (url := item['url']):
                 url = f'[Stream]({url})'
@@ -208,8 +198,7 @@ class LiveLaunchNext(commands.Cog):
         self,
         interaction: Interaction,
         amount: int,
-        events: bool = False,
-        launches: bool = False
+        event_type: Literal['events', 'launches']
     ) -> None:
         """
         Reply with the upcoming items.
@@ -218,10 +207,8 @@ class LiveLaunchNext(commands.Cog):
         ----------
         amount : int
             Amount to return.
-        events : bool, default: False
-            Select events only.
-        launches : bool, default: False
-            Select launches only.
+        event_type : Literal['events', 'launches']
+            Type of event.
         """
         # Check if the command was issued in a DM
         dm = isinstance(interaction.channel, discord.abc.PrivateChannel)
@@ -241,14 +228,13 @@ class LiveLaunchNext(commands.Cog):
         ll2_ids = await self.bot.lldb.ll2_events_next(
             guild_id,
             amount,
-            events=events,
-            launches=launches
+            event_type
         )
 
         # Reply when nothing is found
         if ll2_ids is None:
             await interaction.followup.send(
-                f"No {'events' if events else 'launches'} found."
+                f"No {event_type} found."
             )
             return
 
@@ -274,34 +260,30 @@ class LiveLaunchNext(commands.Cog):
             message['embed'] = self.create_single_embed(items[ll2_id])
 
             # Request button settings
+            button_settings: dict[str, bool] = {
+                'button_fc': items[ll2_id]['flightclub'],
+                'button_g4l': True,
+                'button_sln': True
+            }
             if guild_id is not None:
                 button_settings = await self.bot.lldb.button_settings_get(
                     guild_id,
                     ll2_id
                 )
-            else:
-                button_settings = None
-
-            # Fallback default button settings
-            if button_settings is None:
-                button_settings = {
-                    'button_fc': items[ll2_id]['flightclub'],
-                    'button_g4l': True,
-                    'button_sln': True
-                }
 
             # Create buttons
-            if (buttons := await self.create_buttons(button_settings, ll2_id, items[ll2_id]['slug'])):
+            buttons = await self.create_buttons(
+                button_settings,
+                ll2_id,
+                items[ll2_id]['slug']
+            )
+            if buttons is not None:
                 message['view'] = buttons
 
         # Amount > 1
         else:
             # Create embed
-            message['embed'] = self.create_multi_embed(
-                items,
-                events=events,
-                launches=launches
-            )
+            message['embed'] = self.create_multi_embed(items, event_type)
 
         # Reply
         await interaction.followup.send(**message)
@@ -321,7 +303,7 @@ class LiveLaunchNext(commands.Cog):
         amount : Range[int, 1, 10], default: 1
             Amount of events [1-10].
         """
-        await self.next(interaction, amount, events=True)
+        await self.next(interaction, amount, 'events')
 
     @app_commands.command()
     @app_commands.checks.cooldown(1, 8)
@@ -338,7 +320,7 @@ class LiveLaunchNext(commands.Cog):
         amount : Range[int, 1, 10], default: 1
             Amount of events [1-10].
         """
-        await self.next(interaction, amount, launches=True)
+        await self.next(interaction, amount, 'launches')
 
     @nextevent.error
     @nextlaunch.error
@@ -359,5 +341,5 @@ class LiveLaunchNext(commands.Cog):
             logger.error(error)
 
 
-async def setup(bot: commands.Bot):
+async def setup(bot: LiveLaunchBot):
     await bot.add_cog(LiveLaunchNext(bot))

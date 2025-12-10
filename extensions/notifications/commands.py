@@ -1,18 +1,15 @@
-import aiohttp
 import discord
 from discord import app_commands, Interaction
 from discord.app_commands import AppCommandError, Range
 from discord.ext import commands
 import logging
 
-from bin import (
-    convert_minutes,
-    enums,
-    LaunchLibrary2 as ll2
-)
+from bin import convert_minutes, enums
+from main import LiveLaunchBot
 
 logger = logging.getLogger(__name__)
 
+@app_commands.default_permissions(administrator=True)
 @app_commands.guild_only()
 class LiveLaunchNotificationsCommands(
     commands.GroupCog,
@@ -27,7 +24,7 @@ class LiveLaunchNotificationsCommands(
         name='countdown',
         description='Countdown notification settings'
     )
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: LiveLaunchBot):
         self.bot = bot
 
     @app_commands.command()
@@ -36,30 +33,30 @@ class LiveLaunchNotificationsCommands(
     async def general(
         self,
         interaction: Interaction,
-        everything: enums.EnableDisable = None,
-        events: enums.EnableDisable = None,
-        launches: enums.EnableDisable = None,
-        t0_changes: enums.EnableDisable = None,
-        include_scheduled_events: enums.IncludeExclude = None
+        everything: enums.EnableDisable | None = None,
+        events: enums.EnableDisable | None = None,
+        launches: enums.EnableDisable | None = None,
+        t0_changes: enums.EnableDisable | None = None,
+        include_scheduled_events: enums.IncludeExclude | None = None
     ) -> None:
         """
         General notification settings.
 
         Parameters
         ----------
-        everything : enums.EnableDisable, default: None
+        everything : enums.EnableDisable or None, default: None
             Enable/disable all notification
             settings except for countdowns.
-        events : enums.EnableDisable, default: None
+        events : enums.EnableDisable or None, default: None
             Enable/disable event
             notifications.
-        launches : enums.EnableDisable, default: None
+        launches : enums.EnableDisable or None, default: None
             Enable/disable launch notifications
             (ignores status settings).
-        t0_changes : enums.EnableDisable, default: None
+        t0_changes : enums.EnableDisable or None, default: None
             Enable/disable notifications
             for when T-0 changes.
-        include_scheduled_events : enums.IncludeExclude, default: None
+        include_scheduled_events : enums.IncludeExclude or None, default: None
             Include/exclude Discord
             scheduled events in the
             notification.
@@ -67,7 +64,8 @@ class LiveLaunchNotificationsCommands(
         await interaction.response.defer(ephemeral=True, thinking=True)
 
         # Guild ID
-        guild_id = interaction.guild_id
+        if (guild_id := interaction.guild_id) is None:
+            raise TypeError('guild_id should never be None')
 
         # Check if anything is enabled
         if not await self.bot.lldb.enabled_guilds_check(guild_id):
@@ -79,19 +77,19 @@ class LiveLaunchNotificationsCommands(
         # Select desired settings
         if everything is not None:
             message = 'all'
-            everything = everything is enums.EnableDisable.Enable
+            everything_bool = everything is enums.EnableDisable.Enable
             settings = {
-                'launch': everything,
-                'event': everything,
-                't0_change': everything,
-                'tbd': everything,
-                'tbc': everything,
-                'go': everything,
-                'liftoff': everything,
-                'hold': everything,
-                'deploy': everything,
-                'end_status': everything,
-                'scheduled_event': everything
+                'launch': everything_bool,
+                'event': everything_bool,
+                't0_change': everything_bool,
+                'tbd': everything_bool,
+                'tbc': everything_bool,
+                'go': everything_bool,
+                'liftoff': everything_bool,
+                'hold': everything_bool,
+                'deploy': everything_bool,
+                'end_status': everything_bool,
+                'scheduled_event': everything_bool
             }
         else:
             message = 'selected general'
@@ -126,8 +124,12 @@ class LiveLaunchNotificationsCommands(
         """
         await interaction.response.defer(ephemeral=True, thinking=True)
 
+        # Guild ID
+        if (guild_id := interaction.guild_id) is None:
+            raise TypeError('guild_id should never be None')
+
         # Fetch settings
-        settings = await self.bot.lldb.notification_countdown_list(interaction.guild_id)
+        settings = await self.bot.lldb.notification_countdown_list(guild_id)
 
         # When there are none
         if not settings:
@@ -160,26 +162,27 @@ class LiveLaunchNotificationsCommands(
     async def countdown_add(
         self,
         interaction: Interaction,
-        days: Range[int, 1, 31] = None,
-        hours: Range[int, 1, 24] = None,
-        minutes: Range[int, 1, 60] = None
+        days: Range[int, 1, 31] | None = None,
+        hours: Range[int, 1, 24] | None = None,
+        minutes: Range[int, 1, 60] | None = None
     ) -> None:
         """
         Add a countdown notification.
 
         Parameters
         ----------
-        days : Range[int, 1, 31], default: None
+        days : Range[int, 1, 31] or None, default: None
             Amount of days [1-31].
-        hours : Range[int, 1, 31], default: None
+        hours : Range[int, 1, 31] or None, default: None
             Amount of hours [1-24].
-        minutes : Range[int, 1, 31], default: None
+        minutes : Range[int, 1, 31] or None, default: None
             Amount of minutes [1-60].
         """
         await interaction.response.defer(ephemeral=True, thinking=True)
 
         # Guild ID
-        guild_id = interaction.guild_id
+        if (guild_id := interaction.guild_id) is None:
+            raise TypeError('guild_id should never be None')
 
         # Check if anything is enabled
         if not await self.bot.lldb.enabled_guilds_check(guild_id):
@@ -203,11 +206,9 @@ class LiveLaunchNotificationsCommands(
 
         # Update database when more than 0
         if minutes:
-            await self.bot.lldb.notification_countdown_add(interaction.guild_id, minutes)
+            await self.bot.lldb.notification_countdown_add(guild_id, minutes)
             # Send reply
-            await interaction.followup.send(
-                'Added countdown setting.'
-            )
+            await interaction.followup.send('Added countdown setting.')
         else:
             # Send reply
             await interaction.followup.send(
@@ -236,7 +237,8 @@ class LiveLaunchNotificationsCommands(
         await interaction.response.defer(ephemeral=True, thinking=True)
 
         # Guild ID
-        guild_id = interaction.guild_id
+        if (guild_id := interaction.guild_id) is None:
+            raise TypeError('guild_id should never be None')
 
         # Check if anything is enabled
         if not await self.bot.lldb.enabled_guilds_check(guild_id):
@@ -246,7 +248,7 @@ class LiveLaunchNotificationsCommands(
             return
 
         # Update database
-        await self.bot.lldb.notification_countdown_remove(interaction.guild_id, index)
+        await self.bot.lldb.notification_countdown_remove(guild_id, index)
         # Send reply
         await interaction.followup.send('Removed countdown setting.')
 
@@ -256,45 +258,46 @@ class LiveLaunchNotificationsCommands(
     async def launch_status(
         self,
         interaction: Interaction,
-        end_status: enums.EnableDisable = None,
-        deploy: enums.EnableDisable = None,
-        hold: enums.EnableDisable = None,
-        liftoff: enums.EnableDisable = None,
-        go: enums.EnableDisable = None,
-        tbc: enums.EnableDisable = None,
-        tbd: enums.EnableDisable = None
+        end_status: enums.EnableDisable | None = None,
+        deploy: enums.EnableDisable | None = None,
+        hold: enums.EnableDisable | None = None,
+        liftoff: enums.EnableDisable | None = None,
+        go: enums.EnableDisable | None = None,
+        tbc: enums.EnableDisable | None = None,
+        tbd: enums.EnableDisable | None = None
     ) -> None:
         """
         Launch status notification settings.
 
         Parameters
         ----------
-        end_status : enums.EnableDisable, default: None
+        end_status : enums.EnableDisable or None, default: None
             Enable/disable final
             status notifications.
-        deploy : enums.EnableDisable, default: None
+        deploy : enums.EnableDisable or None, default: None
             Enable/disable payload
             deployed status notifications.
-        hold : enums.EnableDisable, default: None
+        hold : enums.EnableDisable or None, default: None
             Enable/disable
             hold notifications.
-        liftoff : enums.EnableDisable, default: None
+        liftoff : enums.EnableDisable or None, default: None
             Enable/disable liftoff
             notifications.
-        go : enums.EnableDisable, default: None
+        go : enums.EnableDisable or None, default: None
             Enable/disable go for
             launch notifications.
-        tbc : enums.EnableDisable, default: None
+        tbc : enums.EnableDisable or None, default: None
             Enable/disable to be
             confirmed notifications.
-        tbd : enums.EnableDisable, default: None
+        tbd : enums.EnableDisable or None, default: None
             Enable/disable to be
             determined notifications.
         """
         await interaction.response.defer(ephemeral=True, thinking=True)
 
         # Guild ID
-        guild_id = interaction.guild_id
+        if (guild_id := interaction.guild_id) is None:
+            raise TypeError('guild_id should never be None')
 
         # Check if anything is enabled
         if not await self.bot.lldb.enabled_guilds_check(guild_id):
@@ -304,7 +307,7 @@ class LiveLaunchNotificationsCommands(
             return
 
         # Select desired settings
-        settings = {}
+        settings: dict[str, bool] = {}
         if end_status is not None:
             settings['end_status'] = end_status is enums.EnableDisable.Enable
         if deploy is not None:
@@ -356,5 +359,5 @@ class LiveLaunchNotificationsCommands(
             logger.error(error)
 
 
-async def setup(bot: commands.Bot):
+async def setup(bot: LiveLaunchBot):
     await bot.add_cog(LiveLaunchNotificationsCommands(bot))

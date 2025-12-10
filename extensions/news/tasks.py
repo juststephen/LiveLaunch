@@ -5,6 +5,7 @@ from itertools import compress
 import logging
 
 from bin import SpaceflightNewsAPI
+from main import LiveLaunchBot
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +13,7 @@ class LiveLaunchNewsTasks(commands.Cog):
     """
     Discord.py cog for reporting space news.
     """
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: LiveLaunchBot):
         self.bot = bot
         # Spaceflight News API
         self.snapi = SpaceflightNewsAPI()
@@ -123,5 +124,5 @@ class LiveLaunchNewsTasks(commands.Cog):
                 )
 
 
-async def setup(bot: commands.Bot):
+async def setup(bot: LiveLaunchBot):
     await bot.add_cog(LiveLaunchNewsTasks(bot))

@@ -1,4 +1,4 @@
-from googleapiclient.discovery import build
+from googleapiclient.discovery import build, Resource  # type: ignore
 from os import getenv
 
 class YouTubeAPI:
@@ -29,10 +29,13 @@ class YouTubeAPI:
         Stores the API access resource ``googleapiclient.discovery.build``
         into the `.youtube` variable.
         """
-        self.youtube = build(self._API_SERVICE_NAME, self._API_VERSION, \
-            developerKey=self._key)
+        self.youtube: Resource = build(
+            self._API_SERVICE_NAME,
+            self._API_VERSION,
+            developerKey=self._key
+        )
 
-    def get_channel_thumbtitle(self, id: str) -> dict[str, str] or None:
+    def get_channel_thumbtitle(self, id: str) -> tuple[str, str] | None:
         """
         Retrieves a thumbnail URL and title for a given YouTube channel ID.
 
@@ -43,7 +46,7 @@ class YouTubeAPI:
 
         Returns
         -------
-        (thumb, title) : tuple of two strings or None
+        (thumb, title) : tuple[str, str] or None
             Returns the thumbnail and channel title or None if it fails.
         """
         try:
@@ -52,46 +55,14 @@ class YouTubeAPI:
                 id=id,
                 fields='items/snippet(title,thumbnails/default/url)'
             ).execute()
-            thumb = response['items'][0]['snippet']['thumbnails']['default']['url']
-            title = response['items'][0]['snippet']['title']
+            snippet = response['items'][0]['snippet']
+            thumb = snippet['thumbnails']['default']['url']
+            title = snippet['title']
             return thumb, title
         except:
             return None
 
-    def get_channel_broadcasts(self, id: str, eventType: str = 'upcoming', maxResults: int = 8) -> list[str] or None:
-        """
-        #### DEPRECATED ####
-
-        Retrieves broadcast URLs for a given YouTube channel id.
-
-        Parameters
-        ----------
-        id : str
-            YouTube channel ID.
-        eventType : int, default: 'upcoming'
-            What videos to search for.
-        maxResults : int, default: 8
-            maximum amount of returned results.
-
-        Returns
-        -------
-        videos : list containing strings or None
-            Returns a list containing URLs or None if it fails.
-        """
-        try:
-            response = self.youtube.search().list(
-                part='snippet',
-                channelId=id,
-                eventType=eventType,
-                maxResults=maxResults,
-                type='video',
-                fields='items/id/videoId'
-            ).execute()
-            return [f"https://www.youtube.com/watch?v={i['id']['videoId']}" for i in response['items']]
-        except:
-            return None
-
-    def get_channel_from_video(self, id: str) -> str or None:
+    def get_channel_from_video(self, id: str) -> str | None:
         """
         Uses a YouTube video ID to find the corresponding channel ID.
 
@@ -103,7 +74,7 @@ class YouTubeAPI:
         Returns
         -------
         channel : str or None
-            Returns a string containing the channel ID or None if it fails. 
+            Returns a string containing the channel ID or None if it fails.
         """
         try:
             response = self.youtube.videos().list(

@@ -1,7 +1,5 @@
-import asyncio
 from bs4 import BeautifulSoup
 import json
-import os
 from os.path import isfile
 
 from bin import get

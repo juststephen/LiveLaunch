@@ -6,11 +6,11 @@ class ButtonSettings:
     """
     async def button_settings_edit(
         self,
-        guild_id,
+        guild_id : int,
         *,
-        button_fc: bool = None,
-        button_g4l: bool = None,
-        button_sln: bool = None
+        button_fc: bool | None = None,
+        button_g4l: bool | None = None,
+        button_sln: bool | None = None
     ) -> None:
         """
         Modify the button
@@ -20,17 +20,18 @@ class ButtonSettings:
         ----------
         guild_id : int
             Discord guild ID.
-        button_fc : bool, default: None
+        button_fc : bool or None, default: None
             Include/exclude a button
             to Flight Club in notifications.
-        button_g4l : bool, default: None
+        button_g4l : bool or None, default: None
             Include/exclude a button
             to Go4Liftoff in notifications.
-        button_sln : bool, default: None
+        button_sln : bool or None, default: None
             Include/exclude a button
             to Space Launch Now in notifications.
         """
-        cols, args = [], []
+        cols: list[str] = []
+        args: list[bool | int] = []
         # Update button_fc if given
         if button_fc is not None:
             cols.append('notification_button_fc=%s')

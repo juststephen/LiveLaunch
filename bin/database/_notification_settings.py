@@ -1,24 +1,22 @@
-import aiomysql
-
 class NotificationSettings:
     """
     Access notification settings.
     """
     async def notification_settings_edit(
         self,
-        guild_id,
+        guild_id : int,
         *,
-        launch: bool = None,
-        event: bool = None,
-        t0_change: bool = None,
-        tbd: bool = None,
-        tbc: bool = None,
-        go: bool = None,
-        liftoff: bool = None,
-        hold: bool = None,
-        deploy: bool = None,
-        end_status: bool = None,
-        scheduled_event: bool = None
+        launch: bool | None = None,
+        event: bool | None = None,
+        t0_change: bool | None = None,
+        tbd: bool | None = None,
+        tbc: bool | None = None,
+        go: bool | None = None,
+        liftoff: bool | None = None,
+        hold: bool | None = None,
+        deploy: bool | None = None,
+        end_status: bool | None = None,
+        scheduled_event: bool | None = None
     ) -> None:
         """
         Modify the notification
@@ -28,42 +26,43 @@ class NotificationSettings:
         ----------
         guild_id : int
             Discord guild ID.
-        launch : bool, default: None
+        launch : bool or None, default: None
             Enable/disable launch
             notifications.
-        event : bool, default: None
+        event : bool or None, default: None
             Enable/disable event
             notifications.
-        t0_change : bool, default: None
+        t0_change : bool or None, default: None
             Enable/disable notifications
             for when start changes.
-        tbd : bool, default: None
+        tbd : bool or None, default: None
             Enable/disable tbd
             notifications.
-        tbc : bool, default: None
+        tbc : bool or None, default: None
             Enable/disable tbc
             notifications.
-        go : bool, default: None
+        go : bool or None, default: None
             Enable/disable go
             notifications.
-        liftoff : bool, default: None
+        liftoff : bool or None, default: None
             Enable/disable launch
             liftoff notifications.
-        hold : bool, default: None
+        hold : bool or None, default: None
             Enable/disable launch
             hold notifications.
-        deploy : bool, default: None
+        deploy : bool or None, default: None
             Enable/disable payload
             deployed status notifications.
-        end_status : bool, default: None
+        end_status : bool or None, default: None
             Enable/disable launch
             end status notifications.
-        scheduled_event : bool, default: None
+        scheduled_event : bool or None, default: None
             Include/exclude Discord
             scheduled events in the
             notification when available.
         """
-        cols, args = [], []
+        cols: list[str] = []
+        args: list[bool | int] = []
         # Update launch if given
         if launch is not None:
             cols.append('notification_launch=%s')

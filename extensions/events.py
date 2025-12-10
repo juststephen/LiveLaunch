@@ -4,6 +4,7 @@ from discord.ext import commands
 import logging
 
 from bin import enums
+from main import LiveLaunchBot
 
 logger = logging.getLogger(__name__)
 
@@ -11,39 +12,41 @@ class LiveLaunchEvents(commands.Cog):
     """
     Discord.py cog for event commands.
     """
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: LiveLaunchBot):
         self.bot = bot
 
     @app_commands.command()
+    @app_commands.default_permissions(administrator=True)
     @app_commands.guild_only()
     @app_commands.checks.has_permissions(administrator=True)
     @app_commands.checks.cooldown(1, 8)
     async def event_settings(
         self,
         interaction: Interaction,
-        events: enums.EnableDisable = None,
-        launches: enums.EnableDisable = None,
-        no_url: enums.HideShow = None,
+        events: enums.EnableDisable | None = None,
+        launches: enums.EnableDisable | None = None,
+        no_url: enums.HideShow | None = None,
     ) -> None:
         """
         Event settings, only for administrators.
 
         Parameters
         ----------
-        events : enums.EnableDisable, default: None
+        events : enums.EnableDisable or None, default: None
             Enable/disable other
             scheduled events.
-        launches : enums.EnableDisable, default: None
+        launches : enums.EnableDisable or None, default: None
             Enable/disable launch
             scheduled events.
-        no_url : enums.HideShow, default: None
+        no_url : enums.HideShow or None, default: None
             Hide/show scheduled events
             without live stream URLs.
         """
         await interaction.response.defer(ephemeral=True, thinking=True)
 
         # Guild ID
-        guild_id = interaction.guild_id
+        if (guild_id := interaction.guild_id) is None:
+            raise TypeError('guild_id should never be None')
 
         # Check if anything is enabled
         if not await self.bot.lldb.enabled_guilds_check(guild_id):
@@ -52,7 +55,7 @@ class LiveLaunchEvents(commands.Cog):
             )
             return
 
-        settings = {}
+        settings: dict[str, bool] = {}
         if events is not None:
             settings['event'] = events is enums.EnableDisable.Enable
         if launches is not None:
@@ -62,7 +65,9 @@ class LiveLaunchEvents(commands.Cog):
 
         # Update database
         if settings:
-            await self.bot.lldb.scheduled_events_settings_edit(guild_id, **settings)
+            await self.bot.lldb.scheduled_events_settings_edit(
+                guild_id, **settings
+            )
 
         # Send reply
         await interaction.followup.send('Changed event settings.')
@@ -90,5 +95,5 @@ class LiveLaunchEvents(commands.Cog):
             logger.error(error)
 
 
-async def setup(bot: commands.Bot):
+async def setup(bot: LiveLaunchBot):
     await bot.add_cog(LiveLaunchEvents(bot))

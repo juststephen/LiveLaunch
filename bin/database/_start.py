@@ -10,7 +10,7 @@ class Start:
     """
     Class containing the database pool connect and disconnect logic.
     """
-    async def start(self) -> bool:
+    async def start(self) -> None:
         """
         Creates the LiveLaunch database connection pool
         and required tables if they don't exist yet.

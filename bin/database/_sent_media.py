@@ -7,9 +7,9 @@ class SentMedia:
     async def sent_media_add(
         self,
         *,
-        snapi_id: int = None,
-        yt_vid_id: str = None,
-        timestamp: datetime = None
+        snapi_id: int | None = None,
+        yt_vid_id: str | None = None,
+        timestamp: datetime | None = None
     ) -> None:
         """
         Adds an entry in the specified sent media
@@ -17,11 +17,11 @@ class SentMedia:
 
         Parameters
         ----------
-        snapi_id : int, default: None
+        snapi_id : int or None, default: None
             SNAPI article ID.
-        yt_vid_id : str, default: None
+        yt_vid_id : str or None, default: None
             YouTube video ID.
-        timestamp : datetime, default: None
+        timestamp : datetime or None, default: None
             Datetime object, when default,
             the current UTC datetime is used.
         """
@@ -68,8 +68,8 @@ class SentMedia:
     async def sent_media_exists(
         self,
         *,
-        snapi_id: int = None,
-        yt_vid_id: str = None,
+        snapi_id: int | None = None,
+        yt_vid_id: str | None = None,
     ) -> bool:
         """
         Checks if an entry exists in the specified
@@ -77,9 +77,9 @@ class SentMedia:
 
         Parameters
         ----------
-        snapi_id : int, default: None
+        snapi_id : int or None, default: None
             SNAPI article ID.
-        yt_vid_id : str, default: None
+        yt_vid_id : str or None, default: None
             YouTube video ID.
 
         Returns

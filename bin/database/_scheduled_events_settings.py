@@ -5,11 +5,11 @@ class ScheduledEventsSettings:
     """
     async def scheduled_events_settings_edit(
         self,
-        guild_id,
+        guild_id: int,
         *,
-        launch: bool = None,
-        event: bool = None,
-        no_url: bool = None
+        launch: bool | None = None,
+        event: bool | None = None,
+        no_url: bool | None = None
     ) -> None:
         """
         Modify the scheduled events
@@ -19,17 +19,18 @@ class ScheduledEventsSettings:
         ----------
         guild_id : int
             Discord guild ID.
-        launch : bool, default: None
+        launch : bool or None, default: None
             Enable/disable launch
             scheduled events.
-        event : bool, default: None
+        event : bool or None, default: None
             Enable/disable event
             scheduled events.
-        no_url : bool, default: None
+        no_url : bool or None, default: None
             Enable/disable scheduled
             events without a URL.
         """
-        cols, args = [], []
+        cols: list[str] = []
+        args: list[bool | int] = []
         # Update launch if given
         if launch is not None:
             cols.append('se_launch=%s')

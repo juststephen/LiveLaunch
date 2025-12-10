@@ -1,4 +1,5 @@
 import aiomysql
+from typing import AsyncGenerator
 
 class ScheduledEvents:
     """
@@ -66,7 +67,7 @@ class ScheduledEvents:
         self,
         guild_id: int,
         ll2_id: str
-    ) -> int:
+    ) -> int | None:
         """
         Get the scheduled event ID of an LL2 event
         in a Guild if enabled in settings.
@@ -80,7 +81,7 @@ class ScheduledEvents:
 
         Returns
         -------
-        scheduled_event_id : int
+        scheduled_event_id : int or None
             Discord scheduled event ID.
         """
         async with self.pool.acquire() as con, con.cursor() as cur:
@@ -109,7 +110,7 @@ class ScheduledEvents:
     async def scheduled_events_guild_id_iter(
         self,
         guild_id: int
-    ) -> int or None:
+    ) -> AsyncGenerator[int]:
         """
         Iterate over the scheduled events
         of the Discord guild.
@@ -122,8 +123,8 @@ class ScheduledEvents:
 
         Yields
         ------
-        scheduled_event_id : int
-            Discord scheduled event ID.
+        scheduled_event_id : AsyncGenerator[int]
+            Discord scheduled event IDs.
         """
         async with self.pool.acquire() as con, con.cursor() as cur:
             await cur.execute(
@@ -140,7 +141,7 @@ class ScheduledEvents:
     async def scheduled_events_ll2_id_iter(
         self,
         ll2_id: str
-    ) -> tuple[int] or None:
+    ) -> AsyncGenerator[tuple[int, int]]:
         """
         Iterate over the scheduled events
         of the LL2 event, can be used
@@ -155,10 +156,10 @@ class ScheduledEvents:
 
         Yields
         ------
-        tuple[
+        AsyncGenerator[tuple[
             scheduled_event_id: int
             guild_id: int
-        ] or None
+        ]]
             Yields row with of a scheduled
             event linked to the LL2 event.
         """
@@ -174,7 +175,9 @@ class ScheduledEvents:
             async for row in cur:
                 yield row
 
-    async def scheduled_events_remove_iter(self) -> dict[str, int and bool]:
+    async def scheduled_events_remove_iter(
+        self
+    ) -> AsyncGenerator[dict[str, int | bool]]:
         """
         Asynchronous iterator that goes over
         Discord scheduled events that need
@@ -182,11 +185,11 @@ class ScheduledEvents:
 
         Yields
         ------
-        dict[
+        AsyncGenerator[dict[
             guild_id : int,
             scheduled_event_id : int,
             create_remove : bool = False
-        ]
+        ]]
         """
         async with (
             self.pool.acquire() as con,
@@ -286,7 +289,9 @@ class ScheduledEvents:
                 row['create_remove'] = bool(row['create_remove'])
                 yield row
 
-    async def scheduled_events_create_iter(self) -> dict[str, int and str and bool]:
+    async def scheduled_events_create_iter(
+        self
+    ) -> AsyncGenerator[dict[str, bool | int | str]]:
         """
         Asynchronous iterator that goes over
         Launch Library 2 events that need
@@ -294,11 +299,11 @@ class ScheduledEvents:
 
         Yields
         ------
-        dict[
+        AsyncGenerator[dict[
             guild_id : int,
             ll2_id : str,
             create_remove : bool = True
-        ]
+        ]]
         """
         async with (
             self.pool.acquire() as con,
@@ -397,15 +402,15 @@ class ScheduledEvents:
 
     async def scheduled_events_remove_create_iter(
         self
-    ) -> dict[str, int and str and bool]:
+    ) -> AsyncGenerator[dict[str, bool | int | str]]:
         """
         Yields
         ------
-        dict[
+        AsyncGenerator[dict[
             guild_id : int,
             scheduled_event_id : int or ll2_id : str,
             create_remove : bool
-        ]
+        ]]
         """
         async for row in self.scheduled_events_remove_iter():
             yield row

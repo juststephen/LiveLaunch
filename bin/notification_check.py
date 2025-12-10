@@ -23,7 +23,7 @@ class NotificationCheck:
         # 4 week cutoff for T-0 change notifications
         self.timedelta_4w = timedelta(weeks=4)
         # Dictionary containing statuses
-        self.notification_status = {
+        self.notification_status: dict[int, dict[int, int | None]] = {
             1: {1: 1, 2: 2, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 2, 9: 0},
             2: {1: 2, 2: None, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 2, 9: 0},
             3: {i: None for i in range(10)},
@@ -40,8 +40,8 @@ class NotificationCheck:
         old_status: int,
         new_status: int,
         old_start: datetime,
-        new_start: datetime = None
-    ) -> int or None:
+        new_start: datetime | None = None
+    ) -> int | None:
         """
         Receive the notification type.
 
@@ -53,7 +53,7 @@ class NotificationCheck:
             New status ID.
         old_start : datetime
             Old start datetime object.
-        new_start : datetime, default: None
+        new_start : datetime or None, default: None
             New start datetime object.
 
         Returns

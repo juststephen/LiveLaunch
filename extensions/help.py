@@ -3,13 +3,15 @@ from discord.app_commands import AppCommandError
 from discord.ext import commands
 import logging
 
+from main import LiveLaunchBot
+
 logger = logging.getLogger(__name__)
 
 class LiveLaunchHelp(commands.Cog):
     """
     Discord.py cog for supplying help for LiveLaunch.
     """
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: LiveLaunchBot):
         self.bot = bot
 
     @app_commands.command()
@@ -22,13 +24,15 @@ class LiveLaunchHelp(commands.Cog):
         # Create embed
         embed = Embed(
             color=0x00FF00,
-            description='Creates space related events and sends live streams!',
+            description='Creates space related events and sends live streams!\n'
+                '**You can easily manage LiveLaunch from the '
+                '[dashboard](https://livelaunch.juststephen.com/).**',
             title='LiveLaunch - Help',
             url='https://juststephen.com/projects/LiveLaunch'
         )
         # Set author
         embed.set_author(
-            name='by juststephen',
+            name='juststephen',
             url='https://juststephen.com',
             icon_url='https://juststephen.com/images/apple-touch-icon.png'
         )
@@ -107,5 +111,5 @@ class LiveLaunchHelp(commands.Cog):
         logger.error(error)
 
 
-async def setup(bot: commands.Bot):
+async def setup(bot: LiveLaunchBot):
     await bot.add_cog(LiveLaunchHelp(bot))

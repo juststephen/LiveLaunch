@@ -65,9 +65,9 @@ class NewsFilter(Filter):
         self,
         guild_id: int,
         *,
-        news_site_names: list[str] = None,
-        news_site_ids: list[int] = None
-    ) -> list[int and str]:
+        news_site_names: list[str] | None = None,
+        news_site_ids: list[int] | None = None
+    ) -> list[int | str]:
         """
         Add filters for news sites per guild.
 
@@ -75,9 +75,9 @@ class NewsFilter(Filter):
         ----------
         guild_id : int
             Discord guild ID.
-        news_site_names : list[str], default: None
+        news_site_names : list[str] or None, default: None
             News site name list.
-        news_site_ids : list[int], default: None
+        news_site_ids : list[int] or None, default: None
             News site ID list.
 
         Returns
@@ -99,9 +99,9 @@ class NewsFilter(Filter):
         self,
         guild_id: int,
         *,
-        news_site_names: list[str] = None,
-        news_site_ids: list[int] = None
-    ) -> list[int and str]:
+        news_site_names: list[str] | None = None,
+        news_site_ids: list[int] | None = None
+    ) -> list[int | str]:
         """
         Remove filters for news sites per guild.
 
@@ -109,15 +109,15 @@ class NewsFilter(Filter):
         ----------
         guild_id : int
             Discord guild ID.
-        news_site_names : list[str], default: None
+        news_site_names : list[str] or None, default: None
             News site name list.
-        news_site_ids : list[int], default: None
+        news_site_ids : list[int] or None, default: None
             News site ID list.
 
         Returns
         -------
         failed : list[
-            int and str
+            int or str
         ]
             List containing all the
             failed names and IDs.
@@ -132,7 +132,7 @@ class NewsFilter(Filter):
     async def news_filter_list(
         self,
         *,
-        guild_id: int = None
+        guild_id: int | None = None
     ) -> tuple[tuple[int, str]]:
         """
         List available or enabled
@@ -140,7 +140,7 @@ class NewsFilter(Filter):
 
         Parameters
         ----------
-        guild_id : int, default: None
+        guild_id : int or None, default: None
             Discord guild ID, when
             None, return all available
             agencies for filtering.

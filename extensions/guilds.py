@@ -2,6 +2,8 @@ import discord
 from discord.ext import commands
 import logging
 
+from main import LiveLaunchBot
+
 logger = logging.getLogger(__name__)
 
 class LiveLaunchGuilds(commands.Cog):
@@ -9,7 +11,7 @@ class LiveLaunchGuilds(commands.Cog):
     Discord.py cog for keeping track of the guilds it is in.
     This is used by the dashboard.
     """
-    def __init__(self, bot: commands.Bot) -> None:
+    def __init__(self, bot: LiveLaunchBot) -> None:
         self.bot = bot
 
     @commands.Cog.listener('on_ready')
@@ -46,5 +48,5 @@ class LiveLaunchGuilds(commands.Cog):
         await self.bot.lldb.guild_remove(guild.id)
 
 
-async def setup(bot: commands.Bot):
+async def setup(bot: LiveLaunchBot):
     await bot.add_cog(LiveLaunchGuilds(bot))

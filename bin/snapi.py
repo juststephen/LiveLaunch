@@ -1,4 +1,3 @@
-import asyncio
 from datetime import datetime, timedelta, timezone
 from operator import itemgetter
 
@@ -25,7 +24,7 @@ class SpaceflightNewsAPI:
         # SNAPI
         self.snapi_url = 'https://api.spaceflightnewsapi.net/v4/articles/'
 
-    async def __call__(self) -> list[dict[str, datetime and str]]:
+    async def __call__(self) -> list[dict[str, datetime | str]]:
         """
         Fetches news articles from SNAPI,
         only returns articles published
@@ -41,7 +40,7 @@ class SpaceflightNewsAPI:
         # Datetime object to compare with
         now_min5days = datetime.now(timezone.utc) - timedelta(days=5)
         # Iterate over articles to filter and convert
-        filtered_news = []
+        filtered_news: list[dict[str, datetime | str]] = []
         for article in news['results']:
             # Convert `published_at` to datetime
             article['published_at'] = datetime.fromisoformat(

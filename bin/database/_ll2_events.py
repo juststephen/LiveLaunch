@@ -1,7 +1,7 @@
 import aiomysql
 from datetime import datetime, timezone
-
-from ._missing import MISSING
+from discord.utils import MISSING
+from typing import Any, AsyncGenerator, Literal
 
 class LL2Events:
     """
@@ -17,11 +17,11 @@ class LL2Events:
         start: datetime,
         end: datetime,
         slug: str,
-        agency_id: int = None,
-        status: int = None,
+        agency_id: int | None = None,
+        status: int | None = None,
         webcast_live: bool = False,
         flightclub: bool = False,
-        **kwargs
+        **kwargs: Any
     ) -> None:
         """
         Adds an entry in the `ll2_events`
@@ -45,15 +45,16 @@ class LL2Events:
             Event end datetime object.
         slug : str
             Slug of the event.
-        agency_id : int, default: None
+        agency_id : int or None, default: None
             LL2 agency ID.
-        status : int, default: None
+        status : int or None, default: None
             Status ID.
         webcast_live : bool, default: False
             Event is live or not.
         flightclub : bool, default: False
             Event has a Flight Club page.
-        **kwargs
+        **kwargs : Any
+            Ignored kwargs.
         """
         async with self.pool.acquire() as con, con.cursor() as cur:
             await cur.execute(
@@ -100,8 +101,8 @@ class LL2Events:
 
     async def ll2_events_iter(
         self,
-        asc_desc: str = 'asc'
-    ) -> dict[str, bool and datetime and str]:
+        asc_desc: Literal['asc', 'desc'] = 'asc'
+    ) -> AsyncGenerator[dict[str, bool | datetime | str]]:
         """
         Go over every row in the `ll2_events`
         table of the LiveLaunch database by
@@ -109,16 +110,12 @@ class LL2Events:
 
         Parameters
         ----------
-        asc_desc : str, default: 'asc'
-            Order of the results:
-                ` 'asc' `:
-                    Ascending
-                ` 'desc' `:
-                    Descending
+        asc_desc : Literal['asc', 'desc'], default: 'asc'
+            Order of the results.
 
         Yields
         ------
-        dict[
+        AsyncGenerator[dict[
             ll2_id : str,
             agency_id : int,
             name : str,
@@ -131,7 +128,7 @@ class LL2Events:
             webcast_live : bool,
             slug : str,
             flightclub : bool
-        ]
+        ]]
             Yields row with of an LL2
             event with the relevant data.
         """
@@ -140,7 +137,7 @@ class LL2Events:
         elif asc_desc.lower() == 'desc':
             order = 'DESC'
         else:
-            raise Exception('Wrong `asc_desc` value given.')
+            raise ValueError('Wrong `asc_desc` value given.')
 
         async with (
             self.pool.acquire() as con,
@@ -165,7 +162,7 @@ class LL2Events:
     async def ll2_events_get(
         self,
         ll2_id: str
-    ) -> dict[str, datetime and str] or None:
+    ) -> dict[str, datetime | str] | None:
         """
         Retrieves an entry from the `ll2_events`
         table of the LiveLaunch database.
@@ -218,17 +215,17 @@ class LL2Events:
     async def ll2_events_edit(
         self,
         ll2_id: str,
-        agency_id: int = None,
-        name: str = None,
-        status: int = None,
-        description: str = MISSING,
-        url: str = MISSING,
-        image_url: str = MISSING,
-        start: datetime = None,
-        end: datetime = None,
-        webcast_live: bool = None,
-        flightclub: bool = None,
-        **kwargs
+        agency_id: int | None = None,
+        name: str | None = None,
+        status: int | None = None,
+        description: str | None = MISSING,
+        url: str | None = MISSING,
+        image_url: str | None = MISSING,
+        start: datetime | None = None,
+        end: datetime | None = None,
+        webcast_live: bool | None = None,
+        flightclub: bool | None = None,
+        **kwargs: Any
     ) -> None:
         """
         Modifies an entry in the `ll2_events`
@@ -238,29 +235,31 @@ class LL2Events:
         ----------
         ll2_id : str
             Launch Library 2 ID.
-        agency_id : int
+        agency_id : int or None, default: None
             LL2 agency ID.
-        name : str, default: None
+        name : str or None, default: None
             Name of the event.
-        status : int, default: None
+        status : int or None, default: None
             Status ID.
-        description : str, default: MISSING
+        description : str or None, default: MISSING
             Event description.
-        url : str, default: MISSING
+        url : str or None, default: MISSING
             Event live stream URL.
-        image_url : str, default: MISSING
+        image_url : str or None, default: MISSING
             Event cover image URL.
-        start : datetime, default: None
+        start : datetime or None, default: None
             Event start datetime object.
-        end : datetime, default: None
+        end : datetime or None, default: None
             Event end datetime object.
-        webcast_live : bool, default: None
+        webcast_live : bool or None, default: None
             Event is live or not.
-        flightclub : bool, default: None
+        flightclub : bool or None, default: None
             Event has a Flight Club page.
-        **kwargs
+        **kwargs : Any
+            Ignored kwargs.
         """
-        cols, args = [], []
+        cols: list[str] = []
+        args: list[datetime | int | str | None] = []
         # Update variables in the row if given
         if agency_id is not None:
             cols.append('agency_id=%s')

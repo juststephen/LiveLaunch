@@ -5,9 +5,11 @@ from discord.ext import commands
 import logging
 
 from bin import combine_strings, enums
+from main import LiveLaunchBot
 
 logger = logging.getLogger(__name__)
 
+@app_commands.default_permissions(administrator=True)
 @app_commands.guild_only()
 class LiveLaunchAgenciesFilter(
     commands.GroupCog,
@@ -18,7 +20,7 @@ class LiveLaunchAgenciesFilter(
     """
     Discord.py cog for the agencies filter commands.
     """
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: LiveLaunchBot):
         self.bot = bot
 
     @app_commands.command(name='include_exclude')
@@ -42,7 +44,8 @@ class LiveLaunchAgenciesFilter(
         await interaction.response.defer(ephemeral=True, thinking=True)
 
         # Guild ID
-        guild_id = interaction.guild_id
+        if (guild_id := interaction.guild_id) is None:
+            raise TypeError('guild_id should never be None')
 
         # Check if guild has settings
         if not await self.bot.lldb.enabled_guilds_check(guild_id):
@@ -75,7 +78,8 @@ class LiveLaunchAgenciesFilter(
         await interaction.response.defer(ephemeral=True, thinking=True)
 
         # Guild ID
-        guild_id = interaction.guild_id
+        if (guild_id := interaction.guild_id) is None:
+            raise TypeError('guild_id should never be None')
 
         # Get all available filters
         filters_all = await self.bot.lldb.ll2_agencies_filter_list()
@@ -149,7 +153,8 @@ class LiveLaunchAgenciesFilter(
         await interaction.response.defer(ephemeral=True, thinking=True)
 
         # Guild ID
-        guild_id = interaction.guild_id
+        if (guild_id := interaction.guild_id) is None:
+            raise TypeError('guild_id should never be None')
 
         # Check if guild has settings
         if not await self.bot.lldb.enabled_guilds_check(guild_id):
@@ -161,8 +166,8 @@ class LiveLaunchAgenciesFilter(
         # Split bulk into a list
         agencies = [i.strip() for i in agency.split(',')]
 
-        agency_ids = []
-        agency_names = []
+        agency_ids: list[int] = []
+        agency_names: list[str] = []
         for item in agencies:
 
             try:
@@ -223,7 +228,8 @@ class LiveLaunchAgenciesFilter(
         await interaction.response.defer(ephemeral=True, thinking=True)
 
         # Guild ID
-        guild_id = interaction.guild_id
+        if (guild_id := interaction.guild_id) is None:
+            raise TypeError('guild_id should never be None')
 
         # Check if guild has settings
         if not await self.bot.lldb.enabled_guilds_check(guild_id):
@@ -235,8 +241,8 @@ class LiveLaunchAgenciesFilter(
         # Split bulk into a list
         agencies = [i.strip() for i in agency.split(',')]
 
-        agency_ids = []
-        agency_names = []
+        agency_ids: list[int] = []
+        agency_names: list[str] = []
         for item in agencies:
 
             try:
@@ -278,6 +284,7 @@ class LiveLaunchAgenciesFilter(
                 f"couldn\'t remove agency filter(s): `{', '.join(failed)}`."
             )
 
+    @agencyfilter_include_exclude.error
     @agencyfilter_list.error
     @agencyfilter_add.error
     @agencyfilter_remove.error
@@ -303,5 +310,5 @@ class LiveLaunchAgenciesFilter(
             logger.error(error)
 
 
-async def setup(bot: commands.Bot):
+async def setup(bot: LiveLaunchBot):
     await bot.add_cog(LiveLaunchAgenciesFilter(bot))

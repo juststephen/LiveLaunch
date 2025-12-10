@@ -1,40 +1,16 @@
 import asyncio
 from discord import Game, Intents, VoiceClient
-from discord.ext.commands import Bot
+from discord.ext import commands
 from dotenv import load_dotenv
 import logging
 from os import getenv
 from pathlib import Path
+from typing import override
 import warnings
 
 from bin import Database
 
-logging.basicConfig(
-    filename='livelaunch.log',
-    format='{asctime} - {name} - {levelname} - {message}',
-    datefmt='%Y-%m-%d %H:%M:%S',
-    style='{',
-    level=logging.WARNING,
-    encoding='utf-8'
-)
-logger = logging.getLogger('main')
-
-# No Discord voice support required, turn warning off
-VoiceClient.warn_nacl = False
-# Turn off aiomysql table creation warnings
-warnings.filterwarnings(
-    'ignore',
-    message=".*Table '.*' already exists.*",
-    module='aiomysql'
-)
-
-# Loading Discord API token
-load_dotenv()
-if not (TOKEN := getenv('DISCORD_TOKEN')):
-    logger.critical('Cannot find Discord API token, exiting')
-    exit()
-
-class LiveLaunchBot(Bot):
+class LiveLaunchBot(commands.Bot):
     """
     LiveLaunch Discord bot.
     """
@@ -44,8 +20,10 @@ class LiveLaunchBot(Bot):
             help_command=None,
             intents=Intents.default()
         )
+
         # Database object
         self.lldb = Database()
+
         # Extensions to load with database first as others depend on it
         self.initial_extensions  = [
             'extensions.database',
@@ -56,7 +34,8 @@ class LiveLaunchBot(Bot):
             ]
         ]
 
-    def run(self, token: str) -> None:
+    @override
+    def run(self, token: str) -> None:  # type: ignore
         """
         Connect to the database and start the bot.
 
@@ -89,13 +68,42 @@ class LiveLaunchBot(Bot):
         response = await self.tree.sync()
         logger.debug(f'Created application commands: {response}')
 
-bot = LiveLaunchBot()
+    async def on_ready(self) -> None:
+        """
+        On ready event listener.
+        """
+        # Set status
+        await bot.change_presence(activity=Game(name='Kerbal Space Program'))
 
-@bot.event # On startup
-async def on_ready() -> None:
-    # Set status
-    await bot.change_presence(activity=Game(name='Kerbal Space Program'))
-    # Log amount of servers joined
-    logger.info(f'{bot.user} connected to {len(bot.guilds)} servers')
+        # Log amount of servers joined
+        logger.info(f'{bot.user} connected to {len(bot.guilds)} servers')
 
-bot.run(TOKEN)
+
+if __name__ == '__main__':
+    logging.basicConfig(
+        filename='livelaunch.log',
+        format='{asctime} - {name} - {levelname} - {message}',
+        datefmt='%Y-%m-%d %H:%M:%S',
+        style='{',
+        level=logging.WARNING,
+        encoding='utf-8'
+    )
+    logger = logging.getLogger('main')
+
+    # No Discord voice support required, turn warning off
+    VoiceClient.warn_nacl = False
+    # Turn off aiomysql table creation warnings
+    warnings.filterwarnings(
+        'ignore',
+        message=".*Table '.*' already exists.*",
+        module='aiomysql'
+    )
+
+    # Loading Discord API token
+    load_dotenv()
+    if not (token := getenv('DISCORD_TOKEN')):
+        logger.critical('Cannot find Discord API token, exiting')
+        exit()
+
+    bot = LiveLaunchBot()
+    bot.run(token)

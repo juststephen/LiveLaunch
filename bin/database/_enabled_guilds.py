@@ -1,6 +1,6 @@
 import aiomysql
-
-from ._missing import MISSING
+from discord.utils import MISSING
+from typing import AsyncGenerator
 
 class EnabledGuilds:
     """
@@ -9,13 +9,13 @@ class EnabledGuilds:
     async def enabled_guilds_add(
         self,
         guild_id: int,
-        channel_id: int = None,
-        webhook_url: str = None,
+        channel_id: int | None = None,
+        webhook_url: str | None = None,
         scheduled_events: int = 0,
-        news_channel_id: int = None,
-        news_webhook_url: str = None,
-        notification_channel_id: int = None,
-        notification_webhook_url: str = None
+        news_channel_id: int | None = None,
+        news_webhook_url: str | None = None,
+        notification_channel_id: int | None = None,
+        notification_webhook_url: str | None = None
     ) -> None:
         """
         Adds an entry in the `enabled_guilds`
@@ -25,22 +25,22 @@ class EnabledGuilds:
         ----------
         guild_id : int
             Discord guild ID.
-        channel_id : int, default: None
+        channel_id : int or None, default: None
             Discord channel ID.
-        webhook_url : str, default: None
+        webhook_url : str or None, default: None
             Discord webhook URL.
         scheduled_events : int, default: 0
             Maximum amount of events.
-        news_channel_id : int, default: None
+        news_channel_id : int or None, default: None
             Discord channel ID
             for sending news.
-        news_webhook_url : str, default: None
+        news_webhook_url : str or None, default: None
             Discord webhook URL
             for sending news.
-        notification_channel_id : int, default: None
+        notification_channel_id : int or None, default: None
             Discord channel ID for
             sending notifications.
-        notification_webhook_url : str, default: None
+        notification_webhook_url : str or None, default: None
             Discord webhook URL for
             sending notifications.
         """
@@ -117,17 +117,19 @@ class EnabledGuilds:
             )
             return (await cur.fetchone())[0] != 0
 
-    async def enabled_guilds_news_iter(self) -> tuple[int, str]:
+    async def enabled_guilds_news_iter(
+        self
+    ) -> AsyncGenerator[tuple[int, str]]:
         """
         Iterates over the guilds
         that enabled news.
 
         Yields
         ------
-        tuple[
+        AsyncGenerator[tuple[
             guild_id : int,
             news_webhook_url : str
-        ]
+        ]]
             Yields the guild_id,
             news_webhook_url.
         """
@@ -142,7 +144,9 @@ class EnabledGuilds:
             async for row in cur:
                 yield row
 
-    async def enabled_guilds_scheduled_events_iter(self) -> tuple[int]:
+    async def enabled_guilds_scheduled_events_iter(
+        self
+    ) -> AsyncGenerator[tuple[int]]:
         """
         Go over every row in the
         `enabled_guilds` table and
@@ -153,10 +157,10 @@ class EnabledGuilds:
 
         Yields
         ------
-        tuple[
+        AsyncGenerator[tuple[
             guild_id : int,
             amount : int
-        ]
+        ]]
             Yields Discord Guild ID
             when it scheduled events
             are enabled and the amount
@@ -175,7 +179,9 @@ class EnabledGuilds:
             async for row in cur:
                 yield row
 
-    async def enabled_guilds_webhook_iter(self) -> tuple[int, str]:
+    async def enabled_guilds_webhook_iter(
+        self
+    ) -> AsyncGenerator[tuple[int, str]]:
         """
         Go over every row in the
         `enabled_guilds` table and
@@ -183,10 +189,10 @@ class EnabledGuilds:
 
         Yields
         ------
-        tuple[
+        AsyncGenerator[tuple[
             guild_id : int,
             webhook_url : str
-        ]
+        ]]
             Yields Discord Guild ID and
             webhook url when it exists.
         """
@@ -204,7 +210,7 @@ class EnabledGuilds:
     async def enabled_guilds_get(
         self,
         guild_id: int
-    ) -> dict[str, int or str] or None:
+    ) -> dict[str, int | str] | None:
         """
         Retrieves an entry from the `enabled_guilds`
         table of the LiveLaunch database.
@@ -255,13 +261,13 @@ class EnabledGuilds:
 
     async def enabled_guilds_edit(
         self, guild_id: int,
-        channel_id: int = MISSING,
-        webhook_url: str = MISSING,
-        scheduled_events: int = None,
-        news_channel_id: int = MISSING,
-        news_webhook_url: str = MISSING,
-        notification_channel_id: int = MISSING,
-        notification_webhook_url: str = MISSING
+        channel_id: int | None = MISSING,
+        webhook_url: str | None = MISSING,
+        scheduled_events: int | None = None,
+        news_channel_id: int | None = MISSING,
+        news_webhook_url: str | None = MISSING,
+        notification_channel_id: int | None = MISSING,
+        notification_webhook_url: str | None = MISSING
     ) -> None:
         """
         Modifies an entry in the `enabled_guilds`
@@ -271,26 +277,27 @@ class EnabledGuilds:
         ----------
         guild_id : int
             Discord guild ID.
-        channel_id : int, default: `MISSING`
+        channel_id : int or None, default: `MISSING`
             Discord channel ID.
-        webhook_url : str, default: `MISSING`
+        webhook_url : str or None, default: `MISSING`
             Discord webhook URL.
-        scheduled_events : int, default: None
+        scheduled_events : int or None, default: None
             Maximum amount of scheduled events.
-        news_channel_id : int, default: `MISSING`
+        news_channel_id : int or None, default: `MISSING`
             Discord channel ID
             for sending news.
-        news_webhook_url : str, default: `MISSING`
+        news_webhook_url : str or None, default: `MISSING`
             Discord webhook URL
             for sending news.
-        notification_channel_id : int, default: `MISSING`
+        notification_channel_id : int or None, default: `MISSING`
             Discord channel ID for
             sending notifications.
-        notification_webhook_url : str, default: `MISSING`
+        notification_webhook_url : str or None, default: `MISSING`
             Discord webhook URL for
             sending notifications.
         """
-        cols, args = [], []
+        cols: list[str] = []
+        args: list[int | str | None] = []
         # Update channel ID and webhook URL if given
         if (channel_id and webhook_url) is not MISSING:
             cols.append('channel_id=%s')
@@ -351,7 +358,11 @@ class EnabledGuilds:
                     AND
                     eg.webhook_url IS NULL
                     AND
-                    eg.scheduled_events = 0
+                    (
+                        eg.scheduled_events = 0
+                        OR
+                        (eg.se_launch = 0 AND eg.se_event = 0)
+                    )
                     AND
                     eg.news_channel_id IS NULL
                     AND
@@ -363,17 +374,19 @@ class EnabledGuilds:
                 """
             )
 
-    async def enabled_guilds_unused_notification_iter(self) -> tuple[int, str]:
+    async def enabled_guilds_unused_notification_iter(
+        self
+    ) -> AsyncGenerator[tuple[int, str]]:
         """
         Get all Guilds with unused
         notification webhooks.
 
         Yields
         ------
-        tuple[
+        AsyncGenerator[tuple[
             guild_id : int,
             notification_webhook_url : str
-        ]
+        ]]
             Yields the Guild ID and
             notification webhook URL.
         """

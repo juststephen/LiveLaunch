@@ -1,7 +1,6 @@
 import aiohttp
 from discord import (
     app_commands,
-    ChannelType,
     Embed,
     Interaction,
     TextChannel,
@@ -10,10 +9,10 @@ from discord import (
 from discord.app_commands import AppCommandError, Range
 from discord.errors import Forbidden
 from discord.ext import commands
-from itertools import compress
 import logging
 
 from bin import combine_strings, convert_minutes, enums
+from main import LiveLaunchBot
 
 logger = logging.getLogger(__name__)
 
@@ -21,12 +20,13 @@ class LiveLaunchCommand(commands.Cog):
     """
     Discord.py cog for enabling/disabling LiveLaunch in a Discord channel.
     """
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: LiveLaunchBot):
         self.bot = bot
         # Settings
         self.webhook_avatar_path = 'LiveLaunch_Webhook_Avatar.png'
 
     @app_commands.command()
+    @app_commands.default_permissions(administrator=True)
     @app_commands.guild_only()
     @app_commands.checks.has_permissions(administrator=True)
     @app_commands.checks.bot_has_permissions(
@@ -40,29 +40,33 @@ class LiveLaunchCommand(commands.Cog):
     async def enable(
         self,
         interaction: Interaction,
-        notifications: TextChannel = None,
-        news: TextChannel = None,
-        messages: TextChannel = None,
-        events: Range[int, 1, 50] = None
+        notifications: TextChannel | None = None,
+        news: TextChannel | None = None,
+        messages: TextChannel | None = None,
+        events: Range[int, 1, 50] | None = None
     ) -> None:
         """
         Enable LiveLaunch features, only for administrators.
 
         Parameters
         ----------
-        notifications : TextChannel, default: None
+        notifications : TextChannel or None, default: None
             Channel to send
             notifications to.
-        news : TextChannel, default: None
+        news : TextChannel or None, default: None
             Channel to send news to.
-        messages : TextChannel, default: None
+        messages : TextChannel or None, default: None
             Channel to send streams to.
-        events : Range[int, 1, 50], default: None
+        events : Range[int, 1, 50] or None, default: None
             Maximum amount of events to create [1-50].
         """
         await interaction.response.defer(ephemeral=True, thinking=True)
 
-        async def create_webhook(channel: TextChannel, *, feature: str) -> None:
+        async def create_webhook(
+            channel: TextChannel,
+            *,
+            feature: str
+        ) -> str | None:
             """
             Create a webhook for the given channel.
 
@@ -74,6 +78,11 @@ class LiveLaunchCommand(commands.Cog):
             feature : str
                 Feature to mention
                 when it fails.
+
+            Returns
+            -------
+            url : str or None
+                The webhook URL or None if it fails.
             """
             # Read image for the avatar
             webhook_avatar = open(self.webhook_avatar_path, 'rb').read()
@@ -97,7 +106,8 @@ class LiveLaunchCommand(commands.Cog):
                 return url
 
         # Guild ID
-        guild_id = interaction.guild_id
+        if (guild_id := interaction.guild_id) is None:
+            raise TypeError('guild_id should never be None')
 
         # Check if it is already enabled in the guild
         settings = await self.bot.lldb.enabled_guilds_get(guild_id)
@@ -267,6 +277,7 @@ class LiveLaunchCommand(commands.Cog):
             await interaction.followup.send(message)
 
     @app_commands.command()
+    @app_commands.default_permissions(administrator=True)
     @app_commands.guild_only()
     @app_commands.checks.has_permissions(administrator=True)
     @app_commands.checks.cooldown(1, 16)
@@ -286,7 +297,8 @@ class LiveLaunchCommand(commands.Cog):
         await interaction.response.defer(ephemeral=True, thinking=True)
 
         # Guild ID
-        guild_id = interaction.guild_id
+        if (guild_id := interaction.guild_id) is None:
+            raise TypeError('guild_id should never be None')
 
         # Check if anything is enabled
         if not (settings := await self.bot.lldb.enabled_guilds_get(guild_id)):
@@ -363,6 +375,7 @@ class LiveLaunchCommand(commands.Cog):
             )
 
     @app_commands.command()
+    @app_commands.default_permissions(administrator=True)
     @app_commands.guild_only()
     @app_commands.checks.has_permissions(administrator=True)
     @app_commands.checks.cooldown(1, 1024)
@@ -379,7 +392,8 @@ class LiveLaunchCommand(commands.Cog):
         amount = 0
 
         # Guild ID
-        guild_id = interaction.guild_id
+        if (guild_id := interaction.guild_id) is None:
+            raise TypeError('guild_id should never be None')
 
         # Get guild's Discord scheduled events
         discord_events = await self.bot.http.get_scheduled_events(
@@ -389,7 +403,7 @@ class LiveLaunchCommand(commands.Cog):
 
         # Get a list of the scheduled event IDs only made by the bot itself
         discord_events = [
-            int(i['id']) for i in discord_events \
+            int(i['id']) for i in discord_events
             if int(i['creator_id']) == self.bot.application_id
         ]
 
@@ -410,6 +424,7 @@ class LiveLaunchCommand(commands.Cog):
         )
 
     @app_commands.command()
+    @app_commands.default_permissions(administrator=True)
     @app_commands.guild_only()
     @app_commands.checks.has_permissions(administrator=True)
     @app_commands.checks.cooldown(1, 16)
@@ -424,7 +439,8 @@ class LiveLaunchCommand(commands.Cog):
         await interaction.response.defer(ephemeral=True, thinking=True)
 
         # Guild ID
-        guild_id = interaction.guild_id
+        if (guild_id := interaction.guild_id) is None:
+            raise TypeError('guild_id should never be None')
 
         # Check if anything is enabled
         if not (settings := await self.bot.lldb.enabled_guilds_get(guild_id)):
@@ -614,13 +630,13 @@ class LiveLaunchCommand(commands.Cog):
         )
 
         # List countdown settings
-        countdown = await self.bot.lldb.notification_countdown_list(interaction.guild_id)
+        countdown = await self.bot.lldb.notification_countdown_list(guild_id)
         # Add countdown settings
         if countdown:
             embed.add_field(
                 name='Current countdowns',
                 value='```' +
-                    '\n'.join(convert_minutes(j) for i, j in countdown) +
+                    '\n'.join(convert_minutes(i) for _, i in countdown) +
                     '```',
                 inline=False
             )
@@ -661,5 +677,5 @@ class LiveLaunchCommand(commands.Cog):
             logger.error(error)
 
 
-async def setup(bot: commands.Bot):
+async def setup(bot: LiveLaunchBot):
     await bot.add_cog(LiveLaunchCommand(bot))

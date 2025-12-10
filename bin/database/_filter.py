@@ -143,10 +143,12 @@ class Filter:
             List containing all the
             failed names and IDs.
         """
-        data: dict[str, list[int] | list[str] | None] = {
-            tables.name_column: names,
-            tables.id_column: ids
-        }
+        data: dict[str, list[int] | list[str]] = {}
+        if names:
+            data[tables.name_column] = names
+        if ids:
+            data[tables.id_column] = ids
+
         failed: list[int | str] = []
 
         async with self.pool.acquire() as con, con.cursor() as cur:

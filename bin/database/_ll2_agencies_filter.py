@@ -65,9 +65,9 @@ class LL2AgenciesFilter(Filter):
         self,
         guild_id: int,
         *,
-        agency_names: list[str] = None,
-        agency_ids: list[int] = None
-    ) -> list[int and str]:
+        agency_names: list[str] | None = None,
+        agency_ids: list[int] | None = None
+    ) -> list[int | str]:
         """
         Add filters for agencies per guild.
 
@@ -75,9 +75,9 @@ class LL2AgenciesFilter(Filter):
         ----------
         guild_id : int
             Discord guild ID.
-        agency_names : list[str], default: None
+        agency_names : list[str] or None, default: None
             Agency name list.
-        agency_ids : list[int], default: None
+        agency_ids : list[int] or None, default: None
             Agency ID list.
 
         Returns
@@ -99,9 +99,9 @@ class LL2AgenciesFilter(Filter):
         self,
         guild_id: int,
         *,
-        agency_names: list[str] = None,
-        agency_ids: list[int] = None
-    ) -> list[int and str]:
+        agency_names: list[str] | None = None,
+        agency_ids: list[int] | None = None
+    ) -> list[int | str]:
         """
         Remove filters for agencies per guild.
 
@@ -109,9 +109,9 @@ class LL2AgenciesFilter(Filter):
         ----------
         guild_id : int
             Discord guild ID.
-        agency_names : list[str], default: None
+        agency_names : list[str] or None, default: None
             Agency name list.
-        agency_ids : list[int], default: None
+        agency_ids : list[int] or None, default: None
             Agency ID list.
 
         Returns
@@ -132,7 +132,7 @@ class LL2AgenciesFilter(Filter):
     async def ll2_agencies_filter_list(
         self,
         *,
-        guild_id: int = None
+        guild_id: int | None = None
     ) -> tuple[tuple[int, str]]:
         """
         List available or enabled
@@ -140,7 +140,7 @@ class LL2AgenciesFilter(Filter):
 
         Parameters
         ----------
-        guild_id : int, default: None
+        guild_id : int or None, default: None
             Discord guild ID, when
             None, return all available
             agencies for filtering.

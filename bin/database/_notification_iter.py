@@ -1,4 +1,5 @@
 import aiomysql
+from typing import AsyncGenerator
 
 class NotificationIter:
     """
@@ -10,11 +11,11 @@ class NotificationIter:
         *,
         event: bool = False,
         launch: bool = False,
-        ll2_id: str = None,
-        status: int = None,
+        ll2_id: str | None = None,
+        status: int | None = None,
         no_status: bool = False,
         no_t0: bool = False
-    ) -> dict[str, int and str]:
+    ) -> AsyncGenerator[dict[str, int | str]]:
         """
         Request webhooks for guilds with the
         given setting and notifications enabled.
@@ -27,9 +28,9 @@ class NotificationIter:
         launch : bool, default: False
             Whether or not the NET
             change is for a launch.
-        ll2_id : str, default: None
+        ll2_id : str or None, default: None
             Launch Library 2 ID.
-        status : int, default: None
+        status : int or None, default: None
             Status ID.
         no_status : bool, default: False
             Invert the status check
@@ -42,19 +43,19 @@ class NotificationIter:
 
         Yields
         -------
-        notifications : dict[
+        notifications : AsyncGenerator[dict[
             guild_id : int,
             webhook_url : str,
             button_fc : bool,
             button_g4l : bool,
             button_sln : bool,
             scheduled_event_id : int
-        ]
+        ]]
             A dictionary containing the
             guild notification data.
         """
         # Select setting columns
-        settings = []
+        settings: list[str] = []
         status_prefix = 'NOT ' if no_status else ''
 
         # T-0 settings
@@ -68,34 +69,25 @@ class NotificationIter:
             settings.append('eg.notification_launch')
 
         # Status settings
-        if status == 2:
-            settings.append(
-                f'{status_prefix}eg.notification_tbd'
-            )
-        elif status == 8:
-            settings.append(
-                f'{status_prefix}eg.notification_tbc'
-            )
-        elif status == 1:
-            settings.append(
-                f'{status_prefix}eg.notification_go'
-            )
-        elif status == 6:
-            settings.append(
-                f'{status_prefix}eg.notification_liftoff'
-            )
-        elif status == 5:
-            settings.append(
-                f'{status_prefix}eg.notification_hold'
-            )
-        elif status == 9:
-            settings.append(
-                f'{status_prefix}eg.notification_deploy'
-            )
-        elif status in (3, 4, 7):
-            settings.append(
-                f'{status_prefix}eg.notification_end_status'
-            )
+        match status:
+            case 2:
+                key = 'eg.notification_tbd'
+            case 8:
+                key = 'eg.notification_tbc'
+            case 1:
+                key = 'eg.notification_go'
+            case 6:
+                key = 'eg.notification_liftoff'
+            case 5:
+                key = 'eg.notification_hold'
+            case 9:
+                key = 'eg.notification_deploy'
+            case 3 | 4 | 7:
+                key = 'eg.notification_end_status'
+            case _:
+                key = None
+        if key:
+            settings.append(f'{status_prefix}{key}')
 
         # Execute SQL
         async with (

@@ -61,7 +61,7 @@ class ButtonSettings:
         self,
         guild_id: int,
         ll2_id: str,
-    ) -> dict[str, bool]:
+    ) -> dict[str, bool] | None:
         """
         Get the button settings for
         the requested guild.
@@ -79,7 +79,7 @@ class ButtonSettings:
             button_fc : bool,
             button_g4l : bool,
             button_sln : bool
-        ]
+        ] or None
             Button settings
             for the guild.
         """

@@ -234,7 +234,7 @@ class LiveLaunchNext(commands.Cog):
         # Reply when nothing is found
         if ll2_ids is None:
             await interaction.followup.send(
-                f"No {event_type} found."
+                f'No {event_type} found.'
             )
             return
 
@@ -269,7 +269,7 @@ class LiveLaunchNext(commands.Cog):
                 button_settings = await self.bot.lldb.button_settings_get(
                     guild_id,
                     ll2_id
-                )
+                ) or button_settings
 
             # Create buttons
             buttons = await self.create_buttons(

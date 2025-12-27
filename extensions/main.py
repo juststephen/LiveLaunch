@@ -323,7 +323,7 @@ class LiveLaunch(commands.Cog):
         ll2_id: str,
         *,
         cached: dict[str, bool | datetime | int | str],
-        check: dict[str, bool | datetime | int | str]
+        check: dict[str, bool | datetime | int | str | None]
     ) -> None:
         """
         Update scheduled events when any
@@ -335,7 +335,7 @@ class LiveLaunch(commands.Cog):
             Launch Library 2 ID.
         cached: dict[str, bool | datetime | int | str]
             Cached data for the event.
-        check : dict[str, bool | datetime | int | str]
+        check : dict[str, bool | datetime | int | str | None]
             Data from events that changed.
         """
         failed = False
@@ -418,7 +418,7 @@ class LiveLaunch(commands.Cog):
                         del modify['start']
 
                 # Insert a replacement string when there is no stream URL
-                if check.get('url') is None:
+                if check.get('url', False) is None:  # False for no update
                     modify['url'] = ll2.no_stream
 
                 remove_event = False
